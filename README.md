@@ -31,19 +31,40 @@ cp .env.example .env
 
 ### Running with Claude Desktop
 
-1. **Add to Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+#### Quick Start
+
+1. **Find your `uv` path:**
+   ```bash
+   which uv
+   ```
+   Common locations:
+   - `~/.local/bin/uv` (Linux/Mac with curl installer)
+   - `~/.cargo/bin/uv` (installed via cargo)
+   - `/opt/homebrew/bin/uv` (Mac with Homebrew)
+
+2. **Get this repository's path:**
+   ```bash
+   pwd
+   ```
+   (Run this command from the gaggimate-mcp directory)
+
+3. **Open Claude Desktop settings:**
+   - Go to **Settings → Developer → Edit Config**
+   - This opens the MCP server configuration file
+
+4. **Add the configuration:**
 
 ```json
 {
   "mcpServers": {
     "gaggimate": {
-      "command": "uv",
+      "command": "/path/to/uv",
       "args": [
         "--directory",
-        "/absolute/path/to/gaggimate-mcp",
+        "/path/to/gaggimate-mcp",
         "run",
         "mcp",
-        "dev",
+        "run",
         "src/gaggimate_mcp/server.py"
       ]
     }
@@ -51,15 +72,66 @@ cp .env.example .env
 }
 ```
 
-Replace `/absolute/path/to/gaggimate-mcp` with the actual path to this repository.
+**Replace the placeholders:**
+- `/path/to/uv` → Output from `which uv` (step 1)
+- `/path/to/gaggimate-mcp` → Output from `pwd` (step 2)
 
-2. **Restart Claude Desktop**
+**Example (macOS):**
+```json
+{
+  "mcpServers": {
+    "gaggimate": {
+      "command": "/Users/yourname/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/Users/yourname/code/gaggimate-mcp",
+        "run",
+        "mcp",
+        "run",
+        "src/gaggimate_mcp/server.py"
+      ]
+    }
+  }
+}
+```
 
-3. **Verify** - You should see 4 Gaggimate tools available:
-   - `manage_profile` - List/get/create/update espresso profiles
-   - `analyze_shot` - Analyze shot data with AI-friendly format
-   - `update_feedback` - Update ratings and tasting notes
-   - `list_recent_shots` - List shot history with ratings
+5. **Save the config and restart Claude Desktop** (fully quit with Cmd+Q and reopen)
+
+#### Verification
+
+Once Claude Desktop restarts:
+- The Gaggimate server will appear in your MCP servers list
+- **Network requirement:** You must be on the same network as your Gaggimate device
+- The server connects to `gaggimate.local` by default (configurable in `.env`)
+
+**Available tools:**
+- 🔧 `manage_profile` - List/get/create/update espresso profiles
+- 📊 `analyze_shot` - Analyze shot data with AI-friendly format
+- ⭐ `update_feedback` - Update ratings and tasting notes
+- 📋 `list_recent_shots` - List shot history with ratings
+
+#### Troubleshooting
+
+**Server won't start:**
+- ✅ Make sure `uv` path is absolute (not just `uv`)
+- ✅ Verify paths don't have typos
+- ✅ Use `mcp run` not `mcp dev` in the config
+- ✅ Check logs in Settings → Developer → MCP Logs
+
+**Connection errors:**
+- ✅ Ensure you're on the same WiFi network as your Gaggimate
+- ✅ Test connectivity: `ping gaggimate.local`
+- ✅ Check `.env` file has correct `GAGGIMATE_HOST`
+- ✅ If `gaggimate.local` doesn't resolve, find your device's IP in your router and use that instead
+
+**Can't find device:**
+```bash
+# Test if device is reachable
+ping gaggimate.local
+
+# If that fails, try finding it by IP
+# Check your router's connected devices for "Gaggimate"
+```
 
 ### Development & Testing
 
