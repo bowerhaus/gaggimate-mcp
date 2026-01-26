@@ -7,6 +7,10 @@
 - [x] Binary parser for index.bin files
 - [x] Shot transformer (AI-friendly format conversion)
 
+### ⚙️ Implemented (Needs Device Testing)
+- [x] WebSocket client implementation
+- [x] HTTP client implementation
+
 ### 🔄 Needs Device Testing
 
 #### WebSocket Client
