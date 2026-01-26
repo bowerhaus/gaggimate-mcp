@@ -323,7 +323,7 @@ class TestProfile:
     def test_profile_without_id(self):
         """Test profile creation without ID (new profile)."""
         profile = Profile(
-            label="Agent-Test Profile",
+            label="Test Profile [AI]",
             type="pro",
             description="Test profile",
             temperature=93.0,
@@ -337,14 +337,14 @@ class TestProfile:
             ]
         )
         assert profile.id is None
-        assert profile.label == "Agent-Test Profile"
+        assert profile.label == "Test Profile [AI]"
         assert profile.agent_created is True  # Auto-detected from label
 
     def test_profile_with_id(self):
         """Test profile with ID (existing profile)."""
         profile = Profile(
             id="profile-123",
-            label="Agent-Existing",
+            label="Existing [AI]",
             type="pro",
             description="Test",
             temperature=93.0,
@@ -360,9 +360,9 @@ class TestProfile:
         assert profile.id == "profile-123"
 
     def test_profile_agent_created_detection(self):
-        """Test agent_created flag is set based on label prefix."""
+        """Test agent_created flag is set based on label suffix."""
         agent_profile = Profile(
-            label="Agent-TestBean",
+            label="TestBean [AI]",
             type="pro",
             description="Test",
             temperature=93.0,
@@ -396,7 +396,7 @@ class TestProfile:
     def test_profile_json_serialization(self):
         """Test profile can be serialized to JSON."""
         profile = Profile(
-            label="Agent-Test",
+            label="Test [AI]",
             type="pro",
             description="Test",
             temperature=93.0,
@@ -410,7 +410,7 @@ class TestProfile:
             ]
         )
         json_data = profile.model_dump()
-        assert json_data["label"] == "Agent-Test"
+        assert json_data["label"] == "Test [AI]"
         assert json_data["temperature"] == 93.0
         assert len(json_data["phases"]) == 1
 

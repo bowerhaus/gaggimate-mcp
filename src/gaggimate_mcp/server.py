@@ -4,7 +4,7 @@
 
 import json
 import asyncio
-from typing import Optional
+from typing import Optional, Union
 from pydantic import ValidationError
 
 from mcp.server.fastmcp import FastMCP
@@ -95,16 +95,49 @@ async def manage_profile(
     profile_id: Optional[str] = None,
     profile_name: Optional[str] = None,
     temperature: Optional[float] = None,
-    phases: Optional[str] = None
+    phases: Optional[Union[str, list]] = None
 ) -> str:
-    """Manage espresso brewing profiles.
+    """Manage espresso brewing profiles on the Gaggimate espresso machine.
 
     Args:
-        action: Action to perform (list, get, create, update)
+        action: Action to perform:
+            - 'list': List all available profiles
+            - 'get': Get a specific profile by ID
+            - 'create': Create a new profile
+            - 'update': Update an existing profile
         profile_id: Profile ID (required for 'get' and 'update')
-        profile_name: Profile name (required for 'create' and 'update')
-        temperature: Temperature in Celsius (required for 'create' and 'update')
-        phases: JSON string of phases array (required for 'create' and 'update')
+        profile_name: Profile name. IMPORTANT: For agent-created profiles, always add ' [AI]'
+            suffix (e.g., 'Ethiopian Light [AI]') so users can identify AI-created profiles.
+        temperature: Water temperature in Celsius, typically 88-96°C (required for 'create'/'update')
+        phases: Array of brewing phases (required for 'create'/'update'). Each phase object:
+            - name (str): Phase display name (e.g., 'Pre-infusion', 'Extraction', 'Decline')
+            - phase (str): Phase type - 'preinfusion', 'brew', or 'decline'
+            - duration (int): Maximum duration in seconds
+            - valve (int): Valve setting, typically 1
+            - temperature (int): Phase-specific temp offset, typically 0
+            - pump (object): Pump control settings:
+                - target (str): 'pressure' or 'flow'
+                - pressure (float): Pressure in bar (0-12)
+                - flow (float): Flow rate in ml/s
+            - transition (object): How to transition into this phase:
+                - type (str): 'instant', 'linear', 'ease-in', or 'ease-out'
+                - duration (int): Transition duration in seconds
+                - adaptive (bool): Whether transition adapts to conditions
+            - targets (array, optional): Stop conditions to exit phase early:
+                - type (str): 'pressure', 'flow', 'volumetric', or 'pumped'
+                - operator (str): 'gte' (>=) or 'lte' (<=)
+                - value (float): Threshold value
+
+        Example phases for a classic espresso profile:
+        [
+            {"name": "Pre-infusion", "phase": "preinfusion", "valve": 1, "duration": 8,
+             "temperature": 0, "pump": {"target": "flow", "pressure": 3, "flow": 2},
+             "transition": {"type": "instant", "duration": 0, "adaptive": true}},
+            {"name": "Extraction", "phase": "brew", "valve": 1, "duration": 30,
+             "temperature": 0, "pump": {"target": "pressure", "pressure": 9, "flow": 0},
+             "transition": {"type": "ease-in", "duration": 3, "adaptive": true},
+             "targets": [{"type": "volumetric", "operator": "gte", "value": 36}]}
+        ]
 
     Returns:
         JSON string with result
@@ -148,14 +181,17 @@ async def manage_profile(
                     "error": "profile_name, temperature, and phases are required"
                 })
 
-            # Parse phases JSON
-            try:
-                phases_list = json.loads(phases)
-            except json.JSONDecodeError:
-                return json.dumps({
-                    "success": False,
-                    "error": "Invalid JSON in phases parameter"
-                })
+            # Handle phases as either JSON string or already-parsed list
+            if isinstance(phases, list):
+                phases_list = phases
+            else:
+                try:
+                    phases_list = json.loads(phases)
+                except json.JSONDecodeError:
+                    return json.dumps({
+                        "success": False,
+                        "error": "Invalid JSON in phases parameter"
+                    })
 
             # Validate phases structure
             if not isinstance(phases_list, list):
