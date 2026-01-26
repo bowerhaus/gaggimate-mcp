@@ -29,6 +29,7 @@ class GaggimateConfig(BaseSettings):
 
     # Storage
     profiles_dir: Path = Path("./profiles")
+    storage_path: Path = Path("./data")
 
     # Agent settings
     agent_prefix: str = "Agent-"
@@ -36,6 +37,16 @@ class GaggimateConfig(BaseSettings):
     # Observability
     log_level: str = "INFO"
     enable_metrics: bool = True
+
+    @property
+    def host(self) -> str:
+        """Get host (alias for gaggimate_host)."""
+        return self.gaggimate_host
+
+    @property
+    def use_https(self) -> bool:
+        """Check if HTTPS/WSS should be used."""
+        return self.gaggimate_protocol == "wss"
 
     @property
     def websocket_url(self) -> str:

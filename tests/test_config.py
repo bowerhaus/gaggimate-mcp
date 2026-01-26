@@ -1,7 +1,6 @@
 """Tests for configuration management."""
 
 from pathlib import Path
-from pydantic import ValidationError
 from gaggimate_mcp.config import GaggimateConfig
 
 
