@@ -1,58 +1,137 @@
-# Gaggimate MCP Server
+# Gaggimate MCP Server (Python)
 
-MCP server for Gaggimate espresso machine profiles with AI-powered profile optimization. 
+Python MCP server for interactive espresso bean dialing with Gaggimate machines.
 
-Blogpost: https://archestra.ai/blog/brew-by-ai
+## Status: Phase 1 Complete ✅
 
-## Overview
+**Foundation built with comprehensive testing:**
+- 97 tests passing
+- 99% code coverage
+- All core models implemented
+- Configuration & error handling ready
+- Structured logging configured
+- MCP server skeleton created
 
-This MCP server enables an AI feedback loop for perfecting espresso extraction. The AI can read shot history, analyze extraction data, and update the "AI Profile" to continuously improve your espresso shots. This actually works and allows the machine to automatically tune itself to new coffee beans!
-
-### AI Optimization Loop
-
-```mermaid
-graph LR
-    A[Make a Shot] --> B[AI Reads Shot Data via MCP]
-    B --> C[AI Analyzes Extraction]
-    C --> D[AI Updates 'AI Profile']
-    D --> A
-```
-
-The process:
-1. **Make a shot** - Brew espresso using the current AI Profile
-2. **AI analyzes the shot data** - Read temperature curves, pressure profiles, and extraction metrics via MCP
-3. **AI updates the "AI Profile"** - Adjust parameters based on the analysis (temperature, pressure, flow, timing)
-4. **Repeat** - Next shot uses the improved profile
-
-## Quick Start
+## Setup
 
 ```bash
-GAGGIMATE_HOST=192.168.1.100 npx -y matvey-kuk/gaggimate-mcp
+# Install dependencies
+uv sync
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your Gaggimate device hostname
+
+# Run tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=gaggimate_mcp --cov-report=html
+
+# Run MCP server
+uv run mcp dev src/gaggimate_mcp/server.py
 ```
 
-## Environment Variables
+## What's Implemented (Phase 1)
 
-- `GAGGIMATE_HOST`: Device hostname (default: `localhost`)
-- `GAGGIMATE_PROTOCOL`: WebSocket protocol `ws` or `wss` (default: `ws`)
+### Core Infrastructure
+- ✅ **Configuration Management** - Environment-based config with safety limits (96°C, 12 bar)
+- ✅ **Error Handling** - 9 structured error codes with JSON serialization
+- ✅ **Logging** - Structlog with JSON output to stderr (MCP-compliant)
 
-## Tools
+### Data Models (Pydantic)
+- ✅ **Profile Models** - Complete brewing profile structure with validation
+  - PumpSettings, TransitionSettings, TargetCondition, PhaseData
+  - Profile with auto-detection of agent-created profiles
+- ✅ **Shot Models** - Shot analysis and history structures
+  - Metadata, statistics (temp/pressure/flow/extraction)
+  - Phase data, list items for history
+- ✅ **Rating Models** - Shot feedback and tasting notes
+  - Balance/taste enum, rating (0-5 stars), dose tracking
+  - Automatic ratio calculation
 
-- `list_profiles`: List all brewing profiles
-- `get_profile`: Get a specific profile by ID
-- `update_ai_profile`: Update or create the AI Profile for espresso brewing (supports adaptive extraction with stop conditions). This tool can't update other profiles to avoid corrupting them!
-- `list_shot_history`: List brewing history (with optional limit/offset)
-- `get_shot`: Get detailed information about a specific shot by ID
+### MCP Server
+- ✅ **Server with 5 Tools** - FastMCP server with tool implementations
+  - `manage_profile` - Manage brewing profiles (list, get, create, update)
+  - `analyze_shot` - Get comprehensive shot analysis
+  - `record_shot_feedback` - Record ratings and tasting notes
+  - `list_recent_shots` - List recent shots with filtering
+  - `dial_in_assistant` - Interactive bean dialing workflow
 
-## Docker
+## Next Steps (Phase 2)
+
+- [ ] Implement WebSocket client for Gaggimate API
+- [ ] Implement HTTP client for shot history
+- [ ] Binary parsers for .slog and index.bin files
+- [ ] Complete tool implementations (5 MCP tools)
+- [ ] Profile version storage
+- [ ] Integration testing with real device
+
+## Project Structure
+
+```
+gaggimate-mcp/
+├── src/gaggimate_mcp/
+│   ├── config.py           # ✅ Configuration
+│   ├── errors.py           # ✅ Error handling
+│   ├── logging_config.py   # ✅ Logging setup
+│   ├── server.py           # ✅ MCP server with tools
+│   ├── models/             # ✅ Pydantic models
+│   │   ├── profile.py      # ✅ Profile data structures
+│   │   ├── shot.py         # ✅ Shot data structures
+│   │   └── rating.py       # ✅ Rating/feedback structures
+│   ├── api/                # 🔨 API clients (Phase 2)
+│   ├── parsers/            # 🔨 Binary parsers (Phase 2)
+│   ├── tools/              # 🔨 Tool implementations (Phase 2)
+│   └── storage/            # 🔨 Profile versioning (Phase 2)
+├── tests/                  # ✅ 97 tests, 99% coverage
+├── docs/                   # Documentation
+│   ├── planning/           # Implementation planning docs
+│   └── reference/          # Reference documentation
+├── typescript-reference/   # Original TypeScript implementation
+└── profiles/               # Local profile version storage
+```
+
+## Test Coverage
+
+```
+Name                                 Stmts   Miss  Cover
+--------------------------------------------------------
+src/gaggimate_mcp/config.py             26      0   100%
+src/gaggimate_mcp/errors.py             25      1    96%
+src/gaggimate_mcp/logging_config.py     10      0   100%
+src/gaggimate_mcp/models/profile.py     42      0   100%
+src/gaggimate_mcp/models/shot.py        60      0   100%
+src/gaggimate_mcp/models/rating.py      31      0   100%
+--------------------------------------------------------
+TOTAL                                  194      1    99%
+```
+
+## Development
 
 ```bash
-# Build
-npm run build
-docker build -t gaggimate-mcp .
+# Run all tests
+uv run pytest -v
 
-# Run with default settings
-docker run gaggimate-mcp
+# Run with coverage report
+uv run pytest --cov=gaggimate_mcp --cov-report=term-missing
 
-# Run with custom host
-docker run -e GAGGIMATE_HOST=192.168.1.100 gaggimate-mcp
+# Run specific test file
+uv run pytest tests/test_config.py -v
 ```
+
+## Documentation
+
+- [Implementation Plan (Revised)](docs/planning/implementation-plan-revised.md) - Detailed implementation plan following MCP principles
+- [Implementation Questions](docs/planning/implementation-questions.md) - Requirements and design decisions
+- [MCP Server Principles](docs/reference/mcp-server-principles.md) - Design principles for MCP servers
+- [Repository Overview](docs/reference/repository-overview.md) - Overview of the TypeScript reference implementation
+
+## TypeScript Reference
+
+The original TypeScript implementation is available in [`typescript-reference/`](typescript-reference/). See the [TypeScript README](typescript-reference/README.md) for more information.
+
+## Related
+
+- Blog post: [Brew by AI](https://archestra.ai/blog/brew-by-ai)
+- Original repository: [Matvey-Kuk/gaggimate-mcp](https://github.com/Matvey-Kuk/gaggimate-mcp)
