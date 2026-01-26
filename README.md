@@ -10,7 +10,7 @@ Python MCP server for interactive espresso bean dialing with Gaggimate machines.
 - All Phase 2 features implemented
 - Binary parsers for shot files
 - WebSocket & HTTP API clients
-- 4 fully functional MCP tools
+- 5 fully functional MCP tools (including diagnostics)
 - Profile version storage
 - Shot rating storage
 
@@ -33,69 +33,127 @@ cp .env.example .env
 
 #### Quick Start
 
-1. **Find your `uv` path:**
+**Option A: Using the wrapper script (easiest)**
+
+1. **Get this repository's path:**
+   ```bash
+   cd /path/to/gaggimate-mcp
+   pwd
+   ```
+
+2. **Open Claude Desktop settings:**
+   - Go to **Settings → Developer → Edit Config**
+
+3. **Add the configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "gaggimate": {
+         "command": "/path/to/gaggimate-mcp/run-mcp.sh"
+       }
+     }
+   }
+   ```
+   Replace `/path/to/gaggimate-mcp` with the output from step 1.
+
+4. **Save and restart Claude Desktop** (Cmd+Q to quit, then reopen)
+
+**Option B: Direct uv command (recommended)**
+
+1. **Find your `uv` absolute path:**
    ```bash
    which uv
    ```
+   
+   **⚠️ CRITICAL:** You must use the **full absolute path**, not just `uv`. Claude Desktop doesn't have access to your shell's PATH.
+   
    Common locations:
-   - `~/.local/bin/uv` (Linux/Mac with curl installer)
-   - `~/.cargo/bin/uv` (installed via cargo)
-   - `/opt/homebrew/bin/uv` (Mac with Homebrew)
+   - `/Users/yourname/.pyenv/shims/uv` (pyenv)
+   - `/Users/yourname/.local/bin/uv` (curl installer)
+   - `/Users/yourname/.cargo/bin/uv` (cargo)
+   - `/opt/homebrew/bin/uv` (Homebrew on Apple Silicon)
+   - `/usr/local/bin/uv` (Homebrew on Intel Mac)
 
-2. **Get this repository's path:**
+2. **Get this repository's absolute path:**
    ```bash
    pwd
    ```
-   (Run this command from the gaggimate-mcp directory)
+   (Run from the gaggimate-mcp directory)
 
 3. **Open Claude Desktop settings:**
    - Go to **Settings → Developer → Edit Config**
-   - This opens the MCP server configuration file
 
 4. **Add the configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "gaggimate": {
+         "command": "/absolute/path/to/uv",
+         "args": [
+           "--directory",
+           "/absolute/path/to/gaggimate-mcp",
+           "run",
+           "mcp",
+           "run",
+           "src/gaggimate_mcp/server.py"
+         ]
+       }
+     }
+   }
+   ```
 
-```json
-{
-  "mcpServers": {
-    "gaggimate": {
-      "command": "/path/to/uv",
-      "args": [
-        "--directory",
-        "/path/to/gaggimate-mcp",
-        "run",
-        "mcp",
-        "run",
-        "src/gaggimate_mcp/server.py"
-      ]
-    }
-  }
-}
-```
+   **⚠️ Replace both placeholders with your actual paths:**
+   - `/absolute/path/to/uv` → Output from `which uv` (step 1)
+   - `/absolute/path/to/gaggimate-mcp` → Output from `pwd` (step 2)
 
-**Replace the placeholders:**
-- `/path/to/uv` → Output from `which uv` (step 1)
-- `/path/to/gaggimate-mcp` → Output from `pwd` (step 2)
+   **Example (pyenv on macOS):**
+   ```json
+   {
+     "mcpServers": {
+       "gaggimate": {
+         "command": "/Users/yourname/.pyenv/shims/uv",
+         "args": [
+           "--directory",
+           "/Users/yourname/code/gaggimate-mcp",
+           "run",
+           "mcp",
+           "run",
+           "src/gaggimate_mcp/server.py"
+         ]
+       }
+     }
+   }
+   ```
 
-**Example (macOS):**
-```json
-{
-  "mcpServers": {
-    "gaggimate": {
-      "command": "/Users/yourname/.local/bin/uv",
-      "args": [
-        "--directory",
-        "/Users/yourname/code/gaggimate-mcp",
-        "run",
-        "mcp",
-        "run",
-        "src/gaggimate_mcp/server.py"
-      ]
-    }
-  }
-}
-```
+   **Example (Homebrew on macOS):**
+   ```json
+   {
+     "mcpServers": {
+       "gaggimate": {
+         "command": "/opt/homebrew/bin/uv",
+         "args": [
+           "--directory",
+           "/Users/yourname/code/gaggimate-mcp",
+           "run",
+           "mcp",
+           "run",
+           "src/gaggimate_mcp/server.py"
+         ]
+       }
+     }
+   }
+   ```
 
-5. **Save the config and restart Claude Desktop** (fully quit with Cmd+Q and reopen)
+5. **Save and restart Claude Desktop** (Cmd+Q to fully quit, then reopen)
+
+#### Why Absolute Paths Are Required
+
+Claude Desktop spawns MCP servers as separate processes **without your shell environment**. This means:
+- It doesn't load `.bashrc`, `.zshrc`, or any shell profile
+- PATH modifications from tools like pyenv, nvm, rbenv aren't available
+- Commands like `uv` won't be found unless you specify the full path
+
+If you see `Failed to spawn process: No such file or directory` in the MCP logs, this is almost always because the `uv` path isn't absolute.
 
 #### Verification
 
@@ -109,28 +167,64 @@ Once Claude Desktop restarts:
 - 📊 `analyze_shot` - Analyze shot data with AI-friendly format
 - ⭐ `update_feedback` - Update ratings and tasting notes
 - 📋 `list_recent_shots` - List shot history with ratings
+- 🔍 `diagnose_connection` - Troubleshoot connectivity issues
 
 #### Troubleshooting
 
+**"Failed to spawn process: No such file or directory"**
+This is the most common error. It means Claude Desktop can't find `uv`:
+- ❌ **Wrong:** `"command": "uv"` or `"command": "/path/to/uv"`
+- ✅ **Right:** `"command": "/Users/yourname/.pyenv/shims/uv"` (use output from `which uv`)
+
 **Server won't start:**
-- ✅ Make sure `uv` path is absolute (not just `uv`)
-- ✅ Verify paths don't have typos
+- ✅ Make sure `uv` path is the **full absolute path** (run `which uv` to find it)
+- ✅ Verify all paths don't have typos
 - ✅ Use `mcp run` not `mcp dev` in the config
-- ✅ Check logs in Settings → Developer → MCP Logs
+- ✅ Check logs in **Settings → Developer → MCP Logs**
 
 **Connection errors:**
 - ✅ Ensure you're on the same WiFi network as your Gaggimate
 - ✅ Test connectivity: `ping gaggimate.local`
 - ✅ Check `.env` file has correct `GAGGIMATE_HOST`
 - ✅ If `gaggimate.local` doesn't resolve, find your device's IP in your router and use that instead
+- ✅ Use the `diagnose_connection` tool to get automated troubleshooting guidance
+
+**Browser access issues (ERR_CONNECTION_REFUSED):**
+
+If your browser can't connect to `gaggimate.local` but ping works:
+
+1. **Use HTTP explicitly:** Type `http://gaggimate.local` (not `https://`)
+   - Browsers like Brave/Chrome often auto-upgrade to HTTPS, which the GaggiMate doesn't support
+   - The "connection refused" error usually means the browser tried HTTPS on port 443
+
+2. **Clear HSTS cache** (if HTTP still doesn't work):
+   ```
+   - Chrome/Brave: Go to chrome://net-internals/#hsts or brave://net-internals/#hsts
+   - Under "Delete domain security policies", enter: gaggimate.local
+   - Click Delete
+   ```
+
+3. **Use IP address directly:** Find the device IP and use `http://192.168.x.x`
+   ```bash
+   # Get the IP address
+   ping gaggimate.local
+   # Then use: http://192.168.178.117 (example)
+   ```
+
+4. **Bookmark the HTTP URL** to avoid auto-HTTPS issues in the future
 
 **Can't find device:**
 ```bash
 # Test if device is reachable
 ping gaggimate.local
 
-# If that fails, try finding it by IP
-# Check your router's connected devices for "Gaggimate"
+# Check if HTTP port is accessible
+nc -zv gaggimate.local 80
+
+# Use the diagnostic tool via Claude
+# Ask Claude: "diagnose my Gaggimate connection"
+
+# If ping fails, find device by IP via your router's admin page
 ```
 
 ### Development & Testing
