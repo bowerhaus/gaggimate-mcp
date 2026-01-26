@@ -1,7 +1,7 @@
 """Tests for .slog binary shot file parser."""
 
 import struct
-from gaggimate_mcp.parsers.shot import parse_binary_shot, ShotData
+from gaggimate_mcp.parsers.shot import parse_binary_shot
 
 
 class TestBinaryShotParser:

@@ -103,6 +103,43 @@ async def manage_profile(
                     "error": "Invalid JSON in phases parameter"
                 })
 
+            # Validate phases structure
+            if not isinstance(phases_list, list):
+                return json.dumps({
+                    "success": False,
+                    "error": "phases must be a JSON array"
+                })
+
+            if len(phases_list) == 0:
+                return json.dumps({
+                    "success": False,
+                    "error": "At least one phase is required"
+                })
+
+            # Validate each phase has required fields
+            for idx, phase in enumerate(phases_list):
+                if not isinstance(phase, dict):
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Phase {idx} must be an object"
+                    })
+
+                # Check required fields
+                required_fields = ["name", "phase", "duration"]
+                missing = [f for f in required_fields if f not in phase]
+                if missing:
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Phase {idx} missing required fields: {', '.join(missing)}"
+                    })
+
+                # Validate duration is a number
+                if not isinstance(phase["duration"], (int, float)):
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Phase {idx} 'duration' must be a number"
+                    })
+
             # For update, use provided profile_id; for create, find existing by name
             target_id = profile_id
             if action == "update" and not target_id:
