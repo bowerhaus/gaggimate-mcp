@@ -11,7 +11,7 @@ import json
 import time
 import random
 from typing import Optional, Any
-from websockets import connect, WebSocketClientProtocol
+from websockets import connect
 from websockets.exceptions import WebSocketException
 
 from gaggimate_mcp.config import GaggimateConfig
@@ -111,20 +111,20 @@ class GaggimateWebSocketClient:
                     except asyncio.TimeoutError:
                         logger.error("ws_timeout", request_type=request_type, url=self.ws_url)
                         raise GaggimateError(
-                            code=ErrorCode.CONNECTION_ERROR,
+                            code=ErrorCode.TIMEOUT,
                             message=f"Request timeout: No response from {self.ws_url}"
                         )
 
                 # If we exit the loop, timeout occurred
                 raise GaggimateError(
-                    code=ErrorCode.CONNECTION_ERROR,
+                    code=ErrorCode.TIMEOUT,
                     message=f"Request timeout: No matching response for {request_id}"
                 )
 
         except WebSocketException as e:
             logger.error("ws_connection_error", error=str(e), url=self.ws_url)
             raise GaggimateError(
-                code=ErrorCode.CONNECTION_ERROR,
+                code=ErrorCode.WEBSOCKET_ERROR,
                 message=f"WebSocket error: {str(e)}"
             ) from e
         except json.JSONDecodeError as e:

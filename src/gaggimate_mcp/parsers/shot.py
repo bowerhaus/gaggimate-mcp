@@ -187,9 +187,9 @@ def parse_binary_shot(data: bytes, shot_id: str) -> ShotData:
 
     # Calculate sample data size
     fields_per_sample = count_set_bits(fields_mask)
+    if fields_per_sample == 0:
+        raise ValueError(f"Invalid shot file: fields_mask is 0 (no fields recorded)")
     sample_data_size = fields_per_sample * 2  # Each field is 2 bytes
-    total_sample_size = sample_count * sample_data_size
-    expected_size = header_size + total_sample_size
 
     # Determine actual samples (handle truncated files)
     available_data = len(data) - header_size

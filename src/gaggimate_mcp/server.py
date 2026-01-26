@@ -4,6 +4,7 @@
 
 import json
 from typing import Optional
+from pydantic import ValidationError
 
 from mcp.server.fastmcp import FastMCP
 from gaggimate_mcp.config import GaggimateConfig
@@ -159,16 +160,18 @@ async def analyze_shot(shot_id: str) -> str:
     """Get comprehensive shot analysis.
 
     Args:
-        shot_id: Shot ID to analyze
+        shot_id: Shot ID to analyze (will be normalized to 6 digits)
 
     Returns:
         JSON string with shot analysis
     """
-    logger.info("analyze_shot_called", shot_id=shot_id)
+    # Normalize shot ID to 6 digits for consistent lookups
+    normalized_id = shot_id.zfill(6)
+    logger.info("analyze_shot_called", shot_id=shot_id, normalized_id=normalized_id)
 
     try:
-        # Fetch shot data
-        shot_data = await http_client.fetch_shot(shot_id)
+        # Fetch shot data with normalized ID
+        shot_data = await http_client.fetch_shot(normalized_id)
         if not shot_data:
             return json.dumps({
                 "success": False,
@@ -178,8 +181,8 @@ async def analyze_shot(shot_id: str) -> str:
         # Transform for AI analysis
         transformed = transform_shot_for_ai(shot_data)
 
-        # Get rating if available
-        rating_data = rating_storage.get_rating(shot_id)
+        # Get rating if available (using normalized ID)
+        rating_data = rating_storage.get_rating(normalized_id)
 
         return json.dumps({
             "success": True,
@@ -212,19 +215,21 @@ async def record_shot_feedback(
     """Record or update shot rating and tasting notes.
 
     Args:
-        shot_id: Shot ID to rate
+        shot_id: Shot ID to rate (will be normalized to 6 digits)
         rating: Star rating (0-5, optional)
         notes: Tasting notes (optional)
 
     Returns:
         JSON string with confirmation
     """
-    logger.info("record_shot_feedback_called", shot_id=shot_id, rating=rating)
+    # Normalize shot ID to 6 digits for consistent storage
+    normalized_id = shot_id.zfill(6)
+    logger.info("record_shot_feedback_called", shot_id=shot_id, normalized_id=normalized_id, rating=rating)
 
     try:
-        # Create rating object
+        # Create rating object with normalized ID
         shot_rating = ShotRating(
-            shot_id=shot_id,
+            shot_id=normalized_id,
             rating=rating,
             notes=notes
         )
@@ -238,12 +243,19 @@ async def record_shot_feedback(
             "rating": rating_data
         })
 
-    except ValueError as e:
-        # Validation error from Pydantic
+    except ValidationError as e:
+        # Pydantic validation error
         logger.error("record_shot_feedback_validation_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Validation error: {str(e)}"
+        })
+    except ValueError as e:
+        # Other value errors
+        logger.error("record_shot_feedback_value_error", shot_id=shot_id, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Value error: {str(e)}"
         })
     except Exception as e:
         logger.error("record_shot_feedback_unexpected_error", shot_id=shot_id, error=str(e))

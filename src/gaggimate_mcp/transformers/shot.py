@@ -112,11 +112,11 @@ def calculate_summary(shot: ShotData) -> ShotSummary:
     """
     samples = shot.samples
 
-    # Extract values
-    temperatures = [s.get('ct', 0.0) for s in samples]
-    target_temps = [s.get('tt', 0.0) for s in samples]
-    pressures = [s.get('cp', 0.0) for s in samples]
-    flows = [s.get('pf', 0.0) for s in samples]
+    # Extract values - only include samples that have the measurement
+    temperatures = [s['ct'] for s in samples if 'ct' in s]
+    target_temps = [s['tt'] for s in samples if 'tt' in s]
+    pressures = [s['cp'] for s in samples if 'cp' in s]
+    flows = [s['pf'] for s in samples if 'pf' in s]
     times = [s.get('t', 0.0) / 1000.0 for s in samples]  # Convert to seconds
 
     # Temperature summary
@@ -129,7 +129,7 @@ def calculate_summary(shot: ShotData) -> ShotSummary:
 
     # Pressure summary
     peak_pressure = max(pressures) if pressures else 0.0
-    peak_pressure_index = pressures.index(peak_pressure) if pressures else 0
+    peak_pressure_index = pressures.index(peak_pressure) if pressures and peak_pressure > 0 else 0
     peak_time = times[peak_pressure_index] if peak_pressure_index < len(times) else 0.0
 
     pressure_summary = PressureSummary(
@@ -210,9 +210,9 @@ def process_phases(shot: ShotData) -> list[PhaseData]:
             if not phase_samples:
                 continue
 
-            # Calculate phase statistics
-            temperatures = [s.get('ct', 0.0) for s in phase_samples]
-            pressures = [s.get('cp', 0.0) for s in phase_samples]
+            # Calculate phase statistics - only include samples that have the measurement
+            temperatures = [s['ct'] for s in phase_samples if 'ct' in s]
+            pressures = [s['cp'] for s in phase_samples if 'cp' in s]
 
             avg_temp = round(sum(temperatures) / len(temperatures) * 10) / 10 if temperatures else 0.0
             avg_pressure = round(sum(pressures) / len(pressures) * 10) / 10 if pressures else 0.0
