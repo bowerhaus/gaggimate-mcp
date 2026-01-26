@@ -5,6 +5,7 @@
 ### ✅ Already Tested (Unit Tests)
 - [x] Binary parser for .slog files
 - [x] Binary parser for index.bin files
+- [x] Shot transformer (AI-friendly format conversion)
 
 ### 🔄 Needs Device Testing
 
