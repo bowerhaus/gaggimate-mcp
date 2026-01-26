@@ -189,16 +189,24 @@ gaggimate-mcp/
 │   ├── config.py           # ✅ Configuration
 │   ├── errors.py           # ✅ Error handling
 │   ├── logging_config.py   # ✅ Logging setup
-│   ├── server.py           # ✅ MCP server with tools
+│   ├── server.py           # ✅ MCP server with 4 tools
 │   ├── models/             # ✅ Pydantic models
 │   │   ├── profile.py      # ✅ Profile data structures
 │   │   ├── shot.py         # ✅ Shot data structures
 │   │   └── rating.py       # ✅ Rating/feedback structures
-│   ├── api/                # 🔨 API clients (Phase 2)
-│   ├── parsers/            # 🔨 Binary parsers (Phase 2)
-│   ├── tools/              # 🔨 Tool implementations (Phase 2)
-│   └── storage/            # 🔨 Profile versioning (Phase 2)
-├── tests/                  # ✅ 97 tests, 99% coverage
+│   ├── api/                # ✅ API clients
+│   │   ├── websocket.py    # ✅ WebSocket client for profiles
+│   │   └── http.py         # ✅ HTTP client for shot history
+│   ├── parsers/            # ✅ Binary parsers
+│   │   ├── shot.py         # ✅ .slog shot file parser
+│   │   └── index.py        # ✅ index.bin parser
+│   ├── transformers/       # ✅ Data transformers
+│   │   └── shot.py         # ✅ Shot to AI-friendly format
+│   ├── storage/            # ✅ Local storage
+│   │   ├── profiles.py     # ✅ Profile versioning
+│   │   └── ratings.py      # ✅ Shot ratings/notes
+│   └── tools/              # ✅ Tool utilities
+├── tests/                  # ✅ 115 tests, 93% coverage
 ├── docs/                   # Documentation
 │   ├── planning/           # Implementation planning docs
 │   └── reference/          # Reference documentation
@@ -208,18 +216,29 @@ gaggimate-mcp/
 
 ## Test Coverage
 
+**115 tests passing** covering models, parsers, transformers, and core utilities:
+
 ```
-Name                                 Stmts   Miss  Cover
---------------------------------------------------------
-src/gaggimate_mcp/config.py             26      0   100%
-src/gaggimate_mcp/errors.py             25      1    96%
-src/gaggimate_mcp/logging_config.py     10      0   100%
-src/gaggimate_mcp/models/profile.py     42      0   100%
-src/gaggimate_mcp/models/shot.py        60      0   100%
-src/gaggimate_mcp/models/rating.py      31      0   100%
---------------------------------------------------------
-TOTAL                                  194      1    99%
+Module                           Coverage  Notes
+----------------------------------------------------------
+config.py                          94%    Configuration & validation
+errors.py                          96%    Error handling
+logging_config.py                 100%    Logging setup
+models/profile.py                 100%    Profile data structures
+models/shot.py                    100%    Shot data structures
+models/rating.py                  100%    Rating structures
+parsers/shot.py                    95%    Binary .slog parser
+parsers/index.py                   98%    Binary index parser
+transformers/shot.py               99%    AI-friendly transformation
+----------------------------------------------------------
 ```
+
+**Not unit tested** (require device integration testing):
+- `api/http.py` - HTTP client for shot history
+- `api/websocket.py` - WebSocket client for profiles
+- `storage/profiles.py` - Profile version storage
+- `storage/ratings.py` - Rating storage
+- `server.py` - MCP server & tools
 
 ## Development
 
