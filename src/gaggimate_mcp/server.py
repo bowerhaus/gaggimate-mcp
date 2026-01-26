@@ -3,6 +3,7 @@
 #!/usr/bin/env python3
 
 import json
+import asyncio
 from typing import Optional
 from pydantic import ValidationError
 
@@ -16,6 +17,7 @@ from gaggimate_mcp.storage.profiles import ProfileStorage
 from gaggimate_mcp.storage.ratings import RatingStorage
 from gaggimate_mcp.models.rating import ShotRating
 from gaggimate_mcp.errors import GaggimateError
+from gaggimate_mcp.diagnostics import diagnose_connection as run_diagnostics
 
 
 # Initialize configuration and logging
@@ -262,6 +264,47 @@ async def update_feedback(
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def diagnose_connection() -> str:
+    """Run connection diagnostics to troubleshoot device connectivity issues.
+
+    This tool checks:
+    - Device reachability (ping)
+    - HTTP port accessibility
+    - API endpoint availability
+    - HTTPS misconfiguration
+    - Network latency issues
+
+    Returns:
+        JSON string with diagnostic results and troubleshooting recommendations
+    """
+    logger.info("diagnose_connection_called")
+
+    try:
+        results = await run_diagnostics(config)
+
+        # Format for user-friendly output
+        summary = {
+            "status": results["overall_status"],
+            "host": results["host"],
+            "tests": results["tests"],
+            "issues": results["issues"],
+            "recommendations": results["recommendations"]
+        }
+
+        return json.dumps({
+            "success": True,
+            "diagnostics": summary
+        }, indent=2)
+
+    except Exception as e:
+        logger.error("diagnose_connection_error", error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Diagnostics failed: {str(e)}"
         })
 
 
