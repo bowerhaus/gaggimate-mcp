@@ -90,7 +90,7 @@ class GaggimateHTTPClient:
         except aiohttp.ClientError as e:
             logger.error("http_connection_error", error=str(e), url=url)
             raise GaggimateError(
-                code=ErrorCode.CONNECTION_ERROR,
+                code=ErrorCode.DEVICE_UNREACHABLE,
                 message=f"HTTP connection error: {str(e)}"
             ) from e
         except ValueError as e:
@@ -112,10 +112,10 @@ class GaggimateHTTPClient:
         Raises:
             GaggimateError: If request fails (excluding 404)
         """
-        # Pad ID to 6 digits
+        # Normalize ID to 6 digits for both filename and storage
         padded_id = shot_id.zfill(6)
         url = f"{self.base_url}/{padded_id}.slog"
-        logger.info("fetching_shot", shot_id=shot_id, url=url)
+        logger.info("fetching_shot", shot_id=shot_id, padded_id=padded_id, url=url)
 
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
@@ -135,9 +135,9 @@ class GaggimateHTTPClient:
                             message=f"HTTP {response.status}: {response.reason}"
                         )
 
-                    # Parse binary shot data
+                    # Parse binary shot data - use padded_id as canonical ID
                     binary_data = await response.read()
-                    shot_data = parse_binary_shot(binary_data, shot_id)
+                    shot_data = parse_binary_shot(binary_data, padded_id)
 
                     logger.info("shot_fetched", shot_id=shot_id, samples=shot_data.sample_count)
                     return shot_data
@@ -145,7 +145,7 @@ class GaggimateHTTPClient:
         except aiohttp.ClientError as e:
             logger.error("http_connection_error", error=str(e), url=url)
             raise GaggimateError(
-                code=ErrorCode.CONNECTION_ERROR,
+                code=ErrorCode.DEVICE_UNREACHABLE,
                 message=f"HTTP connection error: {str(e)}"
             ) from e
         except ValueError as e:
