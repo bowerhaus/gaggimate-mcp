@@ -2,15 +2,19 @@
 
 Python MCP server for interactive espresso bean dialing with Gaggimate machines.
 
-## Status: Phase 1 Complete ✅
+## Status: Phase 2 Complete ✅ (Pending Device Testing)
 
-**Foundation built with comprehensive testing:**
-- 97 tests passing
-- 99% code coverage
-- All core models implemented
-- Configuration & error handling ready
-- Structured logging configured
-- MCP server skeleton created
+**Full implementation with comprehensive unit testing:**
+- 115 tests passing
+- 93% code coverage
+- All Phase 2 features implemented
+- Binary parsers for shot files
+- WebSocket & HTTP API clients
+- 4 fully functional MCP tools
+- Profile version storage
+- Shot rating storage
+
+**Requires device testing** - Implementation complete, awaiting connection to `gaggimate.local` for integration testing
 
 ## Setup
 
@@ -32,40 +36,112 @@ uv run pytest --cov=gaggimate_mcp --cov-report=html
 uv run mcp dev src/gaggimate_mcp/server.py
 ```
 
-## What's Implemented (Phase 1)
+## What's Implemented
 
-### Core Infrastructure
-- ✅ **Configuration Management** - Environment-based config with safety limits (96°C, 12 bar)
-- ✅ **Error Handling** - 9 structured error codes with JSON serialization
-- ✅ **Logging** - Structlog with JSON output to stderr (MCP-compliant)
+### Phase 1: Foundation ✅
+- **Configuration Management** - Environment-based config with safety limits (96°C, 12 bar)
+- **Error Handling** - 9 structured error codes with JSON serialization
+- **Logging** - Structlog with JSON output to stderr (MCP-compliant)
+- **Data Models** - Pydantic models for profiles, shots, and ratings
 
-### Data Models (Pydantic)
-- ✅ **Profile Models** - Complete brewing profile structure with validation
-  - PumpSettings, TransitionSettings, TargetCondition, PhaseData
-  - Profile with auto-detection of agent-created profiles
-- ✅ **Shot Models** - Shot analysis and history structures
-  - Metadata, statistics (temp/pressure/flow/extraction)
-  - Phase data, list items for history
-- ✅ **Rating Models** - Shot feedback and tasting notes
-  - Balance/taste enum, rating (0-5 stars), dose tracking
-  - Automatic ratio calculation
+### Phase 2: Full Implementation ✅
 
-### MCP Server
-- ✅ **Server with 5 Tools** - FastMCP server with tool implementations
-  - `manage_profile` - Manage brewing profiles (list, get, create, update)
-  - `analyze_shot` - Get comprehensive shot analysis
-  - `record_shot_feedback` - Record ratings and tasting notes
-  - `list_recent_shots` - List recent shots with filtering
-  - `dial_in_assistant` - Interactive bean dialing workflow
+#### Binary Parsers (18 tests, 97-98% coverage)
+- ✅ **`.slog` Parser** - Parse shot log binary files
+  - Supports V4 (128-byte) and V5 (512-byte) headers
+  - Phase transition parsing (V5+)
+  - Field mask-based sample parsing
+  - Truncation handling for incomplete shots
+- ✅ **`index.bin` Parser** - Parse shot history index
+  - Shot metadata extraction
+  - Flag handling (completed, deleted, has notes)
+  - Automatic sorting by timestamp
 
-## Next Steps (Phase 2)
+#### Shot Transformer (7 tests, 99% coverage)
+- ✅ **AI-Friendly Format Conversion**
+  - Summary statistics: temperature, pressure, flow, extraction timing
+  - Phase processing with representative samples
+  - Volume integration from flow data
+  - Preinfusion detection (50% pressure threshold)
 
-- [ ] Implement WebSocket client for Gaggimate API
-- [ ] Implement HTTP client for shot history
-- [ ] Binary parsers for .slog and index.bin files
-- [ ] Complete tool implementations (5 MCP tools)
-- [ ] Profile version storage
-- [ ] Integration testing with real device
+#### API Clients
+- ✅ **WebSocket Client** - Profile operations
+  - `list_profiles()` - List all profiles
+  - `load_profile(id)` - Get specific profile
+  - `save_profile(profile)` - Create/update profile
+  - `create_or_update_profile()` - Simplified profile creation
+  - Request ID matching, timeout handling (5s)
+- ✅ **HTTP Client** - Shot history
+  - `fetch_shot_index()` - Get shot list with pagination
+  - `fetch_shot(id)` - Get specific shot binary data
+  - `list_recent_shots()` - Convenience method
+  - 404 handling for empty history/missing shots
+
+#### Storage Layer
+- ✅ **Profile Version Storage**
+  - Format: `Agent-ProfileName_v1.json`
+  - Automatic version incrementing
+  - Metadata tracking (timestamp, notes)
+  - List/load/search operations
+- ✅ **Rating Storage**
+  - Local JSON file (`data/ratings.json`)
+  - Shot ratings (0-5 stars) and tasting notes
+  - Persistent across sessions
+
+#### MCP Tools (4 fully functional)
+- ✅ **`manage_profile`** - Profile management
+  - Actions: `list`, `get`, `create`, `update`
+  - WebSocket integration for device sync
+  - Local version storage for AI-created profiles
+  - JSON phases parameter for flexible definitions
+- ✅ **`analyze_shot`** - Shot analysis
+  - Fetch binary shot data via HTTP
+  - Transform to AI-friendly format
+  - Enrich with local ratings
+  - Incomplete shot detection
+- ✅ **`record_shot_feedback`** - Save ratings/notes
+  - Optional rating (0-5) and notes
+  - Pydantic validation
+  - Persistent local storage
+- ✅ **`list_recent_shots`** - List history
+  - Pagination support (max 50)
+  - Enriched with user ratings/notes
+  - Sorted by timestamp (newest first)
+
+### Removed
+- ❌ **`dial_in_assistant`** - Too complex for Phase 2 (stateful workflow)
+
+## Implementation Phases
+
+Based on the [Implementation Plan](docs/planning/implementation-plan-revised.md):
+
+- ✅ **Phase 1: Foundation** (Days 1-2) - Models, config, logging, MCP skeleton
+- ✅ **Phase 2: API Client** (Days 3-4) - WebSocket & HTTP clients
+- ✅ **Phase 3: Binary Parsers** (Day 5) - .slog and index.bin parsers
+- ✅ **Phase 4: Core Tools** (Days 6-8) - 4 MCP tools + storage
+- ⏭️ **Phase 5: Advanced Tool** (Days 9-10) - SKIPPED (dial_in_assistant too complex)
+- ⏳ **Phase 6: Testing & Polish** (Days 11-12) - **CURRENT PHASE**
+
+## Next Steps: Phase 6 Testing
+
+See [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) for detailed testing plan.
+
+**Prerequisites:**
+- Connect to home WiFi with access to `gaggimate.local`
+- OR configure VPN to access Gaggimate device
+
+**Testing Tasks:**
+1. Test WebSocket profile operations (list, load, save)
+2. Test HTTP shot history fetching
+3. Verify binary parsers with real device files
+4. End-to-end MCP tool testing via Claude Desktop
+5. Profile version storage validation
+6. Complete bean dialing workflow scenarios
+
+**After Testing:**
+- Fix any bugs discovered during device testing
+- Update documentation with real-world examples
+- Ready for production use!
 
 ## Project Structure
 
