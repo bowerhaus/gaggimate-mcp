@@ -18,6 +18,8 @@ Python MCP server for interactive espresso bean dialing with Gaggimate machines.
 
 ## Setup
 
+### Installation
+
 ```bash
 # Install dependencies
 uv sync
@@ -25,14 +27,50 @@ uv sync
 # Configure environment
 cp .env.example .env
 # Edit .env with your Gaggimate device hostname
+```
 
+### Running with Claude Desktop
+
+1. **Add to Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "gaggimate": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/gaggimate-mcp",
+        "run",
+        "mcp",
+        "dev",
+        "src/gaggimate_mcp/server.py"
+      ]
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/gaggimate-mcp` with the actual path to this repository.
+
+2. **Restart Claude Desktop**
+
+3. **Verify** - You should see 4 Gaggimate tools available:
+   - `manage_profile` - List/get/create/update espresso profiles
+   - `analyze_shot` - Analyze shot data with AI-friendly format
+   - `update_feedback` - Update ratings and tasting notes
+   - `list_recent_shots` - List shot history with ratings
+
+### Development & Testing
+
+```bash
 # Run tests
 uv run pytest
 
 # Run with coverage
 uv run pytest --cov=gaggimate_mcp --cov-report=html
 
-# Run MCP server
+# Run MCP server in development mode (for debugging)
 uv run mcp dev src/gaggimate_mcp/server.py
 ```
 
@@ -99,7 +137,7 @@ uv run mcp dev src/gaggimate_mcp/server.py
   - Transform to AI-friendly format
   - Enrich with local ratings
   - Incomplete shot detection
-- ✅ **`record_shot_feedback`** - Save ratings/notes
+- ✅ **`update_feedback`** - Update ratings/notes
   - Optional rating (0-5) and notes
   - Pydantic validation
   - Persistent local storage

@@ -207,12 +207,12 @@ async def analyze_shot(shot_id: str) -> str:
 
 
 @mcp.tool()
-async def record_shot_feedback(
+async def update_feedback(
     shot_id: str,
     rating: Optional[int] = None,
     notes: Optional[str] = None
 ) -> str:
-    """Record or update shot rating and tasting notes.
+    """Update shot rating and tasting notes.
 
     Args:
         shot_id: Shot ID to rate (will be normalized to 6 digits)
@@ -224,7 +224,7 @@ async def record_shot_feedback(
     """
     # Normalize shot ID to 6 digits for consistent storage
     normalized_id = shot_id.zfill(6)
-    logger.info("record_shot_feedback_called", shot_id=shot_id, normalized_id=normalized_id, rating=rating)
+    logger.info("update_feedback_called", shot_id=shot_id, normalized_id=normalized_id, rating=rating)
 
     try:
         # Create rating object with normalized ID
@@ -245,20 +245,20 @@ async def record_shot_feedback(
 
     except ValidationError as e:
         # Pydantic validation error
-        logger.error("record_shot_feedback_validation_error", shot_id=shot_id, error=str(e))
+        logger.error("update_feedback_validation_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Validation error: {str(e)}"
         })
     except ValueError as e:
         # Other value errors
-        logger.error("record_shot_feedback_value_error", shot_id=shot_id, error=str(e))
+        logger.error("update_feedback_value_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Value error: {str(e)}"
         })
     except Exception as e:
-        logger.error("record_shot_feedback_unexpected_error", shot_id=shot_id, error=str(e))
+        logger.error("update_feedback_unexpected_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"
