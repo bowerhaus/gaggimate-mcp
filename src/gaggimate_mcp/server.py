@@ -15,7 +15,7 @@ from gaggimate_mcp.api.http import GaggimateHTTPClient
 from gaggimate_mcp.transformers.shot import transform_shot_for_ai
 from gaggimate_mcp.storage.profiles import ProfileStorage
 from gaggimate_mcp.storage.ratings import RatingStorage
-from gaggimate_mcp.models.rating import ShotRating
+from gaggimate_mcp.models.rating import ShotRating, BalanceTaste
 from gaggimate_mcp.errors import GaggimateError
 from gaggimate_mcp.diagnostics import diagnose_connection as run_diagnostics
 
@@ -33,6 +33,60 @@ ws_client = GaggimateWebSocketClient(config)
 http_client = GaggimateHTTPClient(config)
 profile_storage = ProfileStorage(config)
 rating_storage = RatingStorage(config)
+
+
+def _get_error_suggestion(error: GaggimateError) -> str:
+    """Generate user-friendly error suggestion based on error code.
+
+    Args:
+        error: GaggimateError instance
+
+    Returns:
+        Helpful suggestion for resolving the error
+    """
+    from gaggimate_mcp.errors import ErrorCode
+
+    suggestions = {
+        ErrorCode.DEVICE_UNREACHABLE: (
+            f"Cannot reach Gaggimate device at {config.host}. "
+            "Please check: 1) Device is powered on, 2) Connected to same network, "
+            "3) Correct IP address/hostname is configured. "
+            "Run 'diagnose_connection' tool for detailed diagnostics."
+        ),
+        ErrorCode.WEBSOCKET_ERROR: (
+            f"WebSocket connection failed to {config.host}. "
+            "Please verify: 1) Device is online, 2) WebSocket port is accessible, "
+            "3) No firewall blocking connection. "
+            "Run 'diagnose_connection' tool for detailed diagnostics."
+        ),
+        ErrorCode.TIMEOUT: (
+            f"Request timed out waiting for response from {config.host}. "
+            "Please check: 1) Device is responding (try accessing web UI), "
+            "2) Network connection is stable, 3) Device is not overloaded. "
+            "Run 'diagnose_connection' tool for detailed diagnostics."
+        ),
+        ErrorCode.API_ERROR: (
+            "Gaggimate API returned an error. "
+            "The request format may be invalid or the device rejected the operation. "
+            "Check the error message for details."
+        ),
+        ErrorCode.PARSE_ERROR: (
+            "Failed to parse response from Gaggimate. "
+            "The device may be running incompatible firmware or the data format changed. "
+            "Consider updating the MCP server or checking device firmware version."
+        ),
+        ErrorCode.PROFILE_NOT_FOUND: (
+            "Profile not found on device. "
+            "Use 'manage_profile' with action='list' to see available profiles."
+        ),
+        ErrorCode.SHOT_NOT_FOUND: (
+            "Shot not found on device. "
+            "Use 'list_recent_shots' to see available shot IDs. "
+            "Note: Shot IDs are 6-digit numbers (e.g., '000100')."
+        ),
+    }
+
+    return suggestions.get(error.code, "Please check the error message and try again.")
 
 
 @mcp.tool()
@@ -180,11 +234,12 @@ async def manage_profile(
             })
 
     except GaggimateError as e:
-        logger.error("manage_profile_error", action=action, error=str(e))
+        logger.error("manage_profile_error", action=action, error=str(e), code=e.code.value)
         return json.dumps({
             "success": False,
             "error": str(e),
-            "code": e.code.value
+            "error_code": e.code.value,
+            "suggestion": _get_error_suggestion(e)
         })
     except Exception as e:
         logger.error("manage_profile_unexpected_error", action=action, error=str(e))
@@ -231,11 +286,12 @@ async def analyze_shot(shot_id: str) -> str:
         })
 
     except GaggimateError as e:
-        logger.error("analyze_shot_error", shot_id=shot_id, error=str(e))
+        logger.error("analyze_shot_error", shot_id=shot_id, error=str(e), code=e.code.value)
         return json.dumps({
             "success": False,
             "error": str(e),
-            "code": e.code.value
+            "error_code": e.code.value,
+            "suggestion": _get_error_suggestion(e)
         })
     except Exception as e:
         logger.error("analyze_shot_unexpected_error", shot_id=shot_id, error=str(e))
@@ -246,58 +302,174 @@ async def analyze_shot(shot_id: str) -> str:
 
 
 @mcp.tool()
-async def update_feedback(
+async def manage_shot_notes(
     shot_id: str,
+    action: str = "update",
     rating: Optional[int] = None,
-    notes: Optional[str] = None
+    notes: Optional[str] = None,
+    balance_taste: Optional[str] = None,
+    grind_setting: Optional[str] = None,
+    dose_in: Optional[float] = None,
+    dose_out: Optional[float] = None,
+    sync_to_device: bool = True
 ) -> str:
-    """Update shot rating and tasting notes.
+    """Manage shot notes and ratings.
+
+    This tool saves feedback to both the Gaggimate device (via WebSocket API)
+    and locally for backup/reference.
 
     Args:
-        shot_id: Shot ID to rate (will be normalized to 6 digits)
+        shot_id: Shot ID (e.g., "100" or "000100" - will be normalized)
+        action: Action to perform - "update", "get", or "get_device" (default: "update")
         rating: Star rating (0-5, optional)
         notes: Tasting notes (optional)
+        balance_taste: Taste balance - "bitter", "balanced", or "sour" (optional)
+        grind_setting: Grinder setting used (optional)
+        dose_in: Coffee dose in grams (optional)
+        dose_out: Espresso output in grams (optional)
+        sync_to_device: Whether to sync to Gaggimate device (default: True)
 
     Returns:
-        JSON string with confirmation
+        JSON string with result
     """
-    # Normalize shot ID to 6 digits for consistent storage
-    normalized_id = shot_id.zfill(6)
-    logger.info("update_feedback_called", shot_id=shot_id, normalized_id=normalized_id, rating=rating)
+    # Normalize shot ID - remove leading zeros for API, keep padded for local storage
+    try:
+        shot_id_int = int(shot_id)
+        api_id = str(shot_id_int)  # For WebSocket API: "100"
+        storage_id = str(shot_id_int).zfill(6)  # For local storage: "000100"
+    except ValueError:
+        return json.dumps({
+            "success": False,
+            "error": f"Invalid shot ID: '{shot_id}'. Must be a number."
+        })
+
+    logger.info("manage_shot_notes_called", shot_id=shot_id, api_id=api_id, storage_id=storage_id, action=action, rating=rating)
 
     try:
-        # Create rating object with normalized ID
-        shot_rating = ShotRating(
-            shot_id=normalized_id,
-            rating=rating,
-            notes=notes
-        )
+        if action == "get":
+            # Get from local storage
+            rating_data = rating_storage.get_rating(storage_id)
+            if not rating_data:
+                return json.dumps({
+                    "success": True,
+                    "shot_id": storage_id,
+                    "rating": None,
+                    "message": "No local notes found for this shot"
+                })
 
-        # Save rating
-        rating_data = rating_storage.save_rating(shot_rating)
+            return json.dumps({
+                "success": True,
+                "shot_id": storage_id,
+                "rating": rating_data,
+                "source": "local"
+            })
 
-        return json.dumps({
-            "success": True,
-            "message": "Feedback recorded successfully",
-            "rating": rating_data
-        })
+        elif action == "get_device":
+            # Get from device via WebSocket
+            device_notes = await ws_client.get_shot_notes(api_id)
+            return json.dumps({
+                "success": True,
+                "shot_id": api_id,
+                "notes": device_notes,
+                "source": "device"
+            })
+
+        elif action == "update":
+            results = {
+                "device_synced": False,
+                "local_saved": False,
+                "device_error": None
+            }
+
+            # Add agent prefix to notes if provided
+            agent_notes = None
+            if notes:
+                agent_prefix = "Updated by [llm agent]: "
+                # Only add prefix if not already present
+                if not notes.startswith(agent_prefix):
+                    agent_notes = f"{agent_prefix}{notes}"
+                else:
+                    agent_notes = notes
+            
+            # Save to device if requested
+            if sync_to_device:
+                try:
+                    await ws_client.save_shot_notes(
+                        shot_id=api_id,
+                        rating=rating,
+                        notes=agent_notes,
+                        balance_taste=balance_taste,
+                        grind_setting=grind_setting,
+                        dose_in=dose_in,
+                        dose_out=dose_out,
+                    )
+                    results["device_synced"] = True
+                    logger.info("shot_notes_synced_to_device", shot_id=api_id)
+                except GaggimateError as e:
+                    results["device_error"] = str(e)
+                    logger.warning("shot_notes_device_sync_failed", shot_id=api_id, error=str(e))
+
+            # Convert balance_taste string to enum if provided
+            balance_taste_enum = None
+            if balance_taste:
+                try:
+                    balance_taste_enum = BalanceTaste(balance_taste.lower())
+                except ValueError:
+                    logger.warning("invalid_balance_taste", value=balance_taste)
+                    # Continue with None
+
+            # Always save locally as backup
+            shot_rating = ShotRating(
+                shot_id=storage_id,
+                rating=rating,
+                notes=agent_notes,
+                balance_taste=balance_taste_enum,
+                grind_setting=grind_setting,
+                dose_in=dose_in,
+                dose_out=dose_out,
+            )
+            rating_data = rating_storage.save_rating(shot_rating)
+            results["local_saved"] = True
+
+            # Build response message
+            if results["device_synced"]:
+                message = "Shot notes saved to device and stored locally"
+            elif results["device_error"]:
+                message = f"Shot notes stored locally (device sync failed: {results['device_error']})"
+            else:
+                message = "Shot notes stored locally only"
+
+            return json.dumps({
+                "success": True,
+                "message": message,
+                "shot_id": storage_id,
+                "api_id": api_id,
+                "rating": rating_data,
+                "sync_status": results
+            })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use 'update', 'get', or 'get_device'"
+            })
 
     except ValidationError as e:
         # Pydantic validation error
-        logger.error("update_feedback_validation_error", shot_id=shot_id, error=str(e))
+        logger.error("manage_shot_notes_validation_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Validation error: {str(e)}"
         })
     except ValueError as e:
         # Other value errors
-        logger.error("update_feedback_value_error", shot_id=shot_id, error=str(e))
+        logger.error("manage_shot_notes_value_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Value error: {str(e)}"
         })
     except Exception as e:
-        logger.error("update_feedback_unexpected_error", shot_id=shot_id, error=str(e))
+        logger.error("manage_shot_notes_unexpected_error", shot_id=shot_id, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"
@@ -380,11 +552,12 @@ async def list_recent_shots(limit: int = 10) -> str:
         })
 
     except GaggimateError as e:
-        logger.error("list_recent_shots_error", limit=limit, error=str(e))
+        logger.error("list_recent_shots_error", limit=limit, error=str(e), code=e.code.value)
         return json.dumps({
             "success": False,
             "error": str(e),
-            "code": e.code.value
+            "error_code": e.code.value,
+            "suggestion": _get_error_suggestion(e)
         })
     except Exception as e:
         logger.error("list_recent_shots_unexpected_error", limit=limit, error=str(e))

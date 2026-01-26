@@ -282,3 +282,91 @@ class GaggimateWebSocketClient:
             if profile.get("label") == label:
                 return profile
         return None
+
+    async def get_shot_notes(self, shot_id: str) -> Optional[dict]:
+        """Get notes for a specific shot from the device.
+
+        Args:
+            shot_id: Shot identifier (should be integer string without leading zeros)
+
+        Returns:
+            Notes dictionary, or None if no notes exist
+
+        Raises:
+            GaggimateError: If request fails
+        """
+        # Normalize shot ID - API expects integer string without leading zeros
+        normalized_id = str(int(shot_id))
+        request_id = generate_request_id()
+        logger.info("getting_shot_notes", shot_id=normalized_id, url=self.ws_url)
+
+        response = await self._send_request(
+            "req:history:notes:get",
+            request_id,
+            id=normalized_id
+        )
+        notes = response.get("notes")
+
+        if notes:
+            logger.info("shot_notes_retrieved", shot_id=normalized_id)
+        else:
+            logger.debug("shot_notes_empty", shot_id=normalized_id)
+
+        return notes
+
+    async def save_shot_notes(
+        self,
+        shot_id: str,
+        rating: Optional[int] = None,
+        notes: Optional[str] = None,
+        balance_taste: Optional[str] = None,
+        grind_setting: Optional[str] = None,
+        dose_in: Optional[float] = None,
+        dose_out: Optional[float] = None,
+    ) -> dict:
+        """Save notes for a specific shot to the device.
+
+        Args:
+            shot_id: Shot identifier (will be normalized to integer string)
+            rating: Star rating (0-5)
+            notes: Tasting notes text
+            balance_taste: Taste balance ("bitter", "balanced", "sour")
+            grind_setting: Grinder setting used
+            dose_in: Coffee dose in grams
+            dose_out: Espresso output in grams
+
+        Returns:
+            Response from the API
+
+        Raises:
+            GaggimateError: If request fails
+        """
+        # Normalize shot ID - API expects integer string without leading zeros
+        normalized_id = str(int(shot_id))
+        request_id = generate_request_id()
+        logger.info("saving_shot_notes", shot_id=normalized_id, url=self.ws_url)
+
+        # Build notes object with only provided fields
+        notes_data: dict[str, Any] = {}
+        if rating is not None:
+            notes_data["rating"] = rating
+        if notes is not None:
+            notes_data["notes"] = notes
+        if balance_taste is not None:
+            notes_data["balanceTaste"] = balance_taste
+        if grind_setting is not None:
+            notes_data["grindSetting"] = grind_setting
+        if dose_in is not None:
+            notes_data["doseIn"] = dose_in
+        if dose_out is not None:
+            notes_data["doseOut"] = dose_out
+
+        response = await self._send_request(
+            "req:history:notes:save",
+            request_id,
+            id=normalized_id,
+            notes=notes_data
+        )
+
+        logger.info("shot_notes_saved", shot_id=normalized_id, msg=response.get("msg"))
+        return response

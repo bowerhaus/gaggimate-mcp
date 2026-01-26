@@ -165,7 +165,7 @@ Once Claude Desktop restarts:
 **Available tools:**
 - 🔧 `manage_profile` - List/get/create/update espresso profiles
 - 📊 `analyze_shot` - Analyze shot data with AI-friendly format
-- ⭐ `update_feedback` - Update ratings and tasting notes
+- 📝 `manage_shot_notes` - Manage shot ratings and tasting notes (synced to device)
 - 📋 `list_recent_shots` - List shot history with ratings
 - 🔍 `diagnose_connection` - Troubleshoot connectivity issues
 
@@ -303,10 +303,12 @@ uv run mcp dev src/gaggimate_mcp/server.py
   - Transform to AI-friendly format
   - Enrich with local ratings
   - Incomplete shot detection
-- ✅ **`update_feedback`** - Update ratings/notes
-  - Optional rating (0-5) and notes
+- ✅ **`manage_shot_notes`** - Manage shot ratings/notes (synced to device)
+  - Actions: `get`, `get_device`, `update`
+  - Syncs to Gaggimate device via WebSocket API
+  - Also stores locally as backup
+  - Supports rating (0-5), notes, balance_taste, grind_setting, dose_in/out
   - Pydantic validation
-  - Persistent local storage
 - ✅ **`list_recent_shots`** - List history
   - Pagination support (max 50)
   - Enriched with user ratings/notes
