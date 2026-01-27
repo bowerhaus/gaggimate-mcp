@@ -155,16 +155,16 @@ class Profile(BaseModel):
 
     @model_validator(mode="after")
     def detect_agent_created(self):
-        """Auto-detect if profile was created by agent based on label prefix."""
-        # Auto-detect from label prefix
-        self.agent_created = self.label.startswith("Agent-")
+        """Auto-detect if profile was created by agent based on label suffix."""
+        # Auto-detect from label suffix
+        self.agent_created = self.label.endswith(" [AI]")
         return self
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "id": "profile-uuid-123",
-                "label": "Agent-Brazilian Medium",
+                "label": "Brazilian Medium [AI]",
                 "type": "pro",
                 "description": "Optimized for Brazilian medium roast beans",
                 "temperature": 93.0,

@@ -11,6 +11,7 @@ class TestErrorCode:
         """Test error code enum values exist."""
         assert ErrorCode.INVALID_INPUT
         assert ErrorCode.PROFILE_NOT_FOUND
+        assert ErrorCode.SHOT_NOT_FOUND
         assert ErrorCode.UNAUTHORIZED
         assert ErrorCode.SAFETY_LIMIT_EXCEEDED
         assert ErrorCode.API_ERROR
@@ -23,6 +24,7 @@ class TestErrorCode:
         """Test error codes have correct string values."""
         assert ErrorCode.INVALID_INPUT.value == "invalid_input"
         assert ErrorCode.PROFILE_NOT_FOUND.value == "profile_not_found"
+        assert ErrorCode.SHOT_NOT_FOUND.value == "shot_not_found"
         assert ErrorCode.UNAUTHORIZED.value == "unauthorized"
         assert ErrorCode.SAFETY_LIMIT_EXCEEDED.value == "safety_limit_exceeded"
 

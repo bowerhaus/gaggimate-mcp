@@ -47,9 +47,3 @@ htmlcov/
 
 # Runtime data (profiles, ratings)
 data/
-
-# Development files (not for public repo)
-typescript-reference/
-docs/
-archive/
-.claude/
