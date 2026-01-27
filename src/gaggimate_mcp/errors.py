@@ -10,6 +10,7 @@ class ErrorCode(Enum):
     # Client errors (4xx equivalent)
     INVALID_INPUT = "invalid_input"
     PROFILE_NOT_FOUND = "profile_not_found"
+    SHOT_NOT_FOUND = "shot_not_found"
     UNAUTHORIZED = "unauthorized"
     SAFETY_LIMIT_EXCEEDED = "safety_limit_exceeded"
 

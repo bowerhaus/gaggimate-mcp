@@ -108,6 +108,9 @@ async def manage_profile(
         profile_id: Profile ID (required for 'get' and 'update')
         profile_name: Profile name. IMPORTANT: For agent-created profiles, always add ' [AI]'
             suffix (e.g., 'Ethiopian Light [AI]') so users can identify AI-created profiles.
+            Design note: We use a suffix (not prefix) because profile names are displayed
+            in lists on small screens - "Amizade [AI]" keeps the meaningful name visible,
+            whereas "[AI] Amizade" would sort all AI profiles together alphabetically.
         temperature: Water temperature in Celsius, typically 88-96°C (required for 'create'/'update')
         phases: Array of brewing phases (required for 'create'/'update'). Each phase object:
             - name (str): Phase display name (e.g., 'Pre-infusion', 'Extraction', 'Decline')
@@ -351,8 +354,9 @@ async def manage_shot_notes(
 ) -> str:
     """Manage shot notes and ratings.
 
-    This tool saves feedback to both the Gaggimate device (via WebSocket API)
-    and locally for backup/reference.
+    This tool saves feedback locally and optionally syncs to the Gaggimate device
+    (via WebSocket API) when sync_to_device=True (the default). Local storage
+    serves as a backup in case device sync fails.
 
     Args:
         shot_id: Shot ID (e.g., "100" or "000100" - will be normalized)
@@ -417,7 +421,14 @@ async def manage_shot_notes(
                 "device_error": None
             }
 
-            # Add agent prefix to notes if provided
+            # Design note: We use "Updated by [llm agent]: " prefix for shot notes
+            # to clearly indicate AI-generated content in the Gaggimate UI.
+            # This is intentionally different from the " [AI]" suffix used for
+            # profile names (see manage_profile tool) because:
+            # 1. Notes are free-form text where a prefix is more natural
+            # 2. Profile names are displayed in lists where suffix keeps the
+            #    meaningful name visible on small screens (e.g., "Amizade [AI]"
+            #    vs "[AI] Amizade" which would sort all AI profiles together)
             agent_notes = None
             if notes:
                 agent_prefix = "Updated by [llm agent]: "
