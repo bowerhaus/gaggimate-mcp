@@ -211,6 +211,57 @@ uv run mcp dev src/gaggimate_mcp/server.py
 
 **Test Status:** 139 tests passing, 93% coverage
 
+## Claude Desktop Project Setup
+
+This repository includes pre-built files for setting up a **Claude Desktop Project** dedicated to espresso dialing. Projects in Claude Desktop allow you to combine system instructions, knowledge files, and MCP tools into a focused workspace.
+
+### What's Included
+
+```
+agent-instructions/
+└── INSTRUCTIONS.md         # System primer for the espresso dialing agent
+
+agent-knowledge/
+├── GAGGIMATE_PROFILE_CREATION_GUIDE.md   # Complete JSON schema for profiles
+├── ESPRESSO_BREWING_BASICS.md            # Extraction fundamentals & shot styles
+└── ESPRESSO_TASTING_GUIDE.md             # How to evaluate shots & give feedback
+
+agent-skills/
+└── gaggimate-profiles/     # Claude Desktop Skill for profile creation
+    ├── SKILL.md            # Skill definition (Agent Skills standard)
+    └── references/
+        └── profile-guide.md
+```
+
+### Setting Up a Claude Desktop Project
+
+1. **Create a new project** in Claude Desktop
+2. **Add the system instructions**: Copy the contents of `agent-instructions/INSTRUCTIONS.md` into the project's system prompt
+3. **Upload knowledge files**: Add all files from `agent-knowledge/` to the project's knowledge section
+4. **Connect the MCP server**: Follow the [Quick Start](#quick-start) to add the Gaggimate MCP server
+5. **Optional - Install the skill**: Copy `agent-skills/gaggimate-profiles/` to your Claude Desktop skills directory
+
+### How the Files Work Together
+
+| File | Purpose |
+|------|---------|
+| **INSTRUCTIONS.md** | Defines the agent's personality (James Hoffmann wit + Lance Hedrick enthusiasm), workflows for setup, coffee research, profile creation, and iterative dialing |
+| **GAGGIMATE_PROFILE_CREATION_GUIDE.md** | Complete reference for building valid Gaggimate profiles—JSON schema, phase structure, pump modes, transitions, and examples |
+| **ESPRESSO_BREWING_BASICS.md** | Explains extraction theory, shot styles (traditional, turbo, allongé, SOUP), and adjustment strategies |
+| **ESPRESSO_TASTING_GUIDE.md** | Helps users describe what they taste—sour vs bitter, body, sweetness, finish—so the agent can make better recommendations |
+
+### Example Workflow
+
+With this project configured, you can have conversations like:
+
+> **You:** *[uploads photo of coffee bag]* I just got this coffee, can you help me dial it in?
+>
+> **Agent:** Let me research that... This is a natural processed Ethiopian from [roaster]. Given the natural process and light roast, I'd suggest starting with a bloom profile at 94°C. Want me to create that and upload it to your machine?
+>
+> **You:** Sure, let's try it
+>
+> **Agent:** *[creates and uploads profile]* Done! I'd recommend 18g in, targeting around 40g out (1:2.2 ratio). Let me know how it tastes—was it balanced, or pulling toward sour or bitter?
+
 ## Project Structure
 
 ```
@@ -236,6 +287,9 @@ gaggimate-mcp/
 │   └── storage/            # Local persistence
 │       ├── ratings.py      # Shot ratings (JSON)
 │       └── profiles.py     # AI-created profile versions
+├── agent-instructions/     # Claude Desktop system prompt
+├── agent-knowledge/        # Reference docs for the agent
+├── agent-skills/           # Claude Desktop skills
 ├── tests/                  # 139 unit tests
 └── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
