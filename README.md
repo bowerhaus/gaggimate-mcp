@@ -209,7 +209,7 @@ uv run pytest --cov=gaggimate_mcp --cov-report=html
 uv run mcp dev src/gaggimate_mcp/server.py
 ```
 
-**Test Status:** 119 tests passing, 93% coverage
+**Test Status:** 139 tests passing, 93% coverage
 
 ## Project Structure
 
@@ -217,19 +217,29 @@ uv run mcp dev src/gaggimate_mcp/server.py
 gaggimate-mcp/
 ├── src/gaggimate_mcp/
 │   ├── server.py           # MCP server with 5 tools
-│   ├── config.py           # Configuration management
+│   ├── config.py           # Configuration management (Pydantic)
+│   ├── errors.py           # Structured error codes
+│   ├── diagnostics.py      # Connection diagnostics
+│   ├── logging_config.py   # Structlog JSON logging setup
 │   ├── api/                # Device communication
-│   │   ├── websocket.py    # WebSocket client (profiles, notes)
+│   │   ├── websocket.py    # WebSocket client (profiles, shot notes)
 │   │   └── http.py         # HTTP client (shot history)
 │   ├── parsers/            # Binary file parsers
-│   │   ├── shot.py         # .slog shot file parser
+│   │   ├── shot.py         # .slog shot file parser (V4/V5)
 │   │   └── index.py        # index.bin parser
-│   ├── models/             # Data models
-│   └── storage/            # Local storage (ratings, profile versions)
-├── tests/                  # Test suite
-└── data/                   # Local data storage
+│   ├── models/             # Pydantic data models
+│   │   ├── profile.py      # Brewing profile structure
+│   │   ├── shot.py         # Shot data and statistics
+│   │   └── rating.py       # Shot ratings and feedback
+│   ├── transformers/       # Data transformation
+│   │   └── shot.py         # Binary → AI-friendly format
+│   └── storage/            # Local persistence
+│       ├── ratings.py      # Shot ratings (JSON)
+│       └── profiles.py     # AI-created profile versions
+├── tests/                  # 139 unit tests
+└── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
-    └── profiles/           # AI-created profile versions
+    └── profiles/           # AI-created profile backups
 ```
 
 ## Related
