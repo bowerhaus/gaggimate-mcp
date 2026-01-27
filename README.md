@@ -2,7 +2,7 @@
 
 > **Let AI help you dial in the perfect espresso shot** ☕
 
-The Gaggimate MCP Server is a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI agents the ability to interact with your [Gaggimate](https://github.com/gaggimate/gaggimate)-powered espresso machine. MCP is an open standard that allows any compatible AI—Claude, GPT, Gemini, local models, or others—to connect to external tools and data sources through a standardized protocol.
+The Gaggimate MCP Server is a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI agents the ability to interact with your [Gaggimate](https://github.com/jniebuhr/gaggimate)-powered espresso machine. MCP is an open standard that allows any compatible AI—Claude, GPT, Gemini, local models, or others—to connect to external tools and data sources through a standardized protocol.
 
 This server exposes five high-level tools that handle the complexity of communicating with your espresso machine: reading and analyzing shot data, managing brewing profiles, and recording tasting feedback. Instead of manually navigating device menus or copying data, you can have a natural conversation with your AI assistant about your espresso workflow.
 
@@ -35,7 +35,7 @@ Troubleshoot connectivity issues between the MCP server and your Gaggimate devic
 
 ## Requirements
 
-- A [Gaggimate](https://github.com/gaggimate/gaggimate)-modded espresso machine (Gaggia Classic, etc.)
+- A [Gaggimate](https://github.com/jniebuhr/gaggimate)-modded espresso machine (Gaggia Classic, etc.)
 - An MCP host application (e.g., [Claude Desktop](https://claude.ai/download), [VS Code with GitHub Copilot](https://code.visualstudio.com/), or any other MCP-compatible client)
 - Python 3.11+ with [uv](https://docs.astral.sh/uv/) package manager
 - Same network access as your Gaggimate device
@@ -234,7 +234,7 @@ gaggimate-mcp/
 
 ## Related
 
-- [Gaggimate Project](https://github.com/gaggimate/gaggimate) - The ESP32 mod for Gaggia machines
+- [Gaggimate Project](https://github.com/jniebuhr/gaggimate) - The ESP32 mod for Gaggia machines
 - [Brew by AI](https://archestra.ai/blog/brew-by-ai) - Blog post about AI-assisted espresso brewing
 - [Original TypeScript Implementation](https://github.com/Matvey-Kuk/gaggimate-mcp) - Reference implementation
 
