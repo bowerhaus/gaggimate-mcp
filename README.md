@@ -1,10 +1,31 @@
 # Gaggimate MCP Server
 
-> **Let AI help you dial in the perfect espresso shot** ☕
+You can already ask an LLM for advice on how to dial your espresso, and models like Claude, ChatGPT, or Gemini can already generate Gaggimate profiles in JSON format.
 
-Using AI to help with espresso isn't new—you could always ask ChatGPT for brewing advice. But this MCP server transforms Claude (or any MCP-compatible AI) into a true espresso dialing agent that can read your shot data, manage your profiles, and track your progress automatically.
+This repository provides two things:
 
-The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard that lets AI assistants connect to external tools. This server connects to your [Gaggimate](https://github.com/jniebuhr/gaggimate)-powered espresso machine, giving the AI direct access to your brewing data instead of relying on you to copy-paste information back and forth.
+1. **An MCP server** that allows your LLM agent directly interact with your Gaggimate machine—no more copy-pasting shot data or manually uploading JSON files. Your LLM agent can read your shot history, analyze extraction curves, store your tasting feedback, upload generated profiles, and adjust them based on your results.
+
+2. **Instructions, knowledge, and a skill** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands basic extraction theory, tasting vocabulary, and Gaggimate's profile system.
+
+## What's in this Repository
+
+**MCP Server** — Five tools that give your AI direct access to your machine:
+- **Read shot data** — Temperature curves, pressure readings, flow rates, extraction timing
+- **Manage profiles** — Create, update, and list brewing profiles directly on your device
+- **Track feedback** — Record ratings and tasting notes synced to your Gaggimate
+- **Browse history** — List recent shots with filtering
+- **Diagnose issues** — Automated connection troubleshooting
+
+**Knowledge & Instructions** — Reference materials that transform a general-purpose LLM into a functional barista coach:
+- Espresso extraction theory and shot styles
+- Tasting vocabulary (how to describe sour vs bitter, body, sweetness)
+- Complete Gaggimate profile schema and examples
+- Agent instructions with dialing workflows
+
+**Skills** — A Claude Desktop skill for efficient profile creation using progressive disclosure (loads detailed references only when needed).
+
+See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Rabbit](https://youtu.be/kjhwed1PZvg) — this MCP server automates that entire workflow.
 
 ## The Dialing Flow
 
