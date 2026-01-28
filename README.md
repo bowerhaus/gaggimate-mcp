@@ -6,7 +6,7 @@ You can already ask an LLM for advice on how to dial your espresso, and models l
 
 This repository provides two things:
 
-1. **An MCP server** that allows your LLM agent directly interact with your Gaggimate machine—no more copy-pasting shot data or manually uploading JSON files. Your LLM agent can read your shot history, analyze extraction curves, store your tasting feedback, upload generated profiles, and adjust them based on your results.
+1. **An MCP server** that allows your LLM agent to directly interact with your Gaggimate machine—no more copy-pasting shot data or manually uploading JSON files. Your LLM agent can read your shot history, analyze extraction curves, store your tasting feedback, upload generated profiles, and adjust them based on your results.
 
 2. **Instructions, knowledge, and a skill** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands basic extraction theory, tasting vocabulary, and Gaggimate's profile system.
 
