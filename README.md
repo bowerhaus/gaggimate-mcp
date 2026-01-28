@@ -33,40 +33,64 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 
 ```mermaid
 flowchart LR
-    A[☕ Pull shot] --> B[⭐ Rate & add shot notes]
-    B --> C[🤖 AI analyzes & suggests]
-    C --> D[📋 Update profile]
-    D --> A
+    A[☕ Pull shot] --> B[💬 AI asks for feedback]
+    B --> C[📝 Stored in shot notes]
+    C --> D[🤖 AI analyzes & suggests]
+    D --> E[📋 AI updates profile]
+    E --> A
 ```
 
-**Iteratively improve your shots with AI help:**
+**Iteratively improve your shots with AI-guided feedback:**
 
-1. Pull a shot and taste it
-2. Rate it (⭐-⭐⭐⭐⭐⭐) and add shot notes—sour? bitter? what grind setting?
-3. AI analyzes your shot data + notes and suggests adjustments
-4. AI updates your Gaggimate profile (or you adjust grind)
-5. Repeat until dialed in
+1. **Pull a shot** and taste it
+2. **AI prompts you for feedback**—it'll ask targeted questions about balance (sour/bitter), body, sweetness, and specific flavors to help you articulate what you're tasting
+3. **Feedback is saved** to your shot notes on Gaggimate, creating a record of your dialing journey
+4. **AI analyzes** your shot data (pressure curves, temperature, flow) combined with your tasting notes
+5. **AI suggests adjustments**—explaining *why* (e.g., "that sourness suggests under-extraction, let's grind finer or increase temperature")
+6. **AI updates your profile** directly on your machine, or recommends grind changes
+7. **Repeat** until dialed in
 
-**Getting started:** Share a new coffee and the AI will research the beans and create a starting profile. On first use, it'll ask about your setup (machine, grinder, preferences) to give better recommendations.
+**Getting started with a new coffee:**
+- Share a photo of your coffee bag, or just tell the AI what you're brewing
+- The AI will **research your beans** using web search—finding roaster info, processing method, altitude, variety, and tasting notes
+- Based on that research plus your equipment and preferences, it creates an optimized starting profile
+- On first use, it'll ask about your setup (machine, grinder, basket size) to give better recommendations
 
 ## Example Conversations
 
+**Getting started:**
 > "Here is a picture of this coffee I got. Can you please research it and create a Gaggimate profile for it?"
 
+**Giving feedback:**
+> "I just pulled a shot—ask me about it"
+>
+> *AI will prompt: "How would you rate it 1-5? Was it sour, balanced, or bitter? Anything else you noticed—sweetness, body, specific flavors?"*
+
+**Recording notes:**
 > "Can you please update the feedback for my most recent shot. It tasted a bit bitter. Give it a 2/5 rating. I used grind setting 12 with 15g in and 30g out."
 
+**Analyzing patterns:**
 > "Please look at all my recent shots with the Amizade coffee beans. Based on my feedback in each shot, how should we adjust the profile?"
 
-## Safety Guardrails
+**Creating a profile:**
+> **You:** I have some light roast Ethiopian beans. Can you create a profile?
+>
+> **AI:** I'll create a profile optimized for light roast Ethiopian beans. Light roasts typically benefit from higher temperatures and longer pre-infusion...
+>
+> *Creates "Ethiopian Light [AI]" profile with appropriate settings*
 
-For safe operation, this MCP server enforces the following limits:
+**Analyzing a shot:**
+> **You:** Analyze my last shot, it tasted sour
+>
+> **AI:** Looking at shot #127... The extraction was 24 seconds with an average pressure of 8.2 bar. The flow rate increased rapidly after pre-infusion, which combined with the sour taste suggests under-extraction. I'd recommend:
+> 1. Grinding finer
+> 2. Increasing temperature by 1-2°C
+> 3. Extending pre-infusion time
 
-- **No shot control**: The AI cannot start, stop, or trigger espresso shots. It can only read shot data and manage profiles.
-- **Temperature limits**: All temperatures are clamped to **25-100°C** to prevent damage or burns.
-- **Pressure limits**: All pressures are clamped to **0-12 bar** to stay within safe operating ranges.
-- **Profile attribution**: AI-created profiles are marked with ` [AI]` suffix (e.g., "Ethiopian Light [AI]") for transparency.
-
-These limits are enforced at the configuration level and cannot be overridden through the MCP tools.
+**Tracking progress:**
+> **You:** Rate that last shot 4 stars - much better, slight bitterness remaining
+>
+> **AI:** I've saved your rating and notes. Looking at your progression, your last 3 shots have improved from 2 to 4 stars. The bitterness might indicate we're now slightly over-extracting. Want me to adjust the profile?
 
 ## MCP Tools
 
@@ -87,6 +111,17 @@ Browse your shot history with optional filtering. Returns a list of recent shots
 ### `diagnose_connection`
 Troubleshoot connectivity issues between the MCP server and your Gaggimate device. Runs automated tests for network reachability, HTTP port access, API availability, and common misconfigurations. Returns specific recommendations if problems are detected.
 
+## Safety Guardrails
+
+For safe operation, this MCP server enforces the following limits:
+
+- **No shot control**: The AI cannot start, stop, or trigger espresso shots. It can only read shot data and manage profiles.
+- **Temperature limits**: All temperatures are clamped to **25-100°C** to prevent damage or burns.
+- **Pressure limits**: All pressures are clamped to **0-12 bar** to stay within safe operating ranges.
+- **Profile attribution**: AI-created profiles are marked with ` [AI]` suffix (e.g., "Ethiopian Light [AI]") for transparency.
+
+These limits are enforced at the configuration level and cannot be overridden through the MCP tools.
+
 ## Requirements
 
 - A [Gaggimate](https://github.com/jniebuhr/gaggimate)-modded espresso machine (Gaggia Classic, etc.)
@@ -96,7 +131,19 @@ Troubleshoot connectivity issues between the MCP server and your Gaggimate devic
 
 ## Quick Start
 
-### 1. Clone and Install
+### 1. Install uv (if not already installed)
+
+[uv](https://docs.astral.sh/uv/) is a fast Python package manager. Install it with:
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with Homebrew
+brew install uv
+```
+
+### 2. Clone and Install
 
 ```bash
 git clone https://github.com/julianleopold/gaggimate-mcp.git
@@ -104,7 +151,7 @@ cd gaggimate-mcp
 uv sync
 ```
 
-### 2. Configure Your MCP Client
+### 3. Configure Your MCP Client
 
 Find your `uv` path (you'll need the full absolute path):
 ```bash
@@ -142,27 +189,69 @@ Add this configuration (replace paths with your actual values):
 }
 ```
 
-#### Other MCP Hosts
+#### Other MCP Hosts (not tested)
 
 For other MCP hosts, configure the server using the stdio transport with the command:
 ```bash
 uv --directory /path/to/gaggimate-mcp run mcp run src/gaggimate_mcp/server.py
 ```
 
-### 3. Restart Your MCP Host
+### 4. Restart Your AI Chat Application / MCP Host
 
-Restart your MCP host application to load the new server configuration. You should see the Gaggimate tools become available.
+Restart your AI chat application (e.g., Claude Desktop, VS Code) to load the new server configuration. You should see the Gaggimate tools become available.
 
-### 4. Start Chatting!
+### 5. Start Chatting!
 
 Make sure you're on the same network as your Gaggimate device, then try:
 - "List my Gaggimate profiles"
 - "Show my recent espresso shots"
 - "Diagnose my Gaggimate connection" (if having issues)
 
-## Configuration
+## Claude Desktop Project Setup (Optional)
 
-By default, the server connects to `gaggimate.local`. To customize, create a `.env` file:
+This repository includes pre-built files for setting up a **Claude Desktop Project** dedicated to espresso dialing. Projects combine system instructions, knowledge files, and MCP tools into a focused workspace.
+
+**Using a different AI?** You can copy-paste the knowledge files into any chat, or adapt the instructions for your preferred agent.
+
+### What's Included
+
+```
+agent-instructions/
+└── INSTRUCTIONS.md         # System primer for the espresso dialing agent
+
+agent-knowledge/
+├── GAGGIMATE_PROFILE_CREATION_GUIDE.md   # Complete JSON schema for profiles
+├── ESPRESSO_BREWING_BASICS.md            # Extraction fundamentals & shot styles
+└── ESPRESSO_TASTING_GUIDE.md             # How to evaluate shots & give feedback
+
+agent-skills/
+└── gaggimate-profiles/     # Claude Desktop Skill for profile creation
+    ├── SKILL.md            # Skill definition (Agent Skills standard)
+    └── references/         # Detailed reference docs loaded on-demand
+```
+
+### Setup Steps
+
+1. **Create a new project** in Claude Desktop
+2. **Add the system instructions**: Copy the contents of `agent-instructions/INSTRUCTIONS.md` into the project's system prompt
+3. **Upload knowledge files**: Add all files from `agent-knowledge/` to the project's knowledge section
+4. **Connect the MCP server**: Follow the [Quick Start](#quick-start) above
+5. **Optional - Install the skill**: See [Appendix: Why a Skill?](#why-a-skill-instead-of-a-knowledge-file) for details
+
+### How the Files Work Together
+
+| File | Purpose |
+|------|---------|
+| **INSTRUCTIONS.md** | Defines the agent's personality, workflows for setup, coffee research, profile creation, and iterative dialing |
+| **GAGGIMATE_PROFILE_CREATION_GUIDE.md** | Complete reference for building valid Gaggimate profiles—JSON schema, phase structure, pump modes, transitions, and examples |
+| **ESPRESSO_BREWING_BASICS.md** | Explains extraction theory, shot styles (traditional, turbo, allongé, SOUP), and adjustment strategies |
+| **ESPRESSO_TASTING_GUIDE.md** | Helps users describe what they taste—sour vs bitter, body, sweetness, finish—so the agent can make better recommendations |
+
+## Configuration (Optional)
+
+By default, the server connects to `gaggimate.local`, which should work automatically if your Gaggimate device is on the same network. **Most users can skip this section.**
+
+If you need to customize the connection, create a `.env` file:
 
 ```bash
 cp .env.example .env
@@ -225,31 +314,6 @@ The MCP server acts as a bridge:
 
 Shot data is parsed from binary `.slog` files and transformed into an AI-friendly format with statistics about temperature, pressure, flow, and extraction timing.
 
-## Extended Examples
-
-### Creating a Profile
-
-> **You:** I have some light roast Ethiopian beans. Can you create a profile?
->
-> **AI:** I'll create a profile optimized for light roast Ethiopian beans. Light roasts typically benefit from higher temperatures and longer pre-infusion...
->
-> *Creates "Ethiopian Light [AI]" profile with appropriate settings*
-
-### Analyzing a Shot
-
-> **You:** Analyze my last shot, it tasted sour
->
-> **AI:** Looking at shot #127... The extraction was 24 seconds with an average pressure of 8.2 bar. The flow rate increased rapidly after pre-infusion, which combined with the sour taste suggests under-extraction. I'd recommend:
-> 1. Grinding finer
-> 2. Increasing temperature by 1-2°C
-> 3. Extending pre-infusion time
-
-### Tracking Progress
-
-> **You:** Rate that last shot 4 stars - much better, slight bitterness remaining
->
-> **AI:** I've saved your rating and notes. Looking at your progression, your last 3 shots have improved from 2 to 4 stars. The bitterness might indicate we're now slightly over-extracting. Want me to adjust the profile?
-
 ## Development
 
 ```bash
@@ -265,34 +329,11 @@ uv run mcp dev src/gaggimate_mcp/server.py
 
 **Test Status:** 139 tests passing, 93% coverage
 
-## Claude Desktop Project Setup
+---
 
-This repository includes pre-built files for setting up a **Claude Desktop Project** dedicated to espresso dialing. Projects in Claude Desktop allow you to combine system instructions, knowledge files, and MCP tools into a focused workspace.
+# Appendix
 
-### What's Included
-
-```
-agent-instructions/
-└── INSTRUCTIONS.md         # System primer for the espresso dialing agent
-
-agent-knowledge/
-├── GAGGIMATE_PROFILE_CREATION_GUIDE.md   # Complete JSON schema for profiles
-├── ESPRESSO_BREWING_BASICS.md            # Extraction fundamentals & shot styles
-└── ESPRESSO_TASTING_GUIDE.md             # How to evaluate shots & give feedback
-
-agent-skills/
-└── gaggimate-profiles/     # Claude Desktop Skill for profile creation
-    ├── SKILL.md            # Skill definition (Agent Skills standard)
-    └── references/         # Detailed reference docs loaded on-demand
-        ├── PROFILE_STRUCTURE.md
-        ├── PUMP_AND_TRANSITIONS.md
-        ├── STOP_CONDITIONS.md
-        ├── EXAMPLES.md
-        ├── TROUBLESHOOTING.md
-        └── QUICK_REFERENCE.md
-```
-
-### Why a Skill Instead of a Knowledge File?
+## Why a Skill Instead of a Knowledge File?
 
 The profile creation guide is structured as a **Claude Desktop Skill** rather than a single knowledge file. This matters for token efficiency and response quality.
 
@@ -318,35 +359,6 @@ The skill is packaged as a ZIP file (`agent-skills/gaggimate-profiles.zip`) for 
 **Alternative: Just Use a Knowledge File**
 
 If you prefer simplicity, you can skip the skill entirely and add `agent-knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md` directly as a knowledge file in your Claude Desktop project. This works fine—the agent will have all the profile creation info it needs. The skill approach just optimizes for token efficiency when the full guide isn't needed for every conversation.
-
-### Setting Up a Claude Desktop Project
-
-1. **Create a new project** in Claude Desktop
-2. **Add the system instructions**: Copy the contents of `agent-instructions/INSTRUCTIONS.md` into the project's system prompt
-3. **Upload knowledge files**: Add all files from `agent-knowledge/` to the project's knowledge section
-4. **Connect the MCP server**: Follow the [Quick Start](#quick-start) to add the Gaggimate MCP server
-5. **Optional - Install the skill**: Copy `agent-skills/gaggimate-profiles/` to your Claude Desktop skills directory
-
-### How the Files Work Together
-
-| File | Purpose |
-|------|---------|
-| **INSTRUCTIONS.md** | Defines the agent's personality (James Hoffmann wit + Lance Hedrick enthusiasm), workflows for setup, coffee research, profile creation, and iterative dialing |
-| **GAGGIMATE_PROFILE_CREATION_GUIDE.md** | Complete reference for building valid Gaggimate profiles—JSON schema, phase structure, pump modes, transitions, and examples |
-| **ESPRESSO_BREWING_BASICS.md** | Explains extraction theory, shot styles (traditional, turbo, allongé, SOUP), and adjustment strategies |
-| **ESPRESSO_TASTING_GUIDE.md** | Helps users describe what they taste—sour vs bitter, body, sweetness, finish—so the agent can make better recommendations |
-
-### Example Workflow
-
-With this project configured, you can have conversations like:
-
-> **You:** *[uploads photo of coffee bag]* I just got this coffee, can you help me dial it in?
->
-> **Agent:** Let me research that... This is a natural processed Ethiopian from [roaster]. Given the natural process and light roast, I'd suggest starting with a bloom profile at 94°C. Want me to create that and upload it to your machine?
->
-> **You:** Sure, let's try it
->
-> **Agent:** *[creates and uploads profile]* Done! I'd recommend 18g in, targeting around 40g out (1:2.2 ratio). Let me know how it tastes—was it balanced, or pulling toward sour or bitter?
 
 ## Project Structure
 
