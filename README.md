@@ -229,9 +229,41 @@ agent-knowledge/
 agent-skills/
 └── gaggimate-profiles/     # Claude Desktop Skill for profile creation
     ├── SKILL.md            # Skill definition (Agent Skills standard)
-    └── references/
-        └── profile-guide.md
+    └── references/         # Detailed reference docs loaded on-demand
+        ├── PROFILE_STRUCTURE.md
+        ├── PUMP_AND_TRANSITIONS.md
+        ├── STOP_CONDITIONS.md
+        ├── EXAMPLES.md
+        ├── TROUBLESHOOTING.md
+        └── QUICK_REFERENCE.md
 ```
+
+### Why a Skill Instead of a Knowledge File?
+
+The profile creation guide is structured as a **Claude Desktop Skill** rather than a single knowledge file. This matters for token efficiency and response quality.
+
+**The Problem with Large Knowledge Files:**
+- Knowledge files are loaded into context for every conversation
+- A 700+ line technical reference consumes tokens even when you're just chatting about taste preferences
+- Large context windows can actually degrade response quality—the model has more to sift through
+
+**How Skills Use Progressive Disclosure:**
+- The main `SKILL.md` (~130 lines) loads only when triggered by profile-related requests
+- Detailed references (pump modes, examples, troubleshooting) load **on-demand** when Claude needs them
+- A simple "create a 9-bar profile" might only load the main skill + quick reference
+- A complex "debug my pressure transition" loads the pump/transitions reference
+
+**Practical Benefits:**
+| Approach | Tokens Used | Best For |
+|----------|-------------|----------|
+| Single knowledge file | ~3,000 tokens (always) | Small references (<200 lines) |
+| Skill with references | ~500-1,500 tokens (varies) | Large technical docs, context-dependent detail |
+
+The skill is packaged as a ZIP file (`agent-skills/gaggimate-profiles.zip`) for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**.
+
+**Alternative: Just Use a Knowledge File**
+
+If you prefer simplicity, you can skip the skill entirely and add `agent-knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md` directly as a knowledge file in your Claude Desktop project. This works fine—the agent will have all the profile creation info it needs. The skill approach just optimizes for token efficiency when the full guide isn't needed for every conversation.
 
 ### Setting Up a Claude Desktop Project
 
