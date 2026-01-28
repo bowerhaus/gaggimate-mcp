@@ -22,8 +22,8 @@ class GaggimateConfig(BaseSettings):
     request_timeout: float = 5.0
 
     # Safety limits
-    max_temperature: float = 96.0
-    min_temperature: float = 60.0
+    max_temperature: float = 100.0
+    min_temperature: float = 25.0
     max_pressure: float = 12.0
     min_pressure: float = 0.0
 

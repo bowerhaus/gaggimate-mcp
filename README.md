@@ -39,7 +39,7 @@ flowchart LR
 For safe operation, this MCP server enforces the following limits:
 
 - **No shot control**: The AI cannot start, stop, or trigger espresso shots. It can only read shot data and manage profiles.
-- **Temperature limits**: All temperatures are clamped to **60-96°C** to prevent damage or burns.
+- **Temperature limits**: All temperatures are clamped to **25-100°C** to prevent damage or burns.
 - **Pressure limits**: All pressures are clamped to **0-12 bar** to stay within safe operating ranges.
 - **Profile attribution**: AI-created profiles are marked with ` [AI]` suffix (e.g., "Ethiopian Light [AI]") for transparency.
 
