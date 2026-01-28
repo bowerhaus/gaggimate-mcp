@@ -421,7 +421,7 @@ async def manage_shot_notes(
                 "device_error": None
             }
 
-            # Design note: We use "Updated by [llm agent]: " prefix for shot notes
+            # Design note: We use "Updated by [AI]: " prefix for shot notes
             # to clearly indicate AI-generated content in the Gaggimate UI.
             # This is intentionally different from the " [AI]" suffix used for
             # profile names (see manage_profile tool) because:
@@ -431,7 +431,7 @@ async def manage_shot_notes(
             #    vs "[AI] Amizade" which would sort all AI profiles together)
             agent_notes = None
             if notes:
-                agent_prefix = "Updated by [llm agent]: "
+                agent_prefix = "Updated by [AI]: "
                 # Only add prefix if not already present
                 if not notes.startswith(agent_prefix):
                     agent_notes = f"{agent_prefix}{notes}"

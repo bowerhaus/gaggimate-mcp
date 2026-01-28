@@ -6,7 +6,7 @@ A practical guide for evaluating espresso shots and providing feedback to improv
 
 ## The Sour vs Bitter Problem
 
-In sensory science, "sour-bitter confusion" is a documented phenomenon. Mastering this distinction is the fundamental prerequisite for dialing in espresso. If you can identify this correctly, you're 80% of the way there.
+In sensory science, "sour-bitter confusion" is a documented phenomenon. It is difficult to distinguish between sourness and bitterness because they can produce similar unpleasant sensations. This leads to misdiagnosis when dialing in espresso shots. Here is guidance from Lance Hedrick on how to tell them apart:
 
 | | **Sour** (Under-extracted) | **Bitter** (Over-extracted) |
 |---|---|---|
@@ -102,47 +102,6 @@ One thing to improve: more sweetness, reduce sourness
 | Flat/lifeless | Stale beans or wrong temp | Check freshness, adjust temp |
 | Good but lacks body | Ratio too long or channeling | Shorter ratio, better puck prep |
 | Harsh/ashy | Over-extracted or dark roast issue | Coarser grind, lower temp, pressure decline |
-
----
-
-## Developing Your Palate
-
-### The "Lemon vs Cocoa" Calibration Experiment
-
-This exercise establishes objective references for sour-bitter distinction:
-
-1. **Prepare two cups:** One with lemon juice (or vinegar), one with unsweetened cocoa powder dissolved in water (or over-steeped black tea)
-2. **Taste the lemon:** Notice how it hits immediately with a sharp, biting sensation. It's "high-toned" and fades quickly.
-3. **Taste the cocoa:** Notice how bitterness creeps in slowly, feels heavy, and lingers with a drying sensation. It's "low-toned" and persistent.
-4. **Now taste your espresso:** Which pattern does it follow?
-
-### The Salami Shot Diagnostic
-
-When you can't figure out what's wrong, split your shot to isolate extraction stages:
-
-1. Pull a shot with your standard dose (e.g., 18g)
-2. Catch the first half (~15-20g output) in one cup
-3. Catch the remainder in a second cup
-4. **Taste the first cup:** Acid-dominant, concentrated, often salty/savory. This is what under-extraction tastes like.
-5. **Taste the second cup:** Diluted, bitter, drying. These are the late-stage compounds.
-6. **Compare to your normal shot:** Does it taste more like cup 1 (under) or cup 2 (over)?
-
-### Daily Training
-
-**Train sour recognition:**
-- Taste a lemon wedge, then coffee — notice the sharp, fleeting impact
-
-**Train bitter recognition:**  
-- Steep black tea for 10 minutes, then taste — notice the creeping, lingering dryness
-
-**Train sweetness recognition:**
-- When a shot is well-extracted, you'll notice caramel or honey-like sweetness that balances acidity
-
-**The goal:** You don't need fancy vocabulary. You need to reliably identify:
-- Is it sour or bitter? (Use timing, not tongue location)
-- Is it thin or has body?
-- Is there sweetness?
-- Would I drink another?
 
 ---
 

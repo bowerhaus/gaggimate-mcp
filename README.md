@@ -2,9 +2,29 @@
 
 > **Let AI help you dial in the perfect espresso shot** ☕
 
-The Gaggimate MCP Server is a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI agents the ability to interact with your [Gaggimate](https://github.com/jniebuhr/gaggimate)-powered espresso machine. MCP is an open standard that allows any compatible AI—Claude, GPT, Gemini, local models, or others—to connect to external tools and data sources through a standardized protocol.
+Using AI to help with espresso isn't new—you could always ask ChatGPT for brewing advice. But this MCP server transforms Claude (or any MCP-compatible AI) into a true espresso dialing agent that can read your shot data, manage your profiles, and track your progress automatically.
 
-This server exposes five high-level tools that handle the complexity of communicating with your espresso machine: reading and analyzing shot data, managing brewing profiles, and recording tasting feedback. Instead of manually navigating device menus or copying data, you can have a natural conversation with your AI assistant about your espresso workflow.
+The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard that lets AI assistants connect to external tools. This server connects to your [Gaggimate](https://github.com/jniebuhr/gaggimate)-powered espresso machine, giving the AI direct access to your brewing data instead of relying on you to copy-paste information back and forth.
+
+## The Dialing Flow
+
+```mermaid
+flowchart LR
+    A[☕ Pull shot] --> B[⭐ Rate & add shot notes]
+    B --> C[🤖 AI analyzes & suggests]
+    C --> D[📋 Update profile]
+    D --> A
+```
+
+**Iteratively improve your shots with AI help:**
+
+1. Pull a shot and taste it
+2. Rate it (⭐-⭐⭐⭐⭐⭐) and add shot notes—sour? bitter? what grind setting?
+3. AI analyzes your shot data + notes and suggests adjustments
+4. AI updates your Gaggimate profile (or you adjust grind)
+5. Repeat until dialed in
+
+**Getting started:** Share a new coffee and the AI will research the beans and create a starting profile. On first use, it'll ask about your setup (machine, grinder, preferences) to give better recommendations.
 
 ## Example Conversations
 
@@ -13,6 +33,17 @@ This server exposes five high-level tools that handle the complexity of communic
 > "Can you please update the feedback for my most recent shot. It tasted a bit bitter. Give it a 2/5 rating. I used grind setting 12 with 15g in and 30g out."
 
 > "Please look at all my recent shots with the Amizade coffee beans. Based on my feedback in each shot, how should we adjust the profile?"
+
+## Safety Guardrails
+
+For safe operation, this MCP server enforces the following limits:
+
+- **No shot control**: The AI cannot start, stop, or trigger espresso shots. It can only read shot data and manage profiles.
+- **Temperature limits**: All temperatures are clamped to **60-96°C** to prevent damage or burns.
+- **Pressure limits**: All pressures are clamped to **0-12 bar** to stay within safe operating ranges.
+- **Profile attribution**: AI-created profiles are marked with ` [AI]` suffix (e.g., "Ethiopian Light [AI]") for transparency.
+
+These limits are enforced at the configuration level and cannot be overridden through the MCP tools.
 
 ## MCP Tools
 
@@ -25,7 +56,7 @@ Create, view, update, and list brewing profiles on your Gaggimate device. Profil
 Retrieve comprehensive data from any shot, including temperature curves, pressure readings, flow rates, and extraction timing. The raw binary shot logs are parsed and transformed into an AI-friendly format with computed statistics like average pressure, temperature stability, and total extraction volume. This gives the AI the context it needs to understand what happened during extraction.
 
 ### `manage_shot_notes`
-Record ratings (0-5 stars), tasting notes, and brewing parameters for any shot. Notes are synced directly to your Gaggimate device via WebSocket and also stored locally as backup. You can track taste balance (bitter/balanced/sour), grind settings, and dose weights. Notes added by AI are prefixed with `[llm agent]:` for transparency.
+Record ratings (0-5 stars), tasting notes, and brewing parameters for any shot. Notes are synced directly to your Gaggimate device via WebSocket and also stored locally as backup. You can track taste balance (bitter/balanced/sour), grind settings, and dose weights. Notes added by AI are prefixed with `[AI]:` for transparency.
 
 ### `list_recent_shots`
 Browse your shot history with optional filtering. Returns a list of recent shots with their IDs, timestamps, profile names, and any ratings you've recorded. This helps the AI understand your brewing patterns and find shots to analyze or compare.
@@ -332,7 +363,7 @@ gaggimate-mcp/
 
 - [Gaggimate Project](https://github.com/jniebuhr/gaggimate) - The ESP32 mod for Gaggia machines
 - [Brew by AI](https://archestra.ai/blog/brew-by-ai) - Blog post about AI-assisted espresso brewing
-- [Original TypeScript Implementation](https://github.com/Matvey-Kuk/gaggimate-mcp) - Initial inspiration for this project (this Python implementation has since diverged significantly)
+- [MCP for Gaggimate in TypeScript](https://github.com/Matvey-Kuk/gaggimate-mcp) - Initial inspiration for this project (this Python implementation has since diverged)
 
 ## License
 
