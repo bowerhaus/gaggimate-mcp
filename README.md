@@ -332,7 +332,7 @@ gaggimate-mcp/
 
 - [Gaggimate Project](https://github.com/jniebuhr/gaggimate) - The ESP32 mod for Gaggia machines
 - [Brew by AI](https://archestra.ai/blog/brew-by-ai) - Blog post about AI-assisted espresso brewing
-- [Original TypeScript Implementation](https://github.com/Matvey-Kuk/gaggimate-mcp) - Reference implementation
+- [Original TypeScript Implementation](https://github.com/Matvey-Kuk/gaggimate-mcp) - Initial inspiration for this project (this Python implementation has since diverged significantly)
 
 ## License
 

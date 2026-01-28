@@ -100,14 +100,29 @@ Modern espresso benefits from phased extraction:
 
 ## Adjustment Strategies
 
+### The 5g Rule (Quick Yield Adjustment)
+
+Before changing grind size, try adjusting your yield:
+
+- **Sour/salty/harsh?** → Increase output by 5g (adds balancing compounds)
+- **Bitter/dry/clawing?** → Decrease output by 5g (preserves sweetness, reduces late-extraction bitterness)
+
+This works because extraction is a timeline: acids come out first, then sugars, then bitter compounds. Adjusting yield changes where you "cut" that timeline.
+
+**When to use yield vs grind:**
+- Yield adjustment: Quick fix, doesn't require re-dialing shot time
+- Grind adjustment: More fundamental change, affects flow rate and total extraction
+- Temperature: Fine-tuning after grind is dialed
+- Pressure: Style change (turbo vs traditional) or reducing harshness
+
 ### Traditional Espresso Adjustments
 
 | Problem | Primary Fix | Secondary Fix |
 |---|---|---|
 | Sour, thin, fast | Grind finer | Increase temp |
+| Sour/salty despite fine grind | Increase yield by 5g | Increase temp |
 | Bitter, slow, dry | Grind coarser | Decrease temp |
-| Sour despite fine grind | Increase temp | Longer ratio |
-| Bitter despite coarse grind | Decrease temp | Add pressure decline |
+| Bitter despite coarse grind | Decrease yield by 5g | Add pressure decline |
 | Channeling (uneven flow) | Better puck prep | Longer pre-infusion |
 | No body despite good taste | Lower pressure or channeling | Check for leaks |
 
@@ -132,6 +147,16 @@ Modern espresso benefits from phased extraction:
 **Adjustment rule:** 
 - Too sour → increase 1-2°C
 - Too bitter → decrease 1-2°C
+
+### Why Dark Roasts Taste "Less Acidic"
+
+A common misconception: dark roasts actually contain similar acid levels to light roasts. The difference is perception, not chemistry.
+
+- Dark roast beans are less dense → more beans per 15g dose → similar total acid content
+- Dark roasts have more bitter compounds (CGA lactones, phenylindanes) that *mask* the acidity
+- Dark roasts are more brittle → produce more fines → contribute gritty, textural bitterness
+
+**Practical implication:** If your dark roast tastes harsh, the bitterness might be from fines, not over-extraction. Try a coarser grind and ensure even distribution.
 
 ---
 
@@ -193,8 +218,12 @@ Modern espresso benefits from phased extraction:
 
 ---
 
-## Resources
+## Sources & Resources
 
+**Key sources for this guide:**
+- Lance Hedrick: [Why your Coffee is Sour or Bitter (and how to fix it)](https://www.youtube.com/watch?v=Z2zsmehysHk) — 5g adjustment rule, extraction timeline, dark roast fines insight
+
+**Further learning:**
 - **Lance Hedrick YouTube** — Excellent visual guides on extraction theory
 - **Espresso Aficionados Discord** — Community knowledge, turbo/SOUP guidance
 - **Barista Hustle** — In-depth extraction science

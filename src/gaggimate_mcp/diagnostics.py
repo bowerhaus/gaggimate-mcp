@@ -240,10 +240,10 @@ async def diagnose_connection(config: Optional[GaggimateConfig] = None) -> dict:
             f"Device unreachable: {ping_result.get('error', 'Unknown error')}"
         )
         results["recommendations"].extend([
-            "Check that your computer and GaggiMate are on the same network",
+            "⚠️  VPN CHECK: If you have a VPN active, disconnect it. VPNs route traffic outside your local network, making local devices like GaggiMate unreachable.",
+            "Check that your computer and GaggiMate are on the same WiFi network",
             "If using .local domain, ensure mDNS/Bonjour is working on your system",
-            "Try accessing via IP address instead of hostname",
-            "Check your WiFi connection and VPN settings"
+            "Try accessing via IP address instead of hostname"
         ])
         results["overall_status"] = "unreachable"
         return results

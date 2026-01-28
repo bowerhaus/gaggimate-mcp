@@ -6,18 +6,23 @@ A practical guide for evaluating espresso shots and providing feedback to improv
 
 ## The Sour vs Bitter Problem
 
-The most common tasting confusion. If you can identify this correctly, you're 80% of the way there.
+In sensory science, "sour-bitter confusion" is a documented phenomenon. Mastering this distinction is the fundamental prerequisite for dialing in espresso. If you can identify this correctly, you're 80% of the way there.
 
 | | **Sour** (Under-extracted) | **Bitter** (Over-extracted) |
 |---|---|---|
-| **Where you feel it** | Sides of tongue | Back of tongue |
-| **Physical response** | Sharp, puckering, makes you salivate | Drying, astringent, lingers |
+| **Timing** | Hits immediately, fades fast ("high-toned") | Creeps in slowly, lingers ("low-toned") |
+| **Texture** | Sharp, puckering, makes you salivate | Drying, astringent, clawing |
 | **Think of** | Biting a lemon, unripe fruit | Over-steeped tea, grapefruit pith |
 | **Shot was probably** | Too fast, too coarse, too cold | Too slow, too fine, too hot |
 
-**Quick test:** Does your mouth water? → Probably sour. Does your mouth feel dry? → Probably bitter.
+**Quick tests:**
+- Does your mouth water? → Probably sour
+- Does your mouth feel dry and the sensation linger? → Probably bitter
+- Does it taste salty or savory? → Under-extracted (this is a key indicator many miss!)
 
 **Common trap:** Many people say "bitter" when they mean "unpleasant." If the shot was fast and the taste hits hard and fades quickly, it's sour even if you instinctively call it bitter.
+
+**Why timing matters more than tongue location:** The "tongue map" (sour on sides, bitter on back) is a myth from 1901. Taste receptors are spread across your entire tongue. Focus on *when* and *how long* the sensation lasts instead.
 
 ---
 
@@ -91,8 +96,9 @@ One thing to improve: more sweetness, reduce sourness
 |---|---|---|
 | Sour + thin | Under-extraction | Finer grind, higher temp |
 | Sour + fast shot | Grind too coarse | Finer grind |
+| Salty or savory | Severe under-extraction | Increase yield by 5g, or finer grind |
 | Bitter + slow shot | Over-extraction | Coarser grind |
-| Bitter + dry finish | Severe over-extraction | Coarser grind, lower temp, shorter ratio |
+| Bitter + dry finish | Severe over-extraction | Decrease yield by 5g, lower temp, shorter ratio |
 | Flat/lifeless | Stale beans or wrong temp | Check freshness, adjust temp |
 | Good but lacks body | Ratio too long or channeling | Shorter ratio, better puck prep |
 | Harsh/ashy | Over-extracted or dark roast issue | Coarser grind, lower temp, pressure decline |
@@ -101,17 +107,39 @@ One thing to improve: more sweetness, reduce sourness
 
 ## Developing Your Palate
 
+### The "Lemon vs Cocoa" Calibration Experiment
+
+This exercise establishes objective references for sour-bitter distinction:
+
+1. **Prepare two cups:** One with lemon juice (or vinegar), one with unsweetened cocoa powder dissolved in water (or over-steeped black tea)
+2. **Taste the lemon:** Notice how it hits immediately with a sharp, biting sensation. It's "high-toned" and fades quickly.
+3. **Taste the cocoa:** Notice how bitterness creeps in slowly, feels heavy, and lingers with a drying sensation. It's "low-toned" and persistent.
+4. **Now taste your espresso:** Which pattern does it follow?
+
+### The Salami Shot Diagnostic
+
+When you can't figure out what's wrong, split your shot to isolate extraction stages:
+
+1. Pull a shot with your standard dose (e.g., 18g)
+2. Catch the first half (~15-20g output) in one cup
+3. Catch the remainder in a second cup
+4. **Taste the first cup:** Acid-dominant, concentrated, often salty/savory. This is what under-extraction tastes like.
+5. **Taste the second cup:** Diluted, bitter, drying. These are the late-stage compounds.
+6. **Compare to your normal shot:** Does it taste more like cup 1 (under) or cup 2 (over)?
+
+### Daily Training
+
 **Train sour recognition:**
-- Taste a lemon wedge, then coffee — notice the similarity in sensation location
+- Taste a lemon wedge, then coffee — notice the sharp, fleeting impact
 
 **Train bitter recognition:**  
-- Steep black tea for 10 minutes, then taste — notice the drying sensation
+- Steep black tea for 10 minutes, then taste — notice the creeping, lingering dryness
 
 **Train sweetness recognition:**
 - When a shot is well-extracted, you'll notice caramel or honey-like sweetness that balances acidity
 
 **The goal:** You don't need fancy vocabulary. You need to reliably identify:
-- Is it sour or bitter?
+- Is it sour or bitter? (Use timing, not tongue location)
 - Is it thin or has body?
 - Is there sweetness?
 - Would I drink another?
@@ -149,6 +177,12 @@ The balance expectations differ by style:
 | **SOUP** (<2 bar) | Tea-like, juicy, clear | Thin without flavor |
 
 Don't judge a turbo shot for lacking body — that's expected. Judge it on clarity and sweetness.
+
+---
+
+## Sources
+
+- Lance Hedrick: [Why your Coffee is Sour or Bitter (and how to fix it)](https://www.youtube.com/watch?v=Z2zsmehysHk) — Timing/texture framework, sour-bitter confusion science, Lemon vs Cocoa experiment, Salami Shot diagnostic
 
 ---
 
