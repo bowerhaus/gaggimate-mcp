@@ -1,5 +1,7 @@
 # Gaggimate MCP Server
 
+> **DIY AI Barista** — Let your AI agent directly control your Gaggimate
+
 You can already ask an LLM for advice on how to dial your espresso, and models like Claude, ChatGPT, or Gemini can already generate Gaggimate profiles in JSON format.
 
 This repository provides two things:
