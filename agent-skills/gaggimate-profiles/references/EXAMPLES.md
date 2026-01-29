@@ -679,7 +679,7 @@ Complex flavor profile with 7 phases for maximum control.
 
 ---
 
-## Flow-Based Variable Pressure (Automatic Pro)
+## Flow-Based Variable Pressure (Automatic Pro) by modsmthng_57901 on Gaggimate Discord
 
 Self-regulating profile that adapts to grind size automatically. Uses flow control with pressure ceiling.
 

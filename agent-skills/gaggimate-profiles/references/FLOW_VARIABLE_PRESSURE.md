@@ -1,5 +1,5 @@
 # Flow-Based Variable Pressure Profiles
-Pionieered by modsmthng_57901 on Gaggimate Discord
+Pioneered by modsmthng_57901 on Gaggimate Discord
 ## Overview
 
 Flow-based variable pressure is an advanced profiling technique where you control **flow rate** as the primary parameter while setting a **pressure ceiling**. This creates self-regulating extraction that adapts to puck resistance automatically.
