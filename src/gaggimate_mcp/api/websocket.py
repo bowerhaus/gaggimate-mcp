@@ -230,9 +230,10 @@ class GaggimateWebSocketClient:
         Raises:
             GaggimateError: If request fails
         """
-        # Ensure [AI] suffix is present for agent-edited profiles
-        if not label.endswith(" [AI]"):
-            label = f"{label} [AI]"
+        # Ensure AI suffix is present for agent-edited profiles
+        ai_suffix = self.config.ai_profile_suffix
+        if not label.endswith(ai_suffix):
+            label = f"{label}{ai_suffix}"
         # Build complete profile object
         profile = {
             "label": label,

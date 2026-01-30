@@ -156,8 +156,10 @@ class Profile(BaseModel):
     @model_validator(mode="after")
     def detect_agent_created(self):
         """Auto-detect if profile was created by agent based on label suffix."""
-        # Auto-detect from label suffix
-        self.agent_created = self.label.endswith(" [AI]")
+        # Auto-detect from label suffix (uses default, config loaded at runtime)
+        from gaggimate_mcp.config import GaggimateConfig
+        config = GaggimateConfig()
+        self.agent_created = self.label.endswith(config.ai_profile_suffix)
         return self
 
     model_config = {

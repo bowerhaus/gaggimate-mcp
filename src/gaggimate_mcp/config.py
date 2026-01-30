@@ -32,7 +32,8 @@ class GaggimateConfig(BaseSettings):
     storage_path: Path = Path("./data")
 
     # Agent settings
-    agent_prefix: str = "Agent-"
+    ai_profile_suffix: str = " [AI]"
+    ai_notes_prefix: str = "[Updated by AI]: "
 
     # Observability
     log_level: str = "INFO"

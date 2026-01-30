@@ -17,7 +17,6 @@ class TestGaggimateConfig:
         assert config.min_temperature == 60.0
         assert config.max_pressure == 12.0
         assert config.min_pressure == 0.0
-        assert config.agent_prefix == "Agent-"
 
     def test_config_override(self):
         """Test configuration values can be overridden."""

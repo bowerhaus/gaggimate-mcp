@@ -429,17 +429,17 @@ async def manage_shot_notes(
                 "device_error": None
             }
 
-            # Design note: We use "Updated by [AI]: " prefix for shot notes
-            # to clearly indicate AI-generated content in the Gaggimate UI.
-            # This is intentionally different from the " [AI]" suffix used for
-            # profile names (see manage_profile tool) because:
+            # Design note: We use a prefix for shot notes to clearly indicate
+            # AI-generated content in the Gaggimate UI. This is intentionally
+            # different from the suffix used for profile names because:
             # 1. Notes are free-form text where a prefix is more natural
             # 2. Profile names are displayed in lists where suffix keeps the
-            #    meaningful name visible on small screens (e.g., "Amizade [AI]"
-            #    vs "[AI] Amizade" which would sort all AI profiles together)
+            #    meaningful name visible on small screens
+            # Both prefixes are configurable via GAGGIMATE_AI_NOTES_PREFIX and
+            # GAGGIMATE_AI_PROFILE_SUFFIX environment variables.
             agent_notes = None
             if notes:
-                agent_prefix = "Updated by [AI]: "
+                agent_prefix = config.ai_notes_prefix
                 # Only add prefix if not already present
                 if not notes.startswith(agent_prefix):
                     agent_notes = f"{agent_prefix}{notes}"
