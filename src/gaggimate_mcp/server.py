@@ -235,17 +235,25 @@ async def manage_profile(
 
             # For update, use provided profile_id; for create, find existing by name
             target_id = profile_id
+            existing_type = "pro"  # Default for new profiles
             if action == "update" and not target_id:
                 existing = await ws_client.find_profile_by_label(profile_name)
                 if existing:
                     target_id = existing.get("id")
+                    existing_type = existing.get("type", "pro")  # Preserve original type
+            elif action == "update" and target_id:
+                # Fetch existing profile to preserve its type
+                existing = await ws_client.get_profile(target_id)
+                if existing:
+                    existing_type = existing.get("type", "pro")
 
             # Create or update profile
             saved_profile = await ws_client.create_or_update_profile(
                 label=profile_name,
                 temperature=temperature,
                 phases=phases_list,
-                profile_id=target_id
+                profile_id=target_id,
+                profile_type=existing_type
             )
 
             # Save version locally

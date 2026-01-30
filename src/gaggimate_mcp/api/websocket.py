@@ -212,7 +212,8 @@ class GaggimateWebSocketClient:
         label: str,
         temperature: float,
         phases: list[dict],
-        profile_id: Optional[str] = None
+        profile_id: Optional[str] = None,
+        profile_type: str = "pro"
     ) -> dict:
         """Create or update a profile with simplified parameters.
 
@@ -221,6 +222,7 @@ class GaggimateWebSocketClient:
             temperature: Global temperature in Celsius
             phases: List of phase dictionaries
             profile_id: Existing profile ID (None to create new)
+            profile_type: Profile type ('simple' or 'pro'), defaults to 'pro'
 
         Returns:
             Saved profile dictionary
@@ -228,10 +230,13 @@ class GaggimateWebSocketClient:
         Raises:
             GaggimateError: If request fails
         """
+        # Ensure [AI] suffix is present for agent-edited profiles
+        if not label.endswith(" [AI]"):
+            label = f"{label} [AI]"
         # Build complete profile object
         profile = {
             "label": label,
-            "type": "pro",
+            "type": profile_type,
             "description": f"Profile: {label}",
             "temperature": temperature,
             "favorite": False,
@@ -241,7 +246,7 @@ class GaggimateWebSocketClient:
                 {
                     "name": phase.get("name", "Phase"),
                     "phase": phase.get("phase", "brew"),
-                    "valve": 1,
+                    "valve": phase.get("valve", 1),  # Use agent's value, default to 1
                     "duration": phase["duration"],
                     "temperature": phase.get("temperature", temperature),
                     "transition": phase.get("transition", {
