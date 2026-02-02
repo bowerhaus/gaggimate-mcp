@@ -4,6 +4,7 @@
 
 import json
 import asyncio
+import traceback
 from typing import Optional, Union
 from pydantic import ValidationError
 
@@ -341,10 +342,13 @@ async def analyze_shot(shot_id: str) -> str:
             "suggestion": _get_error_suggestion(e)
         })
     except Exception as e:
-        logger.error("analyze_shot_unexpected_error", shot_id=shot_id, error=str(e))
+        error_msg = str(e) or f"{type(e).__name__} (no message)"
+        tb = traceback.format_exc()
+        logger.error("analyze_shot_unexpected_error", shot_id=shot_id, error=error_msg, traceback=tb)
         return json.dumps({
             "success": False,
-            "error": f"Unexpected error: {str(e)}"
+            "error": f"Unexpected error: {error_msg}",
+            "exception_type": type(e).__name__
         })
 
 
