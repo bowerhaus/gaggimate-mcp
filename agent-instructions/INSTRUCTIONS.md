@@ -226,6 +226,9 @@ If uncertain, say so: "I'm not entirely sure how this particular anaerobic natur
 ## MCP Tools Available
 
 You have access to Gaggimate MCP tools for:
+- **Managing profiles**: Create, update (partial updates supported), delete, and list profiles
+  - Delete is restricted to AI-created profiles (ending with `[AI]`) for safety
+  - Updates can change just temperature, phases, or name without respecifying everything
 - **Retrieving shot history** and telemetry data
 - **Uploading profiles** to the machine
 - **Updating shot notes** and ratings

@@ -10,6 +10,27 @@ This repository provides two things:
 
 2. **Instructions, knowledge, and a skill** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands basic extraction theory, tasting vocabulary, and Gaggimate's profile system.
 
+## Table of Contents
+
+- [What's in this Repository](#whats-in-this-repository)
+- [Changelog](#changelog)
+- [The Dialing Flow](#the-dialing-flow)
+- [Example Conversations](#example-conversations)
+- [MCP Tools](#mcp-tools)
+- [Safety Guardrails](#safety-guardrails)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Claude Desktop Project Setup (Optional)](#claude-desktop-project-setup-optional)
+- [Configuration (Optional)](#configuration-optional)
+- [Troubleshooting](#troubleshooting)
+- [How It Works](#how-it-works)
+- [Local Data Storage](#local-data-storage)
+- [Development](#development)
+- [Why a Skill Instead of a Knowledge File?](#why-a-skill-instead-of-a-knowledge-file)
+- [Project Structure](#project-structure)
+- [Related](#related)
+- [License](#license)
+
 ## What's in this Repository
 
 **MCP Server** — Five tools that give your AI direct access to your machine:
@@ -28,6 +49,25 @@ This repository provides two things:
 **Skills** — A Claude Desktop skill for efficient profile creation using progressive disclosure (loads detailed references only when needed).
 
 See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Rabbit](https://youtu.be/kjhwed1PZvg) — this MCP server automates that entire workflow.
+
+## Changelog
+
+### 2026-02-03
+- **Partial profile updates**: Update only the fields you want to change (temperature, phases, or name) - omitted fields keep their existing values
+- **Delete profiles**: Added `action='delete'` to `manage_profile` with safety guardrails:
+  - Only AI-created profiles (ending with ` [AI]`) can be deleted
+  - Requires explicit `confirm_delete=True` to prevent accidents
+  - Deleted profiles can be recovered from local backup (see [Local Data Storage](#local-data-storage))
+- **Shot notes simplified**: `action='get'` now reads from device (source of truth); local storage is backup-only for users
+- **Local Data Storage docs**: Added documentation explaining what's stored locally and agent access limitations
+- **Bug fix**: Fixed `get_profile` → `load_profile` method call that was causing update failures
+
+### 2026-02-02
+- **Configurable AI markers** (`edc8d98`): AI profile suffix and notes prefix are now configurable via `GAGGIMATE_AI_PROFILE_SUFFIX` and `GAGGIMATE_AI_NOTES_PREFIX` environment variables
+- **Bug fix** (`a350246`): Profile updates now preserve valve settings and profile type (simple/pro) instead of resetting them
+- **Automatic Pro documentation** (`bfc2ca0`): Added comprehensive guide for Automatic Pro profiles with flow-based variable pressure examples
+
+---
 
 ## The Dialing Flow
 
@@ -97,7 +137,7 @@ flowchart LR
 This server provides five tools that give AI agents the capabilities they need to help with your espresso workflow:
 
 ### `manage_profile`
-Create, view, update, and list brewing profiles on your Gaggimate device. Profiles define the entire extraction process—water temperature, pre-infusion settings, pressure curves, and flow targets. The AI can build profiles optimized for specific beans or brewing styles, and profiles created by AI are automatically tagged with `[AI]` in their name so you can identify them.
+Create, view, update, delete, and list brewing profiles on your Gaggimate device. Profiles define the entire extraction process—water temperature, pre-infusion settings, pressure curves, and flow targets. The AI can build profiles optimized for specific beans or brewing styles. **Partial updates** are supported—you can change just temperature, phases, or name without respecifying everything. Profiles created by AI are automatically tagged with `[AI]` in their name so you can identify them.
 
 ### `analyze_shot`
 Retrieve comprehensive data from any shot, including temperature curves, pressure readings, flow rates, and extraction timing. The raw binary shot logs are parsed and transformed into an AI-friendly format with computed statistics like average pressure, temperature stability, and total extraction volume. This gives the AI the context it needs to understand what happened during extraction.
@@ -119,6 +159,7 @@ For safe operation, this MCP server enforces the following limits:
 - **Temperature limits**: All temperatures are clamped to **25-100°C** to prevent damage or burns.
 - **Pressure limits**: All pressures are clamped to **0-12 bar** to stay within safe operating ranges.
 - **Profile attribution**: AI-created profiles are marked with ` [AI]` suffix (e.g., "Ethiopian Light [AI]") for transparency.
+- **Delete protection**: The AI can only delete profiles it created (those ending with ` [AI]`). User-created profiles cannot be deleted by the agent. If you need to recover a deleted profile, see [Local Data Storage](#local-data-storage)—all profile versions are saved locally before deletion.
 
 These limits are enforced at the configuration level and cannot be overridden through the MCP tools.
 
@@ -313,6 +354,68 @@ The MCP server acts as a bridge:
 - **HTTP API** (`http://gaggimate.local/api/`) - Shot history and data files
 
 Shot data is parsed from binary `.slog` files and transformed into an AI-friendly format with statistics about temperature, pressure, flow, and extraction timing.
+
+## Local Data Storage
+
+The MCP server stores some data locally on your machine (not on the Gaggimate device) for backup and version tracking purposes.
+
+### What's stored locally
+
+| Location | Contents | Purpose |
+|----------|----------|--------|
+| `./data/ratings.json` | Shot ratings and tasting notes | Backup of feedback synced to device |
+| `./data/profiles/` | AI-created profile versions | Version history for rollback/comparison |
+
+### Agent access to local storage
+
+| Data | Agent Can Read | Agent Can Write |
+|------|----------------|-----------------|
+| Shot ratings | ❌ No - reads from device (source of truth) | ✅ Yes (backup copy) |
+| Profile versions | ❌ No (user-only via filesystem) | ✅ Auto-saved on create/update |
+
+Local storage is **write-only** from the agent's perspective—it saves backups automatically but always reads from the Gaggimate device. To access local backups (e.g., for recovery), browse the files directly in `./data/`.
+
+### `ratings.json` structure
+
+Stores your shot feedback indexed by shot ID:
+```json
+{
+  "000105": {
+    "shot_id": "000105",
+    "rating": 4,
+    "notes": "Updated by [AI]: Dark chocolate notes, syrupy body...",
+    "timestamp": "2026-01-29T08:46:08.525676"
+  }
+}
+```
+
+### Profile versions
+
+Each time the AI creates or updates a profile, a versioned copy is saved locally:
+```
+./data/profiles/
+├── Agent-Ethiopian_Light__AI__v1.json
+├── Agent-Ethiopian_Light__AI__v2.json   # After first adjustment
+└── Agent-Ethiopian_Light__AI__v3.json   # After second adjustment
+```
+
+This allows you to:
+- Track how profiles evolved during dialing
+- Rollback to previous versions if needed
+- Compare what changed between iterations
+
+### Configuring storage location
+
+You can change the storage path via environment variable:
+```ini
+GAGGIMATE_STORAGE_PATH=/path/to/custom/data
+```
+
+### Data privacy
+
+- All local data stays on your machine
+- Nothing is sent to external servers
+- The AI agent only accesses your Gaggimate device on your local network
 
 ## Development
 

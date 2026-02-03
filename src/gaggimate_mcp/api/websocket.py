@@ -207,6 +207,30 @@ class GaggimateWebSocketClient:
         logger.info("profile_saved", profile_id=saved_profile.get("id", profile_id))
         return saved_profile
 
+    async def delete_profile(self, profile_id: str) -> dict:
+        """Delete a profile by ID.
+
+        Args:
+            profile_id: Profile identifier to delete
+
+        Returns:
+            Response dictionary with deletion result
+
+        Raises:
+            GaggimateError: If request fails
+        """
+        request_id = generate_request_id()
+        logger.info("deleting_profile", profile_id=profile_id, url=self.ws_url)
+
+        response = await self._send_request(
+            "req:profiles:delete",
+            request_id,
+            id=profile_id
+        )
+
+        logger.info("profile_deleted", profile_id=profile_id)
+        return response
+
     async def create_or_update_profile(
         self,
         label: str,

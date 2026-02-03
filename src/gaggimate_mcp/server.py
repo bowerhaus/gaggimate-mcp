@@ -96,7 +96,8 @@ async def manage_profile(
     profile_id: Optional[str] = None,
     profile_name: Optional[str] = None,
     temperature: Optional[float] = None,
-    phases: Optional[Union[str, list]] = None
+    phases: Optional[Union[str, list]] = None,
+    confirm_delete: bool = False
 ) -> str:
     """Manage espresso brewing profiles on the Gaggimate espresso machine.
 
@@ -104,16 +105,25 @@ async def manage_profile(
         action: Action to perform:
             - 'list': List all available profiles
             - 'get': Get a specific profile by ID
-            - 'create': Create a new profile
-            - 'update': Update an existing profile
-        profile_id: Profile ID (required for 'get' and 'update')
+            - 'create': Create a new profile (requires profile_name, temperature, phases)
+            - 'update': Update an existing profile. Supports PARTIAL UPDATES - only provide
+              the fields you want to change. Requires profile_id or profile_name to identify
+              the profile. Omitted fields will keep their existing values.
+            - 'delete': Delete an existing profile (SAFETY: Only AI-created profiles
+              with ' [AI]' suffix can be deleted. Requires confirm_delete=True)
+        profile_id: Profile ID (required for 'get' and 'delete', optional for 'update')
+        confirm_delete: Must be True to confirm profile deletion. This is a safety
+            measure to prevent accidental deletions. Only profiles with the ' [AI]'
+            suffix can be deleted by the agent.
         profile_name: Profile name. IMPORTANT: For agent-created profiles, always add ' [AI]'
             suffix (e.g., 'Ethiopian Light [AI]') so users can identify AI-created profiles.
             Design note: We use a suffix (not prefix) because profile names are displayed
             in lists on small screens - "Amizade [AI]" keeps the meaningful name visible,
             whereas "[AI] Amizade" would sort all AI profiles together alphabetically.
-        temperature: Water temperature in Celsius, typically 88-96°C (required for 'create'/'update')
-        phases: Array of brewing phases (required for 'create'/'update'). Each phase object:
+        temperature: Water temperature in Celsius, typically 88-96°C (required for 'create',
+            optional for 'update' - omit to keep existing value)
+        phases: Array of brewing phases (required for 'create', optional for 'update' -
+            omit to keep existing phases). Each phase object:
             - name (str): Phase display name (e.g., 'Pre-infusion', 'Extraction', 'Decline')
             - phase (str): Phase type - 'preinfusion', 'brew', or 'decline'
             - duration (int): Maximum duration in seconds
@@ -178,11 +188,12 @@ async def manage_profile(
                 "profile": profile
             })
 
-        elif action in ("create", "update"):
+        elif action == "create":
+            # Create requires all parameters
             if not profile_name or temperature is None or not phases:
                 return json.dumps({
                     "success": False,
-                    "error": "profile_name, temperature, and phases are required"
+                    "error": "profile_name, temperature, and phases are required for create"
                 })
 
             # Handle phases as either JSON string or already-parsed list
@@ -234,27 +245,13 @@ async def manage_profile(
                         "error": f"Phase {idx} 'duration' must be a number"
                     })
 
-            # For update, use provided profile_id; for create, find existing by name
-            target_id = profile_id
-            existing_type = "pro"  # Default for new profiles
-            if action == "update" and not target_id:
-                existing = await ws_client.find_profile_by_label(profile_name)
-                if existing:
-                    target_id = existing.get("id")
-                    existing_type = existing.get("type", "pro")  # Preserve original type
-            elif action == "update" and target_id:
-                # Fetch existing profile to preserve its type
-                existing = await ws_client.get_profile(target_id)
-                if existing:
-                    existing_type = existing.get("type", "pro")
-
-            # Create or update profile
+            # Create new profile
             saved_profile = await ws_client.create_or_update_profile(
                 label=profile_name,
                 temperature=temperature,
                 phases=phases_list,
-                profile_id=target_id,
-                profile_type=existing_type
+                profile_id=None,
+                profile_type="pro"
             )
 
             # Save version locally
@@ -275,10 +272,171 @@ async def manage_profile(
                 "version_info": version_info
             })
 
+        elif action == "update":
+            # Update requires profile_id OR profile_name to identify the profile
+            if not profile_id and not profile_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "profile_id or profile_name is required to identify the profile to update"
+                })
+
+            # Load existing profile first
+            existing = None
+            target_id = profile_id
+            
+            if profile_id:
+                existing = await ws_client.load_profile(profile_id)
+                if not existing:
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Profile with ID '{profile_id}' not found"
+                    })
+            else:
+                # Find by name
+                existing = await ws_client.find_profile_by_label(profile_name)
+                if not existing:
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Profile with name '{profile_name}' not found"
+                    })
+                target_id = existing.get("id")
+
+            # Use existing values as defaults, override with provided values
+            final_name = profile_name if profile_name else existing.get("label")
+            final_temperature = temperature if temperature is not None else existing.get("temperature")
+            final_phases = None
+            existing_type = existing.get("type", "pro")
+
+            # Handle phases - use existing if not provided
+            if phases:
+                if isinstance(phases, list):
+                    final_phases = phases
+                else:
+                    try:
+                        final_phases = json.loads(phases)
+                    except json.JSONDecodeError:
+                        return json.dumps({
+                            "success": False,
+                            "error": "Invalid JSON in phases parameter"
+                        })
+
+                # Validate phases structure
+                if not isinstance(final_phases, list):
+                    return json.dumps({
+                        "success": False,
+                        "error": "phases must be a JSON array"
+                    })
+
+                if len(final_phases) == 0:
+                    return json.dumps({
+                        "success": False,
+                        "error": "At least one phase is required"
+                    })
+
+                # Validate each phase has required fields
+                for idx, phase in enumerate(final_phases):
+                    if not isinstance(phase, dict):
+                        return json.dumps({
+                            "success": False,
+                            "error": f"Phase {idx} must be an object"
+                        })
+
+                    required_fields = ["name", "phase", "duration"]
+                    missing = [f for f in required_fields if f not in phase]
+                    if missing:
+                        return json.dumps({
+                            "success": False,
+                            "error": f"Phase {idx} missing required fields: {', '.join(missing)}"
+                        })
+
+                    if not isinstance(phase["duration"], (int, float)):
+                        return json.dumps({
+                            "success": False,
+                            "error": f"Phase {idx} 'duration' must be a number"
+                        })
+            else:
+                # Use existing phases
+                final_phases = existing.get("phases", [])
+
+            # Update profile
+            saved_profile = await ws_client.create_or_update_profile(
+                label=final_name,
+                temperature=final_temperature,
+                phases=final_phases,
+                profile_id=target_id,
+                profile_type=existing_type
+            )
+
+            # Save version locally
+            version_info = profile_storage.save_profile_version(
+                profile_name=final_name,
+                profile_data=saved_profile,
+                metadata={
+                    "action": action,
+                    "temperature": final_temperature,
+                    "phase_count": len(final_phases)
+                }
+            )
+
+            return json.dumps({
+                "success": True,
+                "action": action,
+                "profile": saved_profile,
+                "version_info": version_info
+            })
+
+        elif action == "delete":
+            # Safety check 1: Require profile_id
+            if not profile_id:
+                return json.dumps({
+                    "success": False,
+                    "error": "Profile ID is required for delete action"
+                })
+
+            # Safety check 2: Require explicit confirmation
+            if not confirm_delete:
+                return json.dumps({
+                    "success": False,
+                    "error": "Delete requires confirm_delete=True. This is a safety measure. "
+                             "Please confirm the user explicitly wants to delete this profile."
+                })
+
+            # Safety check 3: Load the profile and verify it has AI suffix
+            ai_suffix = config.ai_profile_suffix
+            existing = await ws_client.load_profile(profile_id)
+            if not existing:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Profile with ID '{profile_id}' not found"
+                })
+
+            profile_label = existing.get("label", "")
+            if not profile_label.endswith(ai_suffix):
+                return json.dumps({
+                    "success": False,
+                    "error": f"Cannot delete profile '{profile_label}'. "
+                             f"Only AI-created profiles (ending with '{ai_suffix}') can be deleted by the agent. "
+                             "This protects user-created profiles from accidental deletion."
+                })
+
+            # All safety checks passed - delete the profile
+            logger.info("deleting_profile", profile_id=profile_id, label=profile_label)
+            await ws_client.delete_profile(profile_id)
+
+            return json.dumps({
+                "success": True,
+                "action": "delete",
+                "deleted_profile": {
+                    "id": profile_id,
+                    "label": profile_label
+                },
+                "message": f"Profile '{profile_label}' has been permanently deleted"
+            })
+
         else:
             return json.dumps({
                 "success": False,
-                "error": f"Unknown action '{action}'. Use: list, get, create, update"
+                "error": f"Unknown action '{action}'. Use: list, get, create, update, delete"
             })
 
     except GaggimateError as e:
@@ -366,13 +524,12 @@ async def manage_shot_notes(
 ) -> str:
     """Manage shot notes and ratings.
 
-    This tool saves feedback locally and optionally syncs to the Gaggimate device
-    (via WebSocket API) when sync_to_device=True (the default). Local storage
-    serves as a backup in case device sync fails.
+    This tool syncs feedback to the Gaggimate device (via WebSocket API) and saves
+    a local backup. The device is the source of truth for all shot notes.
 
     Args:
         shot_id: Shot ID (e.g., "100" or "000100" - will be normalized)
-        action: Action to perform - "update", "get", or "get_device" (default: "update")
+        action: Action to perform - "update" or "get" (default: "update")
         rating: Star rating (0-5, optional)
         notes: Tasting notes (optional)
         balance_taste: Taste balance - "bitter", "balanced", or "sour" (optional)
@@ -399,25 +556,7 @@ async def manage_shot_notes(
 
     try:
         if action == "get":
-            # Get from local storage
-            rating_data = rating_storage.get_rating(storage_id)
-            if not rating_data:
-                return json.dumps({
-                    "success": True,
-                    "shot_id": storage_id,
-                    "rating": None,
-                    "message": "No local notes found for this shot"
-                })
-
-            return json.dumps({
-                "success": True,
-                "shot_id": storage_id,
-                "rating": rating_data,
-                "source": "local"
-            })
-
-        elif action == "get_device":
-            # Get from device via WebSocket
+            # Get from device via WebSocket (device is source of truth)
             device_notes = await ws_client.get_shot_notes(api_id)
             return json.dumps({
                 "success": True,
@@ -510,7 +649,7 @@ async def manage_shot_notes(
         else:
             return json.dumps({
                 "success": False,
-                "error": f"Unknown action '{action}'. Use 'update', 'get', or 'get_device'"
+                "error": f"Unknown action '{action}'. Use 'update' or 'get'"
             })
 
     except ValidationError as e:
