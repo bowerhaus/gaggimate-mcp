@@ -231,6 +231,32 @@ class GaggimateWebSocketClient:
         logger.info("profile_deleted", profile_id=profile_id)
         return response
 
+    async def select_profile(self, profile_id: str) -> dict:
+        """Select a profile as the active brewing profile.
+
+        The selected profile will be used for the next espresso shot.
+
+        Args:
+            profile_id: Profile identifier to select
+
+        Returns:
+            Response dictionary with selection result
+
+        Raises:
+            GaggimateError: If request fails
+        """
+        request_id = generate_request_id()
+        logger.info("selecting_profile", profile_id=profile_id, url=self.ws_url)
+
+        response = await self._send_request(
+            "req:profiles:select",
+            request_id,
+            id=profile_id
+        )
+
+        logger.info("profile_selected", profile_id=profile_id)
+        return response
+
     async def create_or_update_profile(
         self,
         label: str,

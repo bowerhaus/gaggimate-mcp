@@ -111,6 +111,8 @@ async def manage_profile(
               the profile. Omitted fields will keep their existing values.
             - 'delete': Delete an existing profile (SAFETY: Only AI-created profiles
               with ' [AI]' suffix can be deleted. Requires confirm_delete=True)
+            - 'select': Select a profile as the active brewing profile. The machine will
+              use this profile for the next espresso shot. Requires profile_id or profile_name.
         profile_id: Profile ID (required for 'get' and 'delete', optional for 'update')
         confirm_delete: Must be True to confirm profile deletion. This is a safety
             measure to prevent accidental deletions. Only profiles with the ' [AI]'
@@ -433,10 +435,53 @@ async def manage_profile(
                 "message": f"Profile '{profile_label}' has been permanently deleted"
             })
 
+        elif action == "select":
+            # Select requires profile_id OR profile_name to identify the profile
+            if not profile_id and not profile_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "profile_id or profile_name is required to identify the profile to select"
+                })
+
+            target_id = profile_id
+            profile_label = None
+
+            if profile_id:
+                # Verify profile exists
+                profile = await ws_client.load_profile(profile_id)
+                if not profile:
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Profile with ID '{profile_id}' not found"
+                    })
+                profile_label = profile.get("label")
+            else:
+                # Find by name
+                profile = await ws_client.find_profile_by_label(profile_name)
+                if not profile:
+                    return json.dumps({
+                        "success": False,
+                        "error": f"Profile with name '{profile_name}' not found"
+                    })
+                target_id = profile.get("id")
+                profile_label = profile_name
+
+            # Select the profile
+            logger.info("selecting_profile", profile_id=target_id, label=profile_label)
+            await ws_client.select_profile(target_id)
+
+            return json.dumps({
+                "success": True,
+                "action": "select",
+                "profile_id": target_id,
+                "profile_name": profile_label,
+                "message": f"Profile '{profile_label}' is now selected as the active brewing profile"
+            })
+
         else:
             return json.dumps({
                 "success": False,
-                "error": f"Unknown action '{action}'. Use: list, get, create, update, delete"
+                "error": f"Unknown action '{action}'. Use: list, get, create, update, delete, select"
             })
 
     except GaggimateError as e:
