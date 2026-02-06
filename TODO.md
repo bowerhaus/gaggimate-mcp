@@ -6,11 +6,11 @@ This file tracks pending tasks for the gaggimate-mcp project.
 
 ## Pending
 
-- [ ] **Test `select` action in `manage_profile`** - The new profile selection feature was implemented but needs real device testing to verify it works correctly with Gaggimate firmware.
+_No pending tasks at the moment._
 
 ---
 
 ## Completed
 
-_Move completed items here with the date completed._
+- [x] **Test `select` action in `manage_profile`** - The new profile selection feature was implemented and tested with real device. _(Completed: 2026-02-06)_
 
