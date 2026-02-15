@@ -1079,3 +1079,5 @@ After 2-3 shots, estimation typically becomes accurate within Â±2g.
 ---
 
 This guide was written by Julian Leopold using Claude in order to assist users and LLM agents in creating effective Gaggimate espresso profiles.
+
+*For ready-to-use profile templates, see `PROFILE_LIBRARY.md`. For pressure selection by roast and processing, see `PRESSURE_GUIDE.md`. For brewing fundamentals and adjustment strategies, see `ESPRESSO_BREWING_BASICS.md`.*

@@ -135,6 +135,20 @@ This works because extraction is a timeline: acids come out first, then sugars, 
 | Lacking clarity | Coarser grind | Longer ratio |
 | Too thin/watery | Finer grind | Shorter ratio |
 
+### Variable Hierarchy: What to Adjust First
+
+Not all variables have equal impact. Adjust in this order:
+
+| Priority | Variable | Impact | When to adjust |
+|---|---|---|---|
+| 1 | **Grind size** | Largest effect on extraction | Shot time is far off target, or taste is clearly sour/bitter |
+| 2 | **Yield/Ratio** | Quick correction without re-dialing time | Shot time is acceptable but taste is off (use the 5g rule) |
+| 3 | **Temperature** | Fine-tuning after grind is close | Grind is dialed but flavor is flat, sharp, or lacking sweetness |
+| 4 | **Pressure/Profile** | Style change or enhancement | Fundamentals are working but you want different character |
+| 5 | **Puck prep** | Consistency and channeling | Sour AND bitter simultaneously, or inconsistent shots |
+
+**Key principle:** Don't jump to profile tuning when the grind isn't right. Get the basics working first, then refine.
+
 ### Temperature Guidelines by Roast
 
 | Roast Level | Temperature Range |
@@ -144,7 +158,7 @@ This works because extraction is a timeline: acids come out first, then sugars, 
 | Medium-Dark | 90-92°C |
 | Dark | 88-90°C |
 
-**Adjustment rule:** 
+**Adjustment rule:**
 - Too sour → increase 1-2°C
 - Too bitter → decrease 1-2°C
 
@@ -194,6 +208,56 @@ A common misconception: dark roasts actually contain similar acid levels to ligh
 
 ---
 
+## Diagnostic Decision Tree
+
+| Symptom | Shot Time | First Check | Second Check | Third Check |
+|---|---|---|---|---|
+| **Sour + fast** | <20s | Grind finer | — | — |
+| **Sour + normal time** | 25-30s | Increase yield by 5g | Increase temp 1-2°C | Add bloom to profile |
+| **Sour + slow** | >35s | Likely channeling (see below) | Better puck prep | Longer pre-infusion |
+| **Bitter + slow** | >35s | Grind coarser | — | — |
+| **Bitter + normal time** | 25-30s | Decrease yield by 5g | Decrease temp 1-2°C | Add pressure decline |
+| **Bitter + fast** | <20s | Possible over-roast or water issue | Check bean freshness | Check water quality |
+| **Sour AND bitter** | Any | **Channeling** — fix puck prep | Finer grind + longer PI | Check grinder for clumping |
+| **Balanced but flat** | 25-30s | Increase temp 1°C | Try longer ratio | Check freshness |
+| **Balanced but thin** | 25-30s | Shorter ratio | Finer grind (increase body) | Check for basket leaks |
+
+**Critical insight (Scott Rao):** If your shot tastes **both sour and bitter at the same time**, it's almost certainly channeling — water is finding paths of least resistance, over-extracting some grounds while under-extracting others. The fix is puck prep (WDT, distribution, even tamp), not grind adjustment. Grinding finer when channeling is present makes it worse.
+
+---
+
+## Separating Problems
+
+When a shot isn't right, the challenge is identifying *which* variable is the culprit:
+
+**Is it the grind?**
+- Shot time is significantly off target (>5 seconds away)
+- Taste matches the time — fast + sour, or slow + bitter
+- Fix: Adjust grind, everything else stays the same
+
+**Is it the temperature?**
+- Shot time is in range, but flavor is flat, sharp, or lacks sweetness
+- Changing grind doesn't improve taste (just makes it faster/slower with the same issues)
+- Fix: Adjust temperature 1-2°C in the appropriate direction
+
+**Is it the ratio?**
+- Shot time and temperature feel right, but the balance is slightly off
+- The 5g rule resolves it quickly
+- Fix: Add or subtract 5g from yield
+
+**Is it the profile?**
+- Grind and temperature are dialed, shot time is correct, but the coffee feels "incomplete"
+- You want more sweetness, different body, or a different character
+- Fix: Try a different profile style (bloom, decline, turbo) or tune profile phases
+
+**Is it puck prep?**
+- Sour AND bitter simultaneously
+- Inconsistent shots (same settings, different results)
+- Telemetry shows uneven flow or pressure spikes
+- Fix: WDT distribution, even tamp, check for clumps; don't change grind until prep is consistent
+
+---
+
 ## Common Mistakes
 
 1. **Changing multiple variables at once** — Can't isolate what helped
@@ -231,4 +295,4 @@ A common misconception: dark roasts actually contain similar acid levels to ligh
 
 ---
 
-*For tasting guidance and feedback templates, see `ESPRESSO_TASTING_FEEDBACK_GUIDE.md`. For profile creation, see `GAGGIMATE_PROFILE_CREATION_GUIDE.md`.*
+*For tasting guidance and feedback templates, see `ESPRESSO_TASTING_GUIDE.md`. For profile creation, see `GAGGIMATE_PROFILE_CREATION_GUIDE.md`. For pressure selection by roast and processing, see `PRESSURE_GUIDE.md`. For channeling prevention and puck prep, see `EXTRACTION_SCIENCE.md`. For bean freshness windows, see `BEAN_FRESHNESS_AND_STORAGE.md`.*

@@ -7,45 +7,51 @@ description: Create custom espresso extraction profiles for Gaggimate-equipped m
 
 Create custom espresso extraction profiles for Gaggimate-equipped machines. Gaggimate supports **Simple** and **Pro** profile types, with Pro profiles offering pressure profiling, flow control, and complex transitions.
 
-## When to Use This Skill
-
-- Creating new espresso extraction profiles for Gaggimate machines
-- Modifying or troubleshooting existing Gaggimate profiles
-- Designing pressure profiles, flow profiles, or blooming profiles
-- Helping with espresso extraction issues (channeling, over-extraction, under-extraction)
-- Explaining profile concepts like pressure profiling, flow control, transitions
-- Suggesting profiles for specific coffee types or roast levels
+> Enriched with patterns from [gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) by Charlie Hall.
 
 ## Workflow
 
 ### Step 1: Gather Information
 
-If not provided, ask about:
+If not provided, check the user's setup information (if available in project knowledge). Ask about anything still missing:
 - Coffee type/origin and roast level
-- Dose amount (typically 18g for double shot)
+- **Processing method** (washed, natural, honey, anaerobic — affects target pressure)
+- Dose amount (**dose = basket size**; don't underdose)
 - Desired output ratio (1:2 is classic)
 - Flavor goals (more body, more acidity, reduce bitterness, etc.)
 - Whether they have a Bluetooth scale (for volumetric stop conditions)
 
 ### Step 2: Select Profile Pattern
 
-| Coffee Type | Temperature | Profile Pattern |
-|-------------|-------------|-----------------|
-| Light roasts (Ethiopia, Kenya) | 94-96°C | Bloom profile |
-| Medium roasts (Colombia, Brazil) | 92-94°C | Classic 9-bar |
-| Medium-dark (Vienna) | 90-92°C | Slight decline |
-| Dark roasts (French/Italian) | 88-90°C | Low pressure (7-8 bar) with decline |
+Consult the knowledge files in your context to determine settings:
+- **Temperature**: ESPRESSO_BREWING_BASICS.md → "Temperature Guidelines by Roast"
+- **Pressure**: PRESSURE_GUIDE.md → roast × processing matrix
+- **Profile pattern**: PROFILE_LIBRARY.md → select by roast, process, and style
 
-### Step 3: Load Reference Files
+Quick reference for common patterns:
 
-For complete documentation, load the appropriate reference file:
+| Coffee Type | Temperature | Pressure | Profile Pattern |
+|-------------|-------------|----------|-----------------|
+| Light roasts (Ethiopia, Kenya) | 94-96°C | 6-8 bar | Bloom profile |
+| Medium roasts (Colombia, Brazil) | 92-94°C | 8-9 bar | Classic 9-bar |
+| Medium-dark (Vienna) | 90-92°C | 8-9 bar | Slight decline |
+| Dark roasts (French/Italian) | 88-90°C | 7-8 bar | Low pressure with decline |
+| Natural process (any roast) | Per roast | -1 bar from washed | Bloom or longer pre-infusion |
 
-- **JSON Schema & Fields**: See [references/PROFILE_STRUCTURE.md](references/PROFILE_STRUCTURE.md)
-- **Pump & Transitions**: See [references/PUMP_AND_TRANSITIONS.md](references/PUMP_AND_TRANSITIONS.md)
-- **Stop Conditions**: See [references/STOP_CONDITIONS.md](references/STOP_CONDITIONS.md)
-- **Complete Examples**: See [references/EXAMPLES.md](references/EXAMPLES.md)
-- **Troubleshooting**: See [references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md)
-- **Quick Reference**: See [references/QUICK_REFERENCE.md](references/QUICK_REFERENCE.md)
+### Step 3: Load Reference Files (conditionally)
+
+**Default: load ZERO reference files.** Steps 2 + 4 (knowledge files + inline JSON template) are sufficient for standard profiles built from library patterns. Only load a reference file when a specific trigger applies.
+
+**Stop rule:** Load at most **2 reference files** per profile creation session.
+
+| Reference | Load ONLY when... |
+|-----------|--------------------|
+| [EXAMPLES.md](references/EXAMPLES.md) | Need a JSON template for a style not in PROFILE_LIBRARY.md |
+| [PUMP_AND_TRANSITIONS.md](references/PUMP_AND_TRANSITIONS.md) | User asks about adaptive flow, ease-in-out transitions, or power mode |
+| [STOP_CONDITIONS.md](references/STOP_CONDITIONS.md) | User asks about combining multiple stop conditions or non-volumetric targets |
+| [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) | User reports a problem with an **existing** profile — never for new creation |
+| [FLOW_VARIABLE_PRESSURE.md](references/FLOW_VARIABLE_PRESSURE.md) | User specifically asks about Automatic Pro technique or flow-based variable pressure |
+| [PROFILE_STRUCTURE.md](references/PROFILE_STRUCTURE.md) | Almost never — GAGGIMATE_PROFILE_CREATION_GUIDE.md covers the same fields |
 
 ### Step 4: Generate Profile JSON
 
@@ -72,12 +78,24 @@ Always output complete, valid JSON with ALL required fields:
 }
 ```
 
+**Volumetric target:** Always set to `dose × ratio` using the user's basket size. Library profiles in PROFILE_LIBRARY.md are sized for 22g — adjust if user's basket differs.
+
 ### Step 5: Explain the Profile
 
 After generating JSON, explain:
 - What each phase does and why
 - How the profile addresses the user's flavor goals
 - Any adjustments they might want to try
+
+### Step 6: Upload to Device
+
+After generating the profile, confirm with user then upload:
+
+1. **Ask for confirmation**: "Profile ready. Shall I upload it to your machine?"
+2. **Create or update** via `manage_profile` MCP tool (action: `create` for new, `update` for existing)
+3. **Verify** the upload succeeded by checking the MCP response
+
+Always add `[AI]` suffix to profile names created by the agent.
 
 ## Quick Profile Patterns
 
@@ -107,7 +125,7 @@ Pre-infusion (4s, flow 2.5 ml/s) → Ramp (3s to 7 bar) → Hold (25s) → Taper
 // Pressure mode - maintain specific pressure
 { "target": "pressure", "pressure": 9, "flow": 4 }
 
-// Flow mode - maintain specific flow rate  
+// Flow mode - maintain specific flow rate
 { "target": "flow", "pressure": 9, "flow": 2.5 }
 
 // Adaptive flow - auto-adjust to puck resistance
@@ -134,6 +152,7 @@ Pre-infusion (4s, flow 2.5 ml/s) → Ramp (3s to 7 bar) → Hold (25s) → Taper
 3. **Use sensible defaults** - valve: 1, adaptive: true for most cases
 4. **Add a volumetric target** on the final extraction phase (if scale available)
 5. **Explain your choices** after the JSON
+6. **Upload to device** via MCP after user confirms
 
 ## Resources
 

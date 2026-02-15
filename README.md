@@ -10,7 +10,7 @@ This repository provides two things:
 
 1. **An MCP server** that allows your LLM agent to directly interact with your Gaggimate machine—no copy-pasting or manually uploading required. Your LLM agent can read your shot history, analyze extractions, store your tasting feedback, upload generated profiles, and adjust them based on your results and wishes.
 
-2. **Instructions, knowledge, and a skill** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands basic extraction theory, tasting vocabulary, and Gaggimate's profile system.
+2. **Instructions, knowledge, and skills** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands extraction theory, tasting vocabulary, pressure profiling, and Gaggimate's profile system.
 
 ## Table of Contents
 
@@ -42,17 +42,36 @@ This repository provides two things:
 - **Browse history** — List recent shots with filtering
 - **Diagnose issues** — Automated connection troubleshooting
 
-**Knowledge & Instructions** — Reference materials that transform a general-purpose LLM into a functional barista coach:
-- Espresso extraction theory and shot styles
+**Knowledge Files** (10 files) — Reference materials that transform a general-purpose LLM into a functional barista coach:
+- Espresso extraction theory, shot styles, and variable hierarchy
 - Tasting vocabulary (how to describe sour vs bitter, body, sweetness)
+- Pressure guide with roast × processing matrix
+- Extraction science (channeling, puck prep, pre-infusion mechanics)
+- Bean freshness and storage (CO2 timeline, rest windows)
+- Profile library with 8 ready-to-use templates
+- Basket sizing and dose rules
+- Milk steaming and drink specs
+- Decaf and blend strategies
 - Complete Gaggimate profile schema and examples
-- Agent instructions with dialing workflows
 
-**Skills** — A Claude Desktop skill for efficient profile creation using progressive disclosure (loads detailed references only when needed).
+**Skills** (5 skills) — Claude Desktop skills using progressive disclosure (load detailed references only when needed):
+- **gaggimate-profiles** — Profile creation with conditional reference loading
+- **new-coffee** — Research new beans, recommend parameters, upload profile
+- **diagnose** — Shot telemetry analysis with taste-data correlation
+- **feedback** — Full shot feedback loop with recording and recommendations
+- **consult** — Knowledge Q&A router that cites the correct knowledge file
 
 See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Rabbit](https://youtu.be/kjhwed1PZvg) — this MCP server automates that entire workflow.
 
 ## Changelog
+
+### 2026-02-14
+- **Expanded knowledge base**: Added 7 new knowledge files adapted from [gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) by Charlie Hall — pressure guide, extraction science, bean freshness, profile library, baskets, milk & drinks, and special categories (decaf/blends)
+- **Enriched existing knowledge**: Added variable hierarchy, diagnostic decision tree, channeling rule (Scott Rao), and cross-references to existing brewing basics and tasting guide files
+- **4 new skills**: Added new-coffee (bean research → profile), diagnose (telemetry analysis), feedback (shot feedback loop), and consult (knowledge Q&A router)
+- **Enriched gaggimate-profiles skill**: Added processing method awareness, pressure × roast matrix references, conditional reference loading, and MCP upload step
+- **Coffee Tracking artifact**: New concept for persistent memory across Claude Desktop sessions — agent creates a markdown tracking document users can save and re-upload
+- **Updated agent instructions**: Knowledge file reference table, skill directory, coffee tracking workflow, variable hierarchy, and sour-AND-bitter channeling rule
 
 ### 2026-02-03
 - **Partial profile updates**: Update only the fields you want to change (temperature, phases, or name) - omitted fields keep their existing values
@@ -260,17 +279,26 @@ This repository includes pre-built files for setting up a **Claude Desktop Proje
 
 ```
 agent-instructions/
-└── INSTRUCTIONS.md         # System primer for the espresso dialing agent
+└── INSTRUCTIONS.md              # System primer for the espresso dialing agent
 
 agent-knowledge/
-├── GAGGIMATE_PROFILE_CREATION_GUIDE.md   # Complete JSON schema for profiles
-├── ESPRESSO_BREWING_BASICS.md            # Extraction fundamentals & shot styles
-└── ESPRESSO_TASTING_GUIDE.md             # How to evaluate shots & give feedback
+├── ESPRESSO_BREWING_BASICS.md            # Extraction fundamentals, variable hierarchy, diagnostic tree
+├── ESPRESSO_TASTING_GUIDE.md             # Shot evaluation, sour vs bitter, tasting methodology
+├── GAGGIMATE_PROFILE_CREATION_GUIDE.md   # Complete JSON schema for Gaggimate profiles
+├── PRESSURE_GUIDE.md                     # Pressure by roast × processing method
+├── EXTRACTION_SCIENCE.md                 # Channeling, puck prep, pre-infusion mechanics
+├── BEAN_FRESHNESS_AND_STORAGE.md         # CO2 timeline, rest windows, storage
+├── PROFILE_LIBRARY.md                    # 8 ready-to-use profile templates
+├── BASKETS.md                            # Dose rules, basket sizing
+├── MILK_AND_DRINKS.md                    # Steaming, drink specs, single-boiler workflow
+└── SPECIAL_CATEGORIES.md                 # Decaf adjustments, blend strategies
 
 agent-skills/
-└── gaggimate-profiles/     # Claude Desktop Skill for profile creation
-    ├── SKILL.md            # Skill definition (Agent Skills standard)
-    └── references/         # Detailed reference docs loaded on-demand
+├── gaggimate-profiles/     # Profile creation with conditional reference loading
+├── new-coffee/             # Research beans → recommend parameters → upload profile
+├── diagnose/               # Shot telemetry analysis with taste correlation
+├── feedback/               # Shot feedback loop: gather → analyze → record → recommend
+└── consult/                # Knowledge Q&A router (cites correct knowledge file)
 ```
 
 ### Setup Steps
@@ -286,9 +314,16 @@ agent-skills/
 | File | Purpose |
 |------|---------|
 | **INSTRUCTIONS.md** | Defines the agent's personality, workflows for setup, coffee research, profile creation, and iterative dialing |
-| **GAGGIMATE_PROFILE_CREATION_GUIDE.md** | Complete reference for building valid Gaggimate profiles—JSON schema, phase structure, pump modes, transitions, and examples |
-| **ESPRESSO_BREWING_BASICS.md** | Explains extraction theory, shot styles (traditional, turbo, allongé, SOUP), and adjustment strategies |
-| **ESPRESSO_TASTING_GUIDE.md** | Helps users describe what they taste—sour vs bitter, body, sweetness, finish—so the agent can make better recommendations |
+| **ESPRESSO_BREWING_BASICS.md** | Extraction theory, shot styles, variable hierarchy (what to adjust first), diagnostic decision tree |
+| **ESPRESSO_TASTING_GUIDE.md** | Helps users describe what they taste—sour vs bitter, body, sweetness, channeling diagnosis |
+| **GAGGIMATE_PROFILE_CREATION_GUIDE.md** | Complete reference for building valid Gaggimate profiles—JSON schema, phase structure, pump modes |
+| **PRESSURE_GUIDE.md** | Pressure matrix by roast level × processing method, shot style parameters |
+| **EXTRACTION_SCIENCE.md** | Channeling prevention, puck prep hierarchy, pre-infusion mechanics, visual diagnosis |
+| **BEAN_FRESHNESS_AND_STORAGE.md** | CO2 degassing timeline, peak flavor windows, storage methods |
+| **PROFILE_LIBRARY.md** | 8 profile templates (Classic 9-Bar, Light Roast Bloom, Turbo, Lever Decline, etc.) |
+| **BASKETS.md** | Dose rules by basket size, depth/diameter effects, precision baskets |
+| **MILK_AND_DRINKS.md** | Steaming technique, milk types, single-boiler workflow, drink specs |
+| **SPECIAL_CATEGORIES.md** | Decaf extraction adjustments, blend temperature strategies |
 
 ## Configuration (Optional)
 
@@ -459,11 +494,16 @@ The profile creation guide is structured as a **Claude Desktop Skill** rather th
 | Single knowledge file | ~3,000 tokens (always) | Small references (<200 lines) |
 | Skill with references | ~500-1,500 tokens (varies) | Large technical docs, context-dependent detail |
 
-The skill is packaged as a ZIP file (`agent-skills/gaggimate-profiles.zip`) for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**.
+Each skill is packaged as a ZIP file in `agent-skills/` for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**:
+- `gaggimate-profiles.zip` — Profile creation
+- `new-coffee.zip` — New coffee research and setup
+- `diagnose.zip` — Shot telemetry diagnosis
+- `feedback.zip` — Shot feedback loop
+- `consult.zip` — Knowledge Q&A routing
 
-**Alternative: Just Use a Knowledge File**
+**Alternative: Just Use Knowledge Files**
 
-If you prefer simplicity, you can skip the skill entirely and add `agent-knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md` directly as a knowledge file in your Claude Desktop project. This works fine—the agent will have all the profile creation info it needs. The skill approach just optimizes for token efficiency when the full guide isn't needed for every conversation.
+If you prefer simplicity, you can skip the skills entirely and just add the knowledge files. The agent will have all the information it needs. The skill approach just optimizes for token efficiency when detailed references aren't needed for every conversation.
 
 ## Project Structure
 
@@ -491,8 +531,8 @@ gaggimate-mcp/
 │       ├── ratings.py      # Shot ratings (JSON)
 │       └── profiles.py     # AI-created profile versions
 ├── agent-instructions/     # Claude Desktop system prompt
-├── agent-knowledge/        # Reference docs for the agent
-├── agent-skills/           # Claude Desktop skills
+├── agent-knowledge/        # 10 espresso knowledge files for the agent
+├── agent-skills/           # 5 Claude Desktop skills (profile, new-coffee, diagnose, feedback, consult)
 ├── tests/                  # 139 unit tests
 └── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
@@ -502,6 +542,7 @@ gaggimate-mcp/
 ## Related
 
 - [Gaggimate Project](https://github.com/jniebuhr/gaggimate) - The ESP32 mod for Gaggia machines
+- [gaggimate-barista by Charlie Hall](https://github.com/charleshall888/gaggimate-barista) - Claude Code barista agent with deep espresso knowledge. Many of the knowledge files, skills, and diagnostic patterns in this repo were adapted from Charlie's work.
 - [Brew by AI](https://archestra.ai/blog/brew-by-ai) - Blog post about AI-assisted espresso brewing
 - [MCP for Gaggimate in TypeScript](https://github.com/Matvey-Kuk/gaggimate-mcp) - Initial inspiration for this project (this Python implementation has since diverged)
 

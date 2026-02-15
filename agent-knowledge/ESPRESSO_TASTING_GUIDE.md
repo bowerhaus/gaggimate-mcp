@@ -102,6 +102,9 @@ One thing to improve: more sweetness, reduce sourness
 | Flat/lifeless | Stale beans or wrong temp | Check freshness, adjust temp |
 | Good but lacks body | Ratio too long or channeling | Shorter ratio, better puck prep |
 | Harsh/ashy | Over-extracted or dark roast issue | Coarser grind, lower temp, pressure decline |
+| **Sour AND bitter** | **Channeling** — uneven extraction | **Fix puck prep (WDT, distribution, even tamp). NOT grind.** |
+
+**The "sour AND bitter" rule (Scott Rao):** When a shot tastes both sour and bitter simultaneously, water is finding paths of least resistance — over-extracting some grounds while under-extracting others. The fix is puck prep, not grind. Grinding finer when channeling is present makes it worse.
 
 ---
 
@@ -145,4 +148,4 @@ Don't judge a turbo shot for lacking body — that's expected. Judge it on clari
 
 ---
 
-*This guide supports the GaggiaMate shot notes system via the mcp server built by Julian Leopold. For brewing fundamentals and adjustment strategies, see `ESPRESSO_BREWING_BASICS.md`.*
+*This guide supports the Gaggimate shot notes system via the MCP server. For brewing fundamentals and adjustment strategies, see `ESPRESSO_BREWING_BASICS.md`. For pressure selection, see `PRESSURE_GUIDE.md`.*
