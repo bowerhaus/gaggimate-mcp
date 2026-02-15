@@ -53,5 +53,12 @@ typescript-reference/
 docs/
 !docs/gaggimate_profile_creation_guide.md
 archive/
-.claude/
 .github/copilot-instructions.md
+
+# .claude/ is tracked (hooks, skills, settings.json are shared for Claude Code users)
+# Personal/session-specific files inside .claude/ are excluded:
+.claude/settings.local.json
+
+# User personal data files (not committed — use the .example versions as templates)
+grind-map.md
+user-setup.md

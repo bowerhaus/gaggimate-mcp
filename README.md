@@ -24,6 +24,7 @@ Thanks to Charlie Hall for allowing me to use and adapt the knowledge files and 
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
 - [Claude Desktop Project Setup (Optional)](#claude-desktop-project-setup-optional)
+- [Claude Code Setup (Optional)](#claude-code-setup-optional)
 - [Configuration (Optional)](#configuration-optional)
 - [Troubleshooting](#troubleshooting)
 - [How It Works](#how-it-works)
@@ -65,6 +66,12 @@ Thanks to Charlie Hall for allowing me to use and adapt the knowledge files and 
 See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Rabbit](https://youtu.be/kjhwed1PZvg) — this MCP server automates that entire workflow.
 
 ## Changelog
+
+### 2026-02-15
+- **Claude Code support**: Added full Claude Code setup — `CLAUDE.md`, 5 skills in `.claude/skills/` with `/slash-command` invocation, security hooks (damage-control firewall), and repo-as-memory with `coffees/`, `grind-map.md`, `user-setup.md`
+- **Coffee file format**: Flat `coffees/{roaster}-{name}.md` files (one file per coffee, updated on repeat purchases)
+- **Security hooks**: `PreToolUse` hooks block destructive bash commands, protect credentials, and prevent accidental deletes of coffee files/knowledge/skills
+- **Example templates**: `grind-map.example.md` and `user-setup.example.md` committed as starting points (actual files are gitignored)
 
 ### 2026-02-14
 - **Expanded knowledge base**: Added 7 new knowledge files adapted from [gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) by Charlie Hall — pressure guide, extraction science, bean freshness, profile library, baskets, milk & drinks, and special categories (decaf/blends)
@@ -328,6 +335,82 @@ desktop-app-skills/
 | **MILK_AND_DRINKS.md** | Steaming technique, milk types, single-boiler workflow, drink specs |
 | **SPECIAL_CATEGORIES.md** | Decaf extraction adjustments, blend temperature strategies |
 
+## Claude Code Setup (Optional)
+
+If you use **Claude Code** (the CLI) rather than Claude Desktop, this repository includes a full Claude Code setup with slash-command skills, repo-as-memory, and a security firewall.
+
+The Claude Code setup was adapted from [Charlie Hall's gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) — an independent agent he built on top of this MCP server. Charlie pioneered the repo-as-memory architecture and most of the skill workflows.
+
+### Why Claude Code?
+
+Because no setup is required and Claude code will write files, keeping track of your coffees, grind history, and setup changes over time.
+
+run `claude` in your cloned repositroy and the agent loads `CLAUDE.md` automatically and is ready to go.
+
+### What Claude Code Adds
+
+Compared to Claude Desktop, Claude Code can read and write files in the project — enabling **persistent memory across sessions**:
+
+| Feature | Claude Desktop | Claude Code |
+|---------|---------------|-------------|
+| Knowledge files | Always in context | Read on-demand |
+| Coffee tracking | Markdown artifact (user saves manually) | `coffees/{roaster}-{name}.md` (agent writes directly) |
+| Grind history | Not persisted | `grind-map.md` (auto-updated from 4-5 star shots) |
+| User setup | Re-entered each session | `user-setup.md` (persisted) |
+| Skill invocation | Auto-triggered by description | `/slash-command` |
+| Security | N/A | `PreToolUse` hooks (damage-control firewall) |
+
+### Setup Steps
+
+#### 1. Open the project in Claude Code
+
+```bash
+cd gaggimate-mcp
+claude
+```
+
+That's it. Claude Code picks up `CLAUDE.md` automatically. On first use the agent will ask about your equipment — machine, grinder, basket, scale, drink preferences — and create `user-setup.md` for you. `grind-map.md` is created automatically the first time you record a 4-5 star shot.
+
+If you'd rather fill in your setup before chatting, example templates are provided:
+
+```bash
+cp user-setup.example.md user-setup.md   # edit with your gear
+```
+
+#### 3. Use slash commands
+
+The 5 skills are available as slash commands:
+
+| Command | What it does |
+|---------|-------------|
+| `/new-coffee` | Research a new bag — extracts info from photo or text, web searches, recommends parameters, saves to `coffees/` |
+| `/gaggimate-profiles` | Create a custom extraction profile — guided by roast/process, generates JSON, uploads to device |
+| `/diagnose` | Analyze shot telemetry — correlates pressure/flow/temperature with taste outcomes |
+| `/feedback` | Full shot feedback loop — gathers taste notes, records to coffee file + grind map, syncs to device |
+| `/consult` | Routes espresso knowledge questions to the right `agent-knowledge/` file |
+
+#### 4. How repo-as-memory works
+
+The agent maintains three files that grow over time:
+
+- **`coffees/{roaster}-{name}.md`** — Created by `/new-coffee`. Contains bean profile, "What to Expect" synthesis, Profiles table, and running Tasting Notes table. Updated on repeat purchases.
+- **`grind-map.md`** — Updated automatically by `/feedback` when you rate a shot 4-5 stars with a grind setting. Becomes your personal dialing history.
+- **`user-setup.md`** — Updated when your setup changes. The agent checks "Active Coffee" at the start of every feedback/diagnose session.
+
+#### Security Hooks
+
+The repository includes `PreToolUse` hooks that protect important files from accidental deletion or dangerous operations. The hooks run automatically when you use Claude Code — no setup needed beyond having `uv` installed.
+
+What they block:
+- Destructive bash commands (`rm -rf`, `git reset --hard`, `git push --force`, etc.)
+- Any access to credentials (`.env`, `.ssh/`, cloud credential directories, `*.pem`)
+- Modifications to lock files, build artifacts, system directories
+- Deletion of coffee files, knowledge files, skills, and `CLAUDE.md`
+
+Risky-but-sometimes-valid operations (like `git stash drop`) prompt for confirmation instead of hard-blocking.
+
+---
+
 ## Configuration (Optional)
 
 By default, the server connects to `gaggimate.local`, which should work automatically if your Gaggimate device is on the same network. **Most users can skip this section.**
@@ -535,9 +618,28 @@ gaggimate-mcp/
 │   └── storage/            # Local persistence
 │       ├── ratings.py      # Shot ratings (JSON)
 │       └── profiles.py     # AI-created profile versions
+│
+├── CLAUDE.md               # Claude Code: project instructions + agent personality
+│
+├── .claude/                # Claude Code configuration (committed — shared for all users)
+│   ├── settings.json       # PreToolUse hooks configuration
+│   ├── hooks/
+│   │   └── damage-control/ # Security firewall (bash/edit/write hooks + patterns.yaml)
+│   └── skills/             # 5 slash-command skills for Claude Code
+│       ├── feedback/       # /feedback — shot feedback loop
+│       ├── new-coffee/     # /new-coffee — bean research and profile setup
+│       ├── diagnose/       # /diagnose — telemetry analysis
+│       ├── gaggimate-profiles/ # /gaggimate-profiles — profile creation
+│       └── consult/        # /consult — knowledge Q&A router
+│
 ├── agent-instructions/     # Claude Desktop system prompt
-├── agent-knowledge/        # 10 espresso knowledge files for the agent
+├── agent-knowledge/        # 10 espresso knowledge files (used by both Desktop and Code)
 ├── desktop-app-skills/     # 5 Claude Desktop skills + ZIPs (flat: one .md per skill)
+│
+├── coffees/                # Per-coffee files: coffees/{roaster}-{name}.md (gitignored contents)
+├── grind-map.example.md    # Template for grind-map.md (actual file is gitignored)
+├── user-setup.example.md   # Template for user-setup.md (actual file is gitignored)
+│
 ├── tests/                  # 139 unit tests
 └── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
