@@ -62,3 +62,4 @@ archive/
 # User personal data files (not committed — use the .example versions as templates)
 grind-map.md
 user-setup.md
+coffees/*.md
