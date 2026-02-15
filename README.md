@@ -11,6 +11,7 @@ This repository provides two things:
 1. **An MCP server** that allows your LLM agent to directly interact with your Gaggimate machine—no copy-pasting or manually uploading required. Your LLM agent can read your shot history, analyze extractions, store your tasting feedback, upload generated profiles, and adjust them based on your results and wishes.
 
 2. **Instructions, knowledge, and skills** to guide the agent on how to help you dial your espresso—turning a general-purpose LLM into a barista coach that understands extraction theory, tasting vocabulary, pressure profiling, and Gaggimate's profile system.
+Thanks to Charlie Hall for allowing me to use and adapt the knowledge files and diagnostic patterns from his [gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) project.
 
 ## Table of Contents
 
