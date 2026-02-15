@@ -294,12 +294,14 @@ agent-knowledge/
 ├── MILK_AND_DRINKS.md                    # Steaming, drink specs, single-boiler workflow
 └── SPECIAL_CATEGORIES.md                 # Decaf adjustments, blend strategies
 
-agent-skills/
-├── gaggimate-profiles/     # Profile creation with conditional reference loading
-├── new-coffee/             # Research beans → recommend parameters → upload profile
-├── diagnose/               # Shot telemetry analysis with taste correlation
-├── feedback/               # Shot feedback loop: gather → analyze → record → recommend
-└── consult/                # Knowledge Q&A router (cites correct knowledge file)
+desktop-app-skills/
+├── gaggimate-profiles.md   # Profile creation with conditional reference loading
+├── new-coffee.md           # Research beans → recommend parameters → upload profile
+├── diagnose.md             # Shot telemetry analysis with taste correlation
+├── feedback.md             # Shot feedback loop: gather → analyze → record → recommend
+├── consult.md              # Knowledge Q&A router (cites correct knowledge file)
+├── references/             # On-demand reference files (loaded by skills when triggered)
+└── *-skill.zip             # Packaged skills ready for Claude Desktop upload
 ```
 
 ### Setup Steps
@@ -308,7 +310,7 @@ agent-skills/
 2. **Add the system instructions**: Copy the contents of `agent-instructions/INSTRUCTIONS.md` into the project's system prompt
 3. **Upload knowledge files**: Add all files from `agent-knowledge/` to the project's knowledge section
 4. **Connect the MCP server**: Follow the [Quick Start](#quick-start) above
-5. **Optional - Install the skill**: See [Appendix: Why a Skill?](#why-a-skill-instead-of-a-knowledge-file) for details
+5. **Optional - Install skills**: Upload the `.zip` files from `desktop-app-skills/` via **Settings → Capabilities → Skills → Add**. See [Appendix: Why a Skill?](#why-a-skill-instead-of-a-knowledge-file) for details
 
 ### How the Files Work Together
 
@@ -495,12 +497,14 @@ The profile creation guide is structured as a **Claude Desktop Skill** rather th
 | Single knowledge file | ~3,000 tokens (always) | Small references (<200 lines) |
 | Skill with references | ~500-1,500 tokens (varies) | Large technical docs, context-dependent detail |
 
-Each skill is packaged as a ZIP file in `agent-skills/` for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**:
-- `gaggimate-profiles.zip` — Profile creation
-- `new-coffee.zip` — New coffee research and setup
-- `diagnose.zip` — Shot telemetry diagnosis
-- `feedback.zip` — Shot feedback loop
-- `consult.zip` — Knowledge Q&A routing
+Each skill is packaged as a ZIP file in `desktop-app-skills/` for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**:
+- `gaggimate-profiles-skill.zip` — Profile creation
+- `new-coffee-skill.zip` — New coffee research and setup
+- `diagnose-skill.zip` — Shot telemetry diagnosis
+- `feedback-skill.zip` — Shot feedback loop
+- `consult-skill.zip` — Knowledge Q&A routing
+
+See `desktop-app-skills/HOW TO ZIP SKILLS.md` for instructions on recreating the ZIPs after editing.
 
 **Alternative: Just Use Knowledge Files**
 
@@ -533,7 +537,7 @@ gaggimate-mcp/
 │       └── profiles.py     # AI-created profile versions
 ├── agent-instructions/     # Claude Desktop system prompt
 ├── agent-knowledge/        # 10 espresso knowledge files for the agent
-├── agent-skills/           # 5 Claude Desktop skills (profile, new-coffee, diagnose, feedback, consult)
+├── desktop-app-skills/     # 5 Claude Desktop skills + ZIPs (flat: one .md per skill)
 ├── tests/                  # 139 unit tests
 └── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
