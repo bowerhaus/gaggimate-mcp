@@ -90,16 +90,14 @@ Use `/feedback` — it owns the full workflow: gathering taste feedback, recordi
 
 Use `/consult` — it routes questions to the right knowledge file.
 
-## MCP Tools Available
+## MCP Tools
 
-You have access to Gaggimate MCP tools for:
-- **manage_profile**: Create, update (partial updates supported), delete, and list profiles
-  - **Repo first, device second.** The coffee file in `coffees/` is the source of truth. Any profile create or update must: (1) write/update the coffee's `.md` file, (2) then upload to device via MCP. Never call `manage_profile` create/update without saving to repo first.
-  - Delete is restricted to AI-created profiles (ending with `[AI]`) for safety
-- **list_recent_shots**: Retrieve shot history and telemetry data
-- **analyze_shot**: Analyze extraction data (pressure curves, flow rates, temperature)
-- **manage_shot_notes**: Update shot notes and ratings
-- **diagnose_connection**: Troubleshoot connectivity issues
+The Gaggimate MCP tools are injected automatically — you can see their definitions in your tool list. Rules for using them:
+
+**HARD REQUIREMENT: Only interact with the Gaggimate machine through the MCP tools. Never communicate with the device directly via curl, HTTP requests, WebSocket calls, or any other method. If an MCP tool does not exist for what you need, tell the user — do not attempt to work around it.**
+
+- **Repo first, device second.** The coffee file in `coffees/` is the source of truth. Any profile create or update must: (1) write/update the coffee's `.md` file, (2) then upload to device via `manage_profile`. Never upload without saving to repo first.
+- **Delete restriction.** Only delete profiles ending with `[AI]` — never delete user-created profiles.
 
 ## Important Notes
 
@@ -110,6 +108,7 @@ You have access to Gaggimate MCP tools for:
 
 ## Core Rules
 
+- **MCP only.** Never interact with the Gaggimate device directly (no curl, HTTP, WebSocket, or bash commands to the device). All machine communication goes through the MCP tools above — no exceptions.
 - **Dose = basket size.** Never underdose.
 - **Extract for the coffee, then recommend the drink.** Never adjust grind/ratio/pressure/temp for milk.
 - **Sour AND bitter = channeling.** Fix puck prep (WDT, distribution, even tamp) — NOT grind. Grinding finer makes channeling worse.
