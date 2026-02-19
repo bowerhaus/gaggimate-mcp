@@ -76,7 +76,7 @@ See `references/TELEMETRY_PATTERNS.md` (Style Detection Fingerprints section).
 
 State your estimated dose out and how you derived it, then move on. A ±2g estimate is fine.
 
-**Load style-specific expectations** from `PRESSURE_GUIDE.md` (Pressure by Shot Style) and `PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
+**Load style-specific expectations** from `gaggimate://knowledge/PRESSURE_GUIDE.md` (Pressure by Shot Style) and `gaggimate://knowledge/PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
 
 **Universal thresholds** (style-independent):
 

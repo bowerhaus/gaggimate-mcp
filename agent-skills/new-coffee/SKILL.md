@@ -41,11 +41,11 @@ Search for the specific coffee to find:
 
 ### 3. SYNTHESIZE Recommendations
 
-Build recommendations using:
-- **Temperature:** From `ESPRESSO_BREWING_BASICS.md` roast guidelines
-- **Pressure:** From `PRESSURE_GUIDE.md` roast × processing matrix
+Load the relevant knowledge files via MCP resources and build recommendations:
+- **Temperature:** From `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` roast guidelines
+- **Pressure:** From `gaggimate://knowledge/PRESSURE_GUIDE.md` roast × processing matrix
 - **Ratio:** From processing method patterns (washed: 1:2, natural: 1:2-2.5, etc.)
-- **Profile:** From `PROFILE_LIBRARY.md` by roast/process, adjusted for correct pressure
+- **Profile:** From `gaggimate://knowledge/PROFILE_LIBRARY.md` by roast/process, adjusted for correct pressure
 - **Dose:** Based on user's basket size. **Dose = basket size** (e.g., 18g basket → 18g dose). Don't underdose.
 
 ### 4. CONFIRM with User
@@ -67,12 +67,14 @@ manage_profile(action="create", profile_name="[Coffee Name] [AI]", temperature=X
 
 Always add `[AI]` suffix to profile names.
 
-### 6. UPDATE Coffee Tracking
+### 6. CREATE Coffee Tracking File
 
-After researching and setting up a new coffee, offer to create or update the user's **Coffee Tracking** document — a markdown artifact they can save and re-upload to the project as a knowledge file. Include:
-- Bean profile (roaster, origin, process, roast level, variety, tasting notes, roast date)
-- Starting parameters (temp, grind, ratio, profile, dose)
-- Space for tasting notes table
+After researching and setting up a new coffee, create a coffee tracking file via MCP:
+```
+manage_coffee(action="create", name="[coffee-name]", roaster="...", origin="...", process="...", roast_level="...", variety="...", tasting_notes="...", roast_date="...", starting_temp="X°C", starting_grind="...", starting_ratio="1:X", starting_profile="...", starting_dose="Xg")
+```
+
+This creates a persistent tracking file accessible in all future sessions via `gaggimate://coffees/{name}`.
 
 ---
 

@@ -13,7 +13,7 @@ Create custom espresso extraction profiles for Gaggimate-equipped machines. Gagg
 
 ### Step 1: Gather Information
 
-If not provided, check the user's setup information (if available in project knowledge). Ask about anything still missing:
+If not provided, read `gaggimate://user/setup` to load the user's equipment, basket size, and preferences. Ask about anything still missing:
 - Coffee type/origin and roast level
 - **Processing method** (washed, natural, honey, anaerobic — affects target pressure)
 - Dose amount (**dose = basket size**; don't underdose)
@@ -23,10 +23,10 @@ If not provided, check the user's setup information (if available in project kno
 
 ### Step 2: Select Profile Pattern
 
-Consult the knowledge files in your context to determine settings:
-- **Temperature**: ESPRESSO_BREWING_BASICS.md → "Temperature Guidelines by Roast"
-- **Pressure**: PRESSURE_GUIDE.md → roast × processing matrix
-- **Profile pattern**: PROFILE_LIBRARY.md → select by roast, process, and style
+Load the relevant knowledge files via MCP resources to determine settings:
+- **Temperature**: `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` → "Temperature Guidelines by Roast"
+- **Pressure**: `gaggimate://knowledge/PRESSURE_GUIDE.md` → roast × processing matrix
+- **Profile pattern**: `gaggimate://knowledge/PROFILE_LIBRARY.md` → select by roast, process, and style
 
 Quick reference for common patterns:
 

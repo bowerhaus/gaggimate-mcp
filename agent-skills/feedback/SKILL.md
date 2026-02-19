@@ -15,11 +15,11 @@ You are gathering shot feedback, diagnosing extraction, recording results, and r
 
 ## Context
 
-All knowledge files are always available in your context. Reference these as needed:
-- **ESPRESSO_BREWING_BASICS.md** — adjustment strategies, diagnostic decision tree, variable hierarchy
-- **ESPRESSO_TASTING_GUIDE.md** — sour vs bitter diagnosis, tasting methodology
-- **PRESSURE_GUIDE.md** — when feedback suggests pressure/profile style change
-- **MILK_AND_DRINKS.md** — when shot is dialed in and user wants drink recommendations
+Knowledge files are available on-demand via MCP resources. Load only what's needed:
+- `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — adjustment strategies, diagnostic decision tree, variable hierarchy
+- `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` — sour vs bitter diagnosis, tasting methodology
+- `gaggimate://knowledge/PRESSURE_GUIDE.md` — when feedback suggests pressure/profile style change
+- `gaggimate://knowledge/MILK_AND_DRINKS.md` — when shot is dialed in and user wants drink recommendations
 
 ---
 
@@ -27,9 +27,9 @@ All knowledge files are always available in your context. Reference these as nee
 
 ### 1. GATHER Context
 
-- Check if a `user-setup.md` file exists in the project knowledge. If so, reference the user's equipment, basket size, and preferences.
-- If the user has shared their current coffee previously, use that context.
-- If not: ask the user what coffee they're brewing before proceeding.
+- Read `gaggimate://user/setup` to load the user's equipment, basket size, and preferences.
+- Read `gaggimate://coffees` to check for existing coffee tracking files, then load the relevant one via `gaggimate://coffees/{name}`.
+- If no coffee context exists: ask the user what coffee they're brewing before proceeding.
 - **Stale check:** If roast date is 30+ days old, gently ask if user is still on this bag.
 
 ### 2. COLLECT Feedback
@@ -93,24 +93,24 @@ If a shot ID is available, sync feedback to the device:
 manage_shot_notes(shot_id, action="update", rating=X, balance_taste="...", notes="...", grind_setting="...", dose_in=X, dose_out=X)
 ```
 
-#### 4b. Coffee Tracking Artifact
+#### 4b. Coffee Tracking (via MCP)
 
-If the user has a **Coffee Tracking** document in their project, offer to update it with a new tasting entry:
-
-```markdown
-### Shot [#] — [Date]
-- **Coffee:** [name]
-- **Rating:** [X]/5 | **Balance:** [sour/balanced/bitter]
-- **Grind:** [setting] | **Dose:** [in]g → [out]g (1:[ratio])
-- **Profile:** [name]
-- **Notes:** [observations]
-- **Adjustment:** [what was changed for next shot]
+Log the shot to the coffee's tracking file:
+```
+manage_coffee(action="log_shot", name="[coffee-name]", shot_number=X, date="YYYY-MM-DD", rating=X, balance="[sour/balanced/bitter]", grind_setting="X", dose_in=X, dose_out=X, ratio="1:X", profile="[name]", notes="[observations]", adjustment="[what to change next]")
 ```
 
-If the user doesn't have a Coffee Tracking document yet and this is a good shot (4+ stars), suggest creating one:
-> "Would you like me to create a Coffee Tracking document? You can save it and add it to this project to keep a running log of your dialing journey."
+If no coffee tracking file exists yet, create one first:
+```
+manage_coffee(action="create", name="[coffee-name]", roaster="...", origin="...", process="...", roast_level="...", ...)
+```
 
-**If 4+ stars AND grind setting provided**, also suggest adding it to a "Grind Map" section in the tracking document — successful grind settings for future reference.
+#### 4c. Grind Map (if 4+ stars)
+
+**If 4+ stars AND grind setting provided**, add to the grind map:
+```
+manage_grind_map(action="add_entry", coffee="[name]", roast="[level]", process="[method]", grind="[setting]", profile="[name]", ratio="1:X", temp="X°C", rating="X/5", date="YYYY-MM-DD")
+```
 
 ### 5. SUGGEST Next Steps
 
