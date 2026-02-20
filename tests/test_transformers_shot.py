@@ -6,6 +6,30 @@ from gaggimate_mcp.transformers.shot import (
     calculate_summary,
     process_phases,
     calculate_total_volume,
+    compute_shot_diagnostics,
+    compute_summary_diagnostics,
+    _safe_mean,
+    _safe_std,
+    _linear_slope,
+    _compute_rmse,
+    _classify_phase,
+    _compute_phase_diagnostics,
+    _compute_profile_compliance,
+    _get_brew_phase_samples,
+    _annotate_ascending,
+    _annotate_descending,
+    _assess_channeling_risk,
+    _build_phases,
+    VALID_DETAIL_LEVELS,
+    _PRESSURE_VOLATILITY_BANDS,
+    _RESISTANCE_SLOPE_BANDS,
+    _PRESSURE_DROP_RATE_BANDS,
+    _PROFILE_ADHERENCE_BANDS,
+    _PRESSURE_OVERSHOOT_BANDS,
+    _RAMP_RATE_BANDS,
+    _TAPER_SMOOTHNESS_BANDS,
+    _PREINFUSION_NAMES,
+    _DECLINE_NAMES,
 )
 
 
@@ -259,3 +283,635 @@ class TestShotTransformer:
         # Should still transform successfully
         assert transformed['shot_id'] == '1'
         assert len(transformed['phases']) == 1
+
+
+class TestHelperFunctions:
+    """Tests for diagnostic helper functions."""
+
+    def test_safe_mean_empty(self):
+        assert _safe_mean([]) == 0.0
+
+    def test_safe_mean_values(self):
+        assert _safe_mean([2.0, 4.0, 6.0]) == 4.0
+
+    def test_safe_std_empty(self):
+        assert _safe_std([]) == 0.0
+
+    def test_safe_std_single(self):
+        assert _safe_std([5.0]) == 0.0
+
+    def test_safe_std_values(self):
+        # std of [2, 4, 6] = sqrt(((−2)^2 + 0^2 + 2^2) / 3) = sqrt(8/3) ≈ 1.633
+        result = _safe_std([2.0, 4.0, 6.0])
+        assert abs(result - 1.633) < 0.01
+
+    def test_linear_slope_flat(self):
+        assert _linear_slope([5.0, 5.0, 5.0, 5.0], 1.0) == 0.0
+
+    def test_linear_slope_increasing(self):
+        # [0, 1, 2, 3] with dt=1 → slope = 1.0
+        result = _linear_slope([0.0, 1.0, 2.0, 3.0], 1.0)
+        assert abs(result - 1.0) < 0.01
+
+    def test_linear_slope_decreasing(self):
+        # [3, 2, 1, 0] with dt=0.5 → slope = -2.0 (per second)
+        result = _linear_slope([3.0, 2.0, 1.0, 0.0], 0.5)
+        assert abs(result - (-2.0)) < 0.01
+
+    def test_linear_slope_insufficient(self):
+        assert _linear_slope([], 1.0) == 0.0
+        assert _linear_slope([5.0], 1.0) == 0.0
+
+    def test_annotate_ascending(self):
+        assert _annotate_ascending(0.1, _PRESSURE_VOLATILITY_BANDS) == "VERY_STABLE"
+        assert _annotate_ascending(0.2, _PRESSURE_VOLATILITY_BANDS) == "STABLE"
+        assert _annotate_ascending(0.5, _PRESSURE_VOLATILITY_BANDS) == "MODERATE_JITTER"
+        assert _annotate_ascending(0.8, _PRESSURE_VOLATILITY_BANDS) == "JITTERY"
+        assert _annotate_ascending(1.5, _PRESSURE_VOLATILITY_BANDS) == "VOLATILE"
+
+    def test_annotate_descending(self):
+        assert _annotate_descending(0.1, _RESISTANCE_SLOPE_BANDS) == "INCREASING"
+        assert _annotate_descending(0.0, _RESISTANCE_SLOPE_BANDS) == "FLAT"
+        assert _annotate_descending(-0.05, _RESISTANCE_SLOPE_BANDS) == "GRADUAL_DECLINE"
+        assert _annotate_descending(-0.1, _RESISTANCE_SLOPE_BANDS) == "MODERATE_DECLINE"
+        assert _annotate_descending(-0.2, _RESISTANCE_SLOPE_BANDS) == "STEEP_DECLINE"
+
+    def test_annotate_descending_pressure_drop(self):
+        assert _annotate_descending(-0.3, _PRESSURE_DROP_RATE_BANDS) == "NORMAL"
+        assert _annotate_descending(-1.0, _PRESSURE_DROP_RATE_BANDS) == "MODERATE_DROP"
+        assert _annotate_descending(-2.0, _PRESSURE_DROP_RATE_BANDS) == "STEEP_DROP"
+        assert _annotate_descending(-5.0, _PRESSURE_DROP_RATE_BANDS) == "CLIFF"
+
+    def test_assess_channeling_risk_low(self):
+        assert _assess_channeling_risk(0.1, 0.05, -0.3, 0.01) == "LOW"
+
+    def test_assess_channeling_risk_moderate(self):
+        assert _assess_channeling_risk(0.5, 0.3, -0.3, 0.01) == "MODERATE"
+
+    def test_assess_channeling_risk_high(self):
+        # Score: p_vol 0.8 (+2) + f_vol 0.3 (+1) + drop -2.0 (+1) + accel 0.08 (+1) = 5
+        assert _assess_channeling_risk(0.8, 0.3, -2.0, 0.08) == "HIGH"
+
+    def test_assess_channeling_risk_very_high(self):
+        assert _assess_channeling_risk(1.2, 0.9, -4.0, 0.15) == "VERY_HIGH"
+
+
+class TestBrewPhaseExtraction:
+    """Tests for brew phase sample extraction."""
+
+    def test_with_phases_skips_preinfusion(self):
+        shot = ShotData(
+            id='1', version=5, fields_mask=0xFF, sample_count=6,
+            sample_interval=100, profile_id='test', profile_name='Test',
+            timestamp=1640000000, rating=0, duration=30000, weight=40.0,
+            samples=[
+                {'t': 0, 'ct': 90.0, 'cp': 2.0, 'pf': 0.5, 'phase': 0},
+                {'t': 100, 'ct': 91.0, 'cp': 3.0, 'pf': 0.8, 'phase': 0},
+                {'t': 200, 'ct': 92.0, 'cp': 4.0, 'pf': 1.0, 'phase': 0},
+                {'t': 300, 'ct': 93.0, 'cp': 9.0, 'pf': 2.5, 'phase': 1},
+                {'t': 400, 'ct': 93.0, 'cp': 8.5, 'pf': 2.0, 'phase': 1},
+                {'t': 500, 'ct': 93.0, 'cp': 8.0, 'pf': 1.5, 'phase': 1},
+            ],
+            phases=[
+                PhaseTransition(sample_index=0, phase_number=0, phase_name='Preinfusion'),
+                PhaseTransition(sample_index=3, phase_number=1, phase_name='Extraction'),
+            ],
+        )
+        brew = _get_brew_phase_samples(shot)
+        assert len(brew) == 3
+        assert brew[0]['cp'] == 9.0  # First brew sample
+
+    def test_without_phases_uses_pressure_threshold(self):
+        shot = ShotData(
+            id='1', version=4, fields_mask=0xFF, sample_count=5,
+            sample_interval=100, profile_id='test', profile_name='Test',
+            timestamp=1640000000, rating=0, duration=25000, weight=None,
+            samples=[
+                {'t': 0, 'cp': 0.0, 'pf': 0.0},
+                {'t': 100, 'cp': 2.0, 'pf': 0.5},
+                {'t': 200, 'cp': 5.0, 'pf': 1.5},
+                {'t': 300, 'cp': 9.0, 'pf': 2.5},
+                {'t': 400, 'cp': 8.0, 'pf': 2.0},
+            ],
+            phases=[],
+        )
+        brew = _get_brew_phase_samples(shot)
+        # 50% of peak (9.0) = 4.5, first sample >= 4.5 is at index 2 (5.0)
+        assert len(brew) == 3
+        assert brew[0]['cp'] == 5.0
+
+    def test_empty_samples(self):
+        shot = ShotData(
+            id='1', version=4, fields_mask=0xFF, sample_count=0,
+            sample_interval=100, profile_id='test', profile_name='Test',
+            timestamp=1640000000, rating=0, duration=0, weight=None,
+            samples=[], phases=[],
+        )
+        assert _get_brew_phase_samples(shot) == []
+
+
+class TestShotDiagnostics:
+    """Tests for complete shot diagnostics computation."""
+
+    def _make_shot(self, samples, phases=None, **kwargs):
+        """Helper to create a ShotData with defaults."""
+        defaults = dict(
+            id='000100', version=5, fields_mask=0xFF,
+            sample_count=len(samples), sample_interval=100,
+            profile_id='test', profile_name='Test Profile',
+            timestamp=1640000000, rating=0, duration=30000,
+            weight=40.0,
+        )
+        defaults.update(kwargs)
+        return ShotData(
+            samples=samples,
+            phases=phases or [],
+            **defaults,
+        )
+
+    def test_returns_none_for_too_few_samples(self):
+        shot = self._make_shot([
+            {'t': 0, 'ct': 90.0, 'cp': 2.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'cp': 9.0, 'pf': 2.0},
+        ])
+        assert compute_shot_diagnostics(shot) is None
+
+    def test_healthy_shot_diagnostics(self):
+        """Test diagnostics for a well-extracted shot (stable, no channeling)."""
+        samples = [
+            # Pre-infusion (ramp)
+            {'t': 0, 'ct': 92.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5, 'v': 0.0, 'phase': 0},
+            {'t': 100, 'ct': 92.5, 'tt': 93.0, 'cp': 5.0, 'pf': 1.2, 'v': 0.1, 'phase': 0},
+            # Brew phase - very stable pressure and flow
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 0.3, 'phase': 1},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 0.5, 'phase': 1},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 0.7, 'phase': 1},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 0.9, 'phase': 1},
+            {'t': 600, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 1.1, 'phase': 1},
+            {'t': 700, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'v': 1.3, 'phase': 1},
+        ]
+        shot = self._make_shot(
+            samples,
+            phases=[
+                PhaseTransition(sample_index=0, phase_number=0, phase_name='Preinfusion'),
+                PhaseTransition(sample_index=2, phase_number=1, phase_name='Extraction'),
+            ],
+        )
+        diag = compute_shot_diagnostics(shot)
+
+        assert diag is not None
+
+        # Resistance should be computed
+        assert diag['resistance']['avg'] > 0
+        assert diag['resistance']['peak'] > 0
+        assert 0.0 <= diag['resistance']['peak_timing_pct'] <= 1.0
+
+        # Annotations should be present
+        assert 'level' in diag['resistance']['annotations']
+        assert 'stability' in diag['resistance']['annotations']
+        assert 'erosion' in diag['resistance']['annotations']
+
+        # Channeling should be LOW for this stable shot
+        assert diag['channeling']['overall_risk'] == 'LOW'
+        assert 'pressure_stability' in diag['channeling']['annotations']
+        assert 'flow_stability' in diag['channeling']['annotations']
+
+        # Temperature should be stable
+        assert diag['temperature']['stability_std_c'] < 1.0
+        assert 'stability' in diag['temperature']['annotations']
+
+        # Extraction metrics should be present
+        assert diag['extraction']['pressure_auc_bar_s'] > 0
+        assert 'pressure_trend' in diag['extraction']['annotations']
+        assert 'flow_trend' in diag['extraction']['annotations']
+
+        # Weight should detect scale
+        assert diag['weight']['scale_connected'] is True
+        assert diag['weight']['rate_avg_g_s'] is not None
+
+    def test_channeling_shot_diagnostics(self):
+        """Test diagnostics detect volatile pressure/flow (channeling)."""
+        # Create a shot with jittery pressure and flow
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'pf': 1.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 6.0, 'pf': 3.5},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 9.5, 'pf': 1.5},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'pf': 4.0},
+            {'t': 600, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.0},
+            {'t': 700, 'ct': 93.0, 'tt': 93.0, 'cp': 4.0, 'pf': 5.0},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+
+        assert diag is not None
+        # High volatility should be detected
+        assert diag['channeling']['pressure_volatility_bar'] > 0.35
+        assert diag['channeling']['flow_volatility_ml_s'] > 0.25
+        # Channeling risk should be elevated
+        assert diag['channeling']['overall_risk'] in ('MODERATE', 'HIGH', 'VERY_HIGH')
+
+    def test_no_scale_data(self):
+        """Test diagnostics when scale data is absent."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'pf': 1.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+
+        assert diag is not None
+        assert diag['weight']['scale_connected'] is False
+        assert diag['weight']['rate_avg_g_s'] is None
+        assert diag['weight']['rate_std_g_s'] is None
+        assert diag['weight']['annotations'].get('note') == 'No scale data available'
+
+    def test_diagnostics_with_phases(self):
+        """Test that diagnostics use brew phase when phases are defined."""
+        samples = [
+            # Pre-infusion (should be excluded from brew diagnostics)
+            {'t': 0, 'ct': 90.0, 'tt': 93.0, 'cp': 1.0, 'pf': 0.2, 'phase': 0},
+            {'t': 100, 'ct': 91.0, 'tt': 93.0, 'cp': 2.0, 'pf': 0.3, 'phase': 0},
+            {'t': 200, 'ct': 92.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5, 'phase': 0},
+            # Extraction (brew phase)
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'phase': 1},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0, 'phase': 1},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1, 'phase': 1},
+            {'t': 600, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'pf': 2.1, 'phase': 1},
+        ]
+        shot = self._make_shot(
+            samples,
+            phases=[
+                PhaseTransition(sample_index=0, phase_number=0, phase_name='Preinfusion'),
+                PhaseTransition(sample_index=3, phase_number=1, phase_name='Extraction'),
+            ],
+        )
+        diag = compute_shot_diagnostics(shot)
+
+        assert diag is not None
+        # Resistance should be computed from brew-phase only
+        # At brew phase: flow is around 2.0-2.1, so resistance should be calculable
+        assert diag['resistance']['avg'] > 0
+        # Brew phase has gradual decline (9→7.5) over short interval which creates
+        # steep derivative. With real-world data (longer shots), risk would be lower.
+        assert diag['channeling']['overall_risk'] in ('LOW', 'MODERATE')
+
+    def test_transform_includes_diagnostics(self):
+        """Test that transform_shot_for_ai includes full diagnostics at per_phase level."""
+        samples = [
+            {'t': 0, 'ct': 92.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'pf': 1.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        transformed = transform_shot_for_ai(shot, detail="per_phase")
+
+        assert 'diagnostics' in transformed
+        assert transformed['diagnostics'] is not None
+        assert 'resistance' in transformed['diagnostics']
+        assert 'channeling' in transformed['diagnostics']
+        assert 'temperature' in transformed['diagnostics']
+        assert 'extraction' in transformed['diagnostics']
+        assert 'weight' in transformed['diagnostics']
+        assert 'profile_compliance' in transformed['diagnostics']
+
+    def test_transform_summary_diagnostics(self):
+        """Test that default (summary) returns SummaryDiagnostics keys."""
+        samples = [
+            {'t': 0, 'ct': 92.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'pf': 1.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        transformed = transform_shot_for_ai(shot)  # default = summary
+
+        assert transformed['detail_level'] == 'summary'
+        diag = transformed['diagnostics']
+        assert diag is not None
+        assert 'resistance_avg' in diag
+        assert 'channeling_risk' in diag
+        assert 'temperature_stability_c' in diag
+        assert 'annotations' in diag
+        # Summary should NOT have full sub-dicts
+        assert 'resistance' not in diag
+
+    def test_transform_diagnostics_none_for_short_shot(self):
+        """Test that diagnostics is None for a very short shot."""
+        shot = self._make_shot([
+            {'t': 0, 'ct': 90.0, 'cp': 0.0, 'pf': 0.0},
+            {'t': 100, 'ct': 93.0, 'cp': 9.0, 'pf': 2.0},
+        ])
+        transformed = transform_shot_for_ai(shot)
+        assert transformed['diagnostics'] is None
+
+    def test_resistance_near_zero_flow_handling(self):
+        """Test that near-zero flow doesn't cause division errors."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 0.0},  # zero flow
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 0.05},  # near-zero
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        # Should not raise any errors
+        diag = compute_shot_diagnostics(shot)
+        assert diag is not None
+        # Zero/near-zero flow samples should be excluded from resistance calc
+        assert diag['resistance']['avg'] > 0
+
+    def test_temperature_overshoot_and_undershoot(self):
+        """Test temperature deviation detection."""
+        samples = [
+            {'t': 0, 'ct': 91.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},   # -2°C under
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},  # on target
+            {'t': 200, 'ct': 95.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.1},  # +2°C over
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'pf': 2.1},  # on target
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.0, 'pf': 2.2},  # on target
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+
+        assert diag is not None
+        assert diag['temperature']['overshoot_c'] == 2.0
+        assert diag['temperature']['undershoot_c'] == 2.0
+        assert diag['temperature']['annotations']['overshoot'] == 'MODERATE'
+        assert diag['temperature']['annotations']['undershoot'] == 'MODERATE'
+
+
+class TestDetailLevels:
+    """Tests for the 3-level detail system."""
+
+    def _make_shot(self, samples, phases=None, **kwargs):
+        defaults = dict(
+            id='000100', version=5, fields_mask=0xFF,
+            sample_count=len(samples), sample_interval=100,
+            profile_id='test', profile_name='Test Profile',
+            timestamp=1640000000, rating=0, duration=30000,
+            weight=40.0,
+        )
+        defaults.update(kwargs)
+        return ShotData(samples=samples, phases=phases or [], **defaults)
+
+    def _standard_shot(self):
+        """A shot with preinfusion and extraction phases."""
+        samples = [
+            {'t': 0, 'ct': 91.0, 'tt': 93.0, 'cp': 2.0, 'tp': 3.0, 'pf': 0.3, 'tf': 0.5, 'v': 0.0, 'phase': 0},
+            {'t': 100, 'ct': 92.0, 'tt': 93.0, 'cp': 3.0, 'tp': 3.0, 'pf': 0.5, 'tf': 0.5, 'v': 0.0, 'phase': 0},
+            {'t': 200, 'ct': 92.5, 'tt': 93.0, 'cp': 4.0, 'tp': 9.0, 'pf': 1.0, 'tf': 2.0, 'v': 0.1, 'phase': 0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0, 'v': 0.3, 'phase': 1},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0, 'v': 0.5, 'phase': 1},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 8.8, 'tp': 9.0, 'pf': 2.1, 'tf': 2.0, 'v': 0.7, 'phase': 1},
+            {'t': 600, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.1, 'tf': 2.0, 'v': 0.9, 'phase': 1},
+            {'t': 700, 'ct': 93.0, 'tt': 93.0, 'cp': 8.3, 'tp': 9.0, 'pf': 2.2, 'tf': 2.0, 'v': 1.1, 'phase': 1},
+        ]
+        phases = [
+            PhaseTransition(sample_index=0, phase_number=0, phase_name='Preinfusion'),
+            PhaseTransition(sample_index=3, phase_number=1, phase_name='Extraction'),
+        ]
+        return self._make_shot(samples, phases=phases)
+
+    def test_valid_detail_levels(self):
+        assert VALID_DETAIL_LEVELS == ("summary", "per_phase", "detailed")
+
+    def test_invalid_detail_falls_back_to_summary(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="bogus")
+        assert t['detail_level'] == 'summary'
+
+    def test_summary_no_samples_in_phases(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="summary")
+        for phase in t['phases']:
+            assert 'samples' not in phase
+
+    def test_summary_no_phase_diagnostics(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="summary")
+        for phase in t['phases']:
+            assert 'diagnostics' not in phase
+
+    def test_per_phase_has_samples_and_diagnostics(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="per_phase")
+        for phase in t['phases']:
+            assert 'samples' in phase
+            assert len(phase['samples']) > 0
+            if phase['sample_count'] >= 3:
+                assert 'diagnostics' in phase
+                assert phase['diagnostics']['phase_type'] in ('preinfusion', 'brew', 'decline')
+
+    def test_per_phase_representative_samples(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="per_phase")
+        # 5-sample extraction phase should have 3 representative samples
+        ext_phase = [p for p in t['phases'] if p['name'] == 'Extraction'][0]
+        assert len(ext_phase['samples']) == 3
+
+    def test_detailed_all_samples(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="detailed")
+        ext_phase = [p for p in t['phases'] if p['name'] == 'Extraction'][0]
+        # Should have ALL 5 extraction samples
+        assert len(ext_phase['samples']) == ext_phase['sample_count']
+
+    def test_per_phase_full_diagnostics(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="per_phase")
+        diag = t['diagnostics']
+        assert 'resistance' in diag
+        assert 'channeling' in diag
+        assert 'profile_compliance' in diag
+
+    def test_summary_diagnostics_keys(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="summary")
+        diag = t['diagnostics']
+        assert 'resistance_avg' in diag
+        assert 'channeling_risk' in diag
+        assert 'temperature_stability_c' in diag
+        assert 'pressure_rmse_bar' in diag
+        assert 'max_overshoot_bar' in diag
+        assert 'scale_connected' in diag
+
+
+class TestPhaseClassification:
+    """Tests for phase name classification."""
+
+    def test_preinfusion_names(self):
+        for name in ['Preinfusion', 'pre-infusion', 'PI', 'soak', 'Bloom', 'fill', 'Preinfuse']:
+            assert _classify_phase(name) == 'preinfusion', f"Failed for: {name}"
+
+    def test_decline_names(self):
+        for name in ['Decline', 'taper', 'ramp-down', 'Ramp Down', 'cool down', 'cooldown']:
+            assert _classify_phase(name) == 'decline', f"Failed for: {name}"
+
+    def test_brew_names(self):
+        for name in ['Extraction', 'Brew', 'Main', 'Hold', 'flat', 'Step 2']:
+            assert _classify_phase(name) == 'brew', f"Failed for: {name}"
+
+
+class TestProfileCompliance:
+    """Tests for profile compliance (RMSE and overshoot)."""
+
+    def _make_shot(self, samples, phases=None, **kwargs):
+        defaults = dict(
+            id='000100', version=5, fields_mask=0xFF,
+            sample_count=len(samples), sample_interval=100,
+            profile_id='test', profile_name='Test Profile',
+            timestamp=1640000000, rating=0, duration=30000,
+            weight=40.0,
+        )
+        defaults.update(kwargs)
+        return ShotData(samples=samples, phases=phases or [], **defaults)
+
+    def test_compute_rmse_perfect(self):
+        assert _compute_rmse([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]) == 0.0
+
+    def test_compute_rmse_known(self):
+        # RMSE of [1, 2, 3] vs [2, 3, 4] = sqrt((1+1+1)/3) = 1.0
+        result = _compute_rmse([1.0, 2.0, 3.0], [2.0, 3.0, 4.0])
+        assert abs(result - 1.0) < 0.01
+
+    def test_compute_rmse_empty(self):
+        assert _compute_rmse([], []) == 0.0
+
+    def test_profile_compliance_present_in_diagnostics(self):
+        """Profile compliance computed when tp data available."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'tp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 5.0, 'tp': 5.0, 'pf': 1.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.0},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        assert diag is not None
+        pc = diag['profile_compliance']
+        assert pc is not None
+        assert pc['pressure_rmse_bar'] >= 0
+        assert 'pressure_adherence' in pc['annotations']
+        assert 'pressure_overshoot' in pc['annotations']
+
+    def test_profile_compliance_none_without_tp(self):
+        """Profile compliance is None when no tp data."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        assert diag is not None
+        assert diag['profile_compliance'] is None
+
+    def test_overshoot_detected(self):
+        """Overshoot correctly detected when actual exceeds target."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'tp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 11.0, 'tp': 9.0, 'pf': 1.0},  # +2 bar
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 10.5, 'tp': 9.0, 'pf': 2.0},  # +1.5 bar
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.0},
+            {'t': 500, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['max_pressure_overshoot_bar'] == 2.0
+        assert pc['annotations']['pressure_overshoot'] in (
+            'MODERATE_OVERSHOOT', 'SIGNIFICANT_OVERSHOOT',
+        )
+
+    def test_flow_rmse_when_tf_available(self):
+        """Flow RMSE computed when tf data available."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.5, 'tf': 2.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 2.1, 'tf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'tp': 9.0, 'pf': 2.2, 'tf': 2.0},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['flow_rmse_ml_s'] is not None
+        assert pc['flow_rmse_ml_s'] >= 0
+        assert 'flow_adherence' in pc['annotations']
+
+
+class TestPerPhaseDiagnostics:
+    """Tests for per-phase diagnostic computation."""
+
+    def test_preinfusion_diagnostics(self):
+        samples = [
+            {'t': 0, 'cp': 0.5, 'pf': 0.0, 'tp': 3.0},
+            {'t': 100, 'cp': 1.5, 'pf': 0.2, 'tp': 3.0},
+            {'t': 200, 'cp': 2.5, 'pf': 0.4, 'tp': 3.0},
+            {'t': 300, 'cp': 3.0, 'pf': 0.5, 'tp': 3.0},
+        ]
+        diag = _compute_phase_diagnostics(samples, "preinfusion", 0.1)
+        assert diag['phase_type'] == 'preinfusion'
+        assert 'ramp_rate_bar_s' in diag
+        assert 'saturation_time_s' in diag
+        assert diag['ramp_rate_bar_s'] > 0
+        assert 'ramp_rate' in diag['annotations']
+
+    def test_brew_diagnostics(self):
+        samples = [
+            {'t': 0, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0},
+            {'t': 100, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0},
+            {'t': 200, 'cp': 8.8, 'pf': 2.1, 'tp': 9.0},
+            {'t': 300, 'cp': 8.5, 'pf': 2.1, 'tp': 9.0},
+            {'t': 400, 'cp': 8.3, 'pf': 2.2, 'tp': 9.0},
+        ]
+        diag = _compute_phase_diagnostics(samples, "brew", 0.1)
+        assert diag['phase_type'] == 'brew'
+        assert 'resistance_avg' in diag
+        assert 'resistance_slope' in diag
+        assert 'channeling_risk' in diag
+        assert 'pressure_stability_bar' in diag
+        assert 'flow_stability_ml_s' in diag
+        assert 'resistance_level' in diag['annotations']
+        assert 'channeling' in diag['annotations']
+
+    def test_decline_diagnostics(self):
+        samples = [
+            {'t': 0, 'cp': 8.0, 'pf': 2.0, 'tp': 6.0},
+            {'t': 100, 'cp': 7.0, 'pf': 2.2, 'tp': 5.0},
+            {'t': 200, 'cp': 6.0, 'pf': 2.3, 'tp': 4.0},
+            {'t': 300, 'cp': 5.0, 'pf': 2.5, 'tp': 3.0},
+        ]
+        diag = _compute_phase_diagnostics(samples, "decline", 0.1)
+        assert diag['phase_type'] == 'decline'
+        assert 'taper_rate_bar_s' in diag
+        assert 'taper_smoothness' in diag
+        assert diag['taper_rate_bar_s'] < 0  # Declining pressure
+        assert 'taper_smoothness' in diag['annotations']
+
+    def test_per_phase_rmse(self):
+        """All phase types get RMSE vs target."""
+        samples = [
+            {'t': 0, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0},
+            {'t': 100, 'cp': 8.5, 'pf': 2.0, 'tp': 9.0},
+            {'t': 200, 'cp': 8.0, 'pf': 2.1, 'tp': 9.0},
+        ]
+        for phase_type in ('preinfusion', 'brew', 'decline'):
+            diag = _compute_phase_diagnostics(samples, phase_type, 0.1)
+            assert 'pressure_rmse_bar' in diag
+            assert 'flow_rmse_ml_s' in diag
+            assert diag['pressure_rmse_bar'] >= 0

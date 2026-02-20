@@ -26,6 +26,15 @@ Diagnose espresso extraction issues by correlating Gaggimate telemetry data with
 ```
 Use: analyze_shot(shot_id)
 ```
+This returns **summary-level** diagnostics by default (resistance, channeling risk,
+temperature stability, profile compliance). If you need per-phase breakdowns or
+full time-series data, escalate:
+```
+Use: analyze_shot(shot_id, detail="per_phase")   # per-phase diagnostics + representative samples
+Use: analyze_shot(shot_id, detail="detailed")    # all time-series samples (high token cost)
+```
+See `gaggimate://knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md` for the
+complete metric reference, annotation bands, and interpretation cheat sheet.
 
 **Fetch shot notes if available:**
 ```
@@ -99,8 +108,17 @@ Flag an anomaly only when a metric falls **outside the identified style's expect
 
 ### 2b. COMPARE Intended vs Actual (when profile definition available)
 
+**Profile compliance metrics** are included in the diagnostics automatically
+when target pressure/flow data is in the shot. Key fields:
+- `pressure_rmse_bar` — how closely the machine followed target pressure (lower = better)
+- `max_pressure_overshoot_bar` — largest single overshoot above target
+- `flow_rmse_ml_s` — flow adherence (when target flow data available)
+
 | Comparison | Interpretation |
 |------------|----------------|
+| `max_pressure_overshoot_bar` > 1.5 | Grind too fine — machine can't push water through puck |
+| `max_pressure_undershoot_bar` > 1.5 (non-bloom context) | Grind too coarse |
+| `pressure_rmse_bar` annotation POOR | Profile not being followed — check grind, dose, or profile params |
 | Pressure exceeded target by >1.5 bar | Grind too fine or dose too high |
 | Pressure never reached target (>1.5 bar below) | Context-dependent: normal for post-bloom ramps, too coarse for non-bloom |
 | Volumetric target reached much earlier than phase duration | Grind too coarse (flow too fast) |

@@ -13,7 +13,7 @@ from gaggimate_mcp.config import GaggimateConfig
 from gaggimate_mcp.logging_config import setup_logging, get_logger
 from gaggimate_mcp.api.websocket import GaggimateWebSocketClient
 from gaggimate_mcp.api.http import GaggimateHTTPClient
-from gaggimate_mcp.transformers.shot import transform_shot_for_ai
+from gaggimate_mcp.transformers.shot import transform_shot_for_ai, VALID_DETAIL_LEVELS
 from gaggimate_mcp.storage.profiles import ProfileStorage
 from gaggimate_mcp.storage.ratings import RatingStorage
 from gaggimate_mcp.storage.markdown import (
@@ -516,18 +516,27 @@ async def manage_profile(
 
 
 @mcp.tool()
-async def analyze_shot(shot_id: str) -> str:
+async def analyze_shot(shot_id: str, detail: str = "summary") -> str:
     """Get comprehensive shot analysis.
 
     Args:
         shot_id: Shot ID to analyze (will be normalized to 6 digits)
+        detail: Diagnostic detail level. Options:
+            - "summary" (default): Key indicators only — resistance,
+              channeling risk, temperature stability, profile compliance.
+              Use for quick assessments and triage.
+            - "per_phase": Full diagnostics plus per-phase breakdowns
+              (preinfusion/brew/decline metrics) with representative
+              samples. Use when diagnosing specific phase issues.
+            - "detailed": Everything in per_phase plus all time-series
+              samples. Use for deep analysis or when exact timings matter.
 
     Returns:
         JSON string with shot analysis
     """
     # Normalize shot ID to 6 digits for consistent lookups
     normalized_id = shot_id.zfill(6)
-    logger.info("analyze_shot_called", shot_id=shot_id, normalized_id=normalized_id)
+    logger.info("analyze_shot_called", shot_id=shot_id, normalized_id=normalized_id, detail=detail)
 
     try:
         # Fetch shot data with normalized ID
@@ -539,7 +548,8 @@ async def analyze_shot(shot_id: str) -> str:
             })
 
         # Transform for AI analysis
-        transformed = transform_shot_for_ai(shot_data)
+        detail_level = detail if detail in VALID_DETAIL_LEVELS else "summary"
+        transformed = transform_shot_for_ai(shot_data, detail=detail_level)
 
         # Get rating if available (using normalized ID)
         rating_data = rating_storage.get_rating(normalized_id)
