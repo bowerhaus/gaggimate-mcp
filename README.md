@@ -37,16 +37,17 @@ Thanks to Charlie Hall for allowing me to use and adapt the knowledge files and 
 
 ## What's in this Repository
 
-**MCP Server** — Eight tools and six resources that give your AI direct access to your machine and local data:
+**MCP Server** — Nine tools and eight resources that give your AI direct access to your machine and local data:
 - **Read shot data** — Temperature curves, pressure readings, flow rates, extraction timing
 - **Manage profiles** — Create, update, and list brewing profiles directly on your device
 - **Track feedback** — Record ratings and tasting notes synced to your Gaggimate
 - **Browse history** — List recent shots with filtering
 - **Diagnose issues** — Automated connection troubleshooting
-- **Manage coffees** — Create and update coffee tracking files with shot logs
+- **Manage coffees** — Create and update coffee tracking files with brewing journal
 - **User setup** — Store and retrieve your equipment and preferences
 - **Grind map** — Track successful grind settings across coffees
-- **Knowledge resources** — On-demand access to 10 espresso knowledge files
+- **Brewing insights** — Accumulate cross-coffee patterns and learnings
+- **Knowledge resources** — On-demand access to espresso knowledge files (including subdirectories)
 
 **Knowledge Files** (10 files) — Reference materials that transform a general-purpose LLM into a functional barista coach:
 - Espresso extraction theory, shot styles, and variable hierarchy
@@ -65,11 +66,20 @@ Thanks to Charlie Hall for allowing me to use and adapt the knowledge files and 
 - **new-coffee** — Research new beans, recommend parameters, upload profile
 - **diagnose** — Shot telemetry analysis with taste-data correlation
 - **feedback** — Full shot feedback loop with recording and recommendations
-- **consult** — Knowledge Q&A router that cites the correct knowledge file
+- **knowledge-lookup** — Knowledge Q&A router that cites the correct knowledge file
 
 See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Rabbit](https://youtu.be/kjhwed1PZvg) — this MCP server automates that entire workflow.
 
 ## Changelog
+
+### 2026-02-20
+- **Narrative coffee tracking**: Coffee files now store analysis and insights instead of raw numbers — brewing approach (narrative), journal entries (dated analysis), and key insights. Raw shot data stays on the device; the agent records *thinking* and *learnings*
+- **Brewing insights**: New `manage_brewing_insights` tool and `gaggimate://user/brewing-insights` resource for cross-coffee pattern recognition — what works for which origin, which profiles suit which processing method, general learnings that carry across coffees
+- **Knowledge as MCP resources**: Moved 10 skill reference files (profile structure, pump modes, diagnostic trees, telemetry patterns, etc.) from bundled skill directories into `knowledge/{profiles,diagnostics,research}/` subdirectories, served via MCP resources. Skills are now lightweight single-file SKILL.md that load references on-demand via `gaggimate://knowledge/{subdir}/{filename}`
+- **Skill integration improvements**: Knowledge-lookup skill now routes to user data resources (grind map, setup, coffees). Diagnose skill reads coffee history for context. Feedback skill cross-references grind map for successful settings
+- **Renamed consult → knowledge-lookup**: Skill name now describes what it does — looks up espresso knowledge from authoritative files
+- **Simplified manage_coffee tool**: Reduced from 27 to 16 parameters. Replaced `log_shot` action (8 numeric columns) with `log_entry` action (date, headline, narrative body)
+- **Test coverage**: 206 tests passing (up from 192)
 
 ### 2026-02-15
 - **MCP Resources**: Added 6 read-only MCP resources for on-demand access to knowledge files, coffee tracking files, user setup, and grind map — no more manual file uploads needed
@@ -83,7 +93,7 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 ### 2026-02-14
 - **Expanded knowledge base**: Added 7 new knowledge files adapted from [gaggimate-barista](https://github.com/charleshall888/gaggimate-barista) by Charlie Hall — pressure guide, extraction science, bean freshness, profile library, baskets, milk & drinks, and special categories (decaf/blends)
 - **Enriched existing knowledge**: Added variable hierarchy, diagnostic decision tree, channeling rule (Scott Rao), and cross-references to existing brewing basics and tasting guide files
-- **4 new skills**: Added new-coffee (bean research → profile), diagnose (telemetry analysis), feedback (shot feedback loop), and consult (knowledge Q&A router)
+- **4 new skills**: Added new-coffee (bean research → profile), diagnose (telemetry analysis), feedback (shot feedback loop), and knowledge-lookup (knowledge Q&A router)
 - **Enriched gaggimate-profiles skill**: Added processing method awareness, pressure × roast matrix references, conditional reference loading, and MCP upload step
 - **Coffee Tracking artifact**: New concept for persistent memory across Claude Desktop sessions — agent creates a markdown tracking document users can save and re-upload
 - **Updated agent instructions**: Knowledge file reference table, skill directory, coffee tracking workflow, variable hierarchy, and sour-AND-bitter channeling rule
@@ -192,7 +202,7 @@ Troubleshoot connectivity issues between the MCP server and your Gaggimate devic
 ### Local Data Tools
 
 #### `manage_coffee`
-Create and manage coffee tracking files. Each coffee gets a markdown file with bean profile, extraction parameters, and a shot log table. Supports creating new coffees, logging shots, updating content, deleting files, and listing all tracked coffees.
+Create and manage coffee tracking files. Each coffee gets a markdown file with bean profile, brewing approach (narrative), and a brewing journal with dated analysis entries. The agent records what worked, what didn't, and what to try next — not raw numbers. Supports creating new coffees, logging journal entries, updating content, deleting files, and listing all tracked coffees.
 
 #### `manage_user_setup`
 Store and retrieve your equipment setup and preferences — machine, grinder, basket, scale, drink preferences, puck prep routine. Saved locally and accessible across all sessions.
@@ -200,18 +210,23 @@ Store and retrieve your equipment setup and preferences — machine, grinder, ba
 #### `manage_grind_map`
 Track successful grind settings across different coffees. When you find a setting that works (4-5 star shots), record it here for future reference when you revisit a coffee or try something similar.
 
+#### `manage_brewing_insights`
+Accumulate cross-coffee patterns and learnings. When the agent notices patterns (e.g., "Brazilian naturals do well with declining profiles"), it records them here. The new-coffee skill reviews this file first when dialing in unfamiliar beans, leveraging past experience.
+
 ### MCP Resources (Read-Only)
 
-The server also exposes six resources that provide on-demand access to local files:
+The server also exposes eight resources that provide on-demand access to local files:
 
 | Resource URI | Description |
 |-------------|-------------|
-| `gaggimate://knowledge` | List all available knowledge files |
+| `gaggimate://knowledge` | List all available knowledge files (including subdirectories) |
 | `gaggimate://knowledge/{filename}` | Read a specific knowledge file |
+| `gaggimate://knowledge/{subdir}/{filename}` | Read a knowledge file from a subdirectory |
 | `gaggimate://coffees` | List all coffee tracking files |
 | `gaggimate://coffees/{name}` | Read a specific coffee tracking file |
 | `gaggimate://user/setup` | Read user equipment and preferences |
 | `gaggimate://user/grind-map` | Read grind map with successful settings |
+| `gaggimate://user/brewing-insights` | Read cross-coffee brewing patterns and learnings |
 
 ## Safety Guardrails
 
@@ -332,14 +347,17 @@ knowledge/
 ├── PROFILE_LIBRARY.md                    # 8 ready-to-use profile templates
 ├── BASKETS.md                            # Dose rules, basket sizing
 ├── MILK_AND_DRINKS.md                    # Steaming, drink specs, single-boiler workflow
-└── SPECIAL_CATEGORIES.md                 # Decaf adjustments, blend strategies
+├── SPECIAL_CATEGORIES.md                 # Decaf adjustments, blend strategies
+├── profiles/                             # Profile creation references (structure, pumps, examples)
+├── diagnostics/                          # Diagnostic trees, telemetry patterns
+└── research/                             # Research checklists for new coffees
 
 agent-skills/
 ├── gaggimate-profiles/     # Profile creation with conditional reference loading
 ├── new-coffee/             # Research beans → recommend parameters → upload profile
 ├── diagnose/               # Shot telemetry analysis with taste correlation
 ├── feedback/               # Shot feedback loop: gather → analyze → record → recommend
-└── consult/                # Knowledge Q&A router (cites correct knowledge file)
+└── knowledge-lookup/       # Knowledge Q&A router (cites correct knowledge file)
 
 coffees/                    # Coffee tracking files (created by AI, gitignored)
 user/                       # User setup and grind map (created by AI, gitignored)
@@ -448,9 +466,10 @@ The MCP server stores some data locally on your machine (not on the Gaggimate de
 |----------|----------|--------|
 | `./data/ratings.json` | Shot ratings and tasting notes | Backup of feedback synced to device |
 | `./data/profiles/` | AI-created profile versions | Version history for rollback/comparison |
-| `./coffees/*.md` | Coffee tracking files | Bean profiles, extraction params, shot logs |
+| `./coffees/*.md` | Coffee tracking files | Bean profiles, brewing journal, key insights |
 | `./user/user-setup.md` | User equipment and preferences | Persistent setup across sessions |
 | `./user/grind-map.md` | Successful grind settings | Quick reference for dialed-in coffees |
+| `./user/brewing-insights.md` | Cross-coffee patterns | Learnings that carry across coffees |
 
 ### Agent access to local storage
 
@@ -461,6 +480,7 @@ The MCP server stores some data locally on your machine (not on the Gaggimate de
 | Coffee files | ✅ Yes (via MCP resources) | ✅ Yes (via manage_coffee tool) |
 | User setup | ✅ Yes (via MCP resources) | ✅ Yes (via manage_user_setup tool) |
 | Grind map | ✅ Yes (via MCP resources) | ✅ Yes (via manage_grind_map tool) |
+| Brewing insights | ✅ Yes (via MCP resources) | ✅ Yes (via manage_brewing_insights tool) |
 
 Local storage is **write-only** from the agent's perspective for device data (ratings, profiles)—it saves backups automatically but always reads from the Gaggimate device. Coffee files, user setup, and grind map are fully readable and writable by the agent via MCP resources and tools. To access local backups (e.g., for recovery), browse the files directly in `./data/`.
 
@@ -519,7 +539,7 @@ uv run pytest --cov=gaggimate_mcp --cov-report=html
 uv run mcp dev src/gaggimate_mcp/server.py
 ```
 
-**Test Status:** 192 tests passing, 93% coverage
+**Test Status:** 206 tests passing, 93% coverage
 
 ---
 
@@ -535,10 +555,10 @@ The profile creation guide is structured as a **Claude Desktop Skill** rather th
 - Large context windows can actually degrade response quality—the model has more to sift through
 
 **How Skills Use Progressive Disclosure:**
-- The main `SKILL.md` (~130 lines) loads only when triggered by profile-related requests
-- Detailed references (pump modes, examples, troubleshooting) load **on-demand** when Claude needs them
-- A simple "create a 9-bar profile" might only load the main skill + quick reference
-- A complex "debug my pressure transition" loads the pump/transitions reference
+- The main `SKILL.md` (~80-130 lines) loads only when triggered by relevant requests
+- Detailed references (pump modes, examples, troubleshooting) are served as MCP knowledge resources and loaded **on-demand** when the agent needs them
+- A simple "create a 9-bar profile" might only load the main skill
+- A complex "debug my pressure transition" triggers the agent to fetch the pump/transitions reference via `gaggimate://knowledge/profiles/PUMP_AND_TRANSITIONS`
 
 **Practical Benefits:**
 | Approach | Tokens Used | Best For |
@@ -546,12 +566,9 @@ The profile creation guide is structured as a **Claude Desktop Skill** rather th
 | Single knowledge file | ~3,000 tokens (always) | Small references (<200 lines) |
 | Skill with references | ~500-1,500 tokens (varies) | Large technical docs, context-dependent detail |
 
-Each skill is packaged as a ZIP file in `agent-skills/` for easy upload to Claude Desktop via **Settings → Capabilities → Skills → Add**:
-- `gaggimate-profiles.zip` — Profile creation
-- `new-coffee.zip` — New coffee research and setup
-- `diagnose.zip` — Shot telemetry diagnosis
-- `feedback.zip` — Shot feedback loop
-- `consult.zip` — Knowledge Q&A routing
+Each skill is a single `SKILL.md` file in `agent-skills/{skill-name}/`. Detailed references (profile structure, pump modes, diagnostic trees, etc.) are now served via MCP knowledge resources rather than bundled in the skill — this keeps skills lightweight while the agent loads references on-demand when needed.
+
+To install a skill in Claude Desktop, go to **Settings → Capabilities → Skills → Add** and upload the `SKILL.md` file (or a ZIP containing it).
 
 **Alternative: Just Use Knowledge Files**
 
@@ -562,9 +579,9 @@ If you prefer simplicity, you can skip the skills entirely and just add the know
 ```
 gaggimate-mcp/
 ├── src/gaggimate_mcp/
-│   ├── server.py           # MCP server with 8 tools
+│   ├── server.py           # MCP server with 9 tools
 │   ├── config.py           # Configuration management (Pydantic)
-│   ├── resources.py        # MCP resource endpoints (6 resources)
+│   ├── resources.py        # MCP resource endpoints (8 resources)
 │   ├── errors.py           # Structured error codes
 │   ├── diagnostics.py      # Connection diagnostics
 │   ├── logging_config.py   # Structlog JSON logging setup
@@ -586,10 +603,10 @@ gaggimate-mcp/
 │       └── markdown.py     # Coffee/user markdown file CRUD
 ├── agent-instructions/     # Claude Desktop system prompt
 ├── knowledge/              # 10 espresso knowledge files (served via MCP resources)
-├── agent-skills/           # 5 Claude Desktop skills (profile, new-coffee, diagnose, feedback, consult)
+├── agent-skills/           # 5 Claude Desktop skills (profile, new-coffee, diagnose, feedback, knowledge-lookup)
 ├── coffees/                # Coffee tracking files (created by AI, gitignored)
 ├── user/                   # User setup and grind map (gitignored, with .example templates)
-├── tests/                  # 192 unit tests
+├── tests/                  # 206 unit tests
 └── data/                   # Local data (gitignored)
     ├── ratings.json        # Your shot ratings
     └── profiles/           # AI-created profile backups
