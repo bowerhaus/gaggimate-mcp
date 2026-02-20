@@ -46,12 +46,12 @@ Quick reference for common patterns:
 
 | Reference | Load ONLY when... |
 |-----------|--------------------|
-| [EXAMPLES.md](references/EXAMPLES.md) | Need a JSON template for a style not in PROFILE_LIBRARY.md |
-| [PUMP_AND_TRANSITIONS.md](references/PUMP_AND_TRANSITIONS.md) | User asks about adaptive flow, ease-in-out transitions, or power mode |
-| [STOP_CONDITIONS.md](references/STOP_CONDITIONS.md) | User asks about combining multiple stop conditions or non-volumetric targets |
-| [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) | User reports a problem with an **existing** profile — never for new creation |
-| [FLOW_VARIABLE_PRESSURE.md](references/FLOW_VARIABLE_PRESSURE.md) | User specifically asks about Automatic Pro technique or flow-based variable pressure |
-| [PROFILE_STRUCTURE.md](references/PROFILE_STRUCTURE.md) | Almost never — GAGGIMATE_PROFILE_CREATION_GUIDE.md covers the same fields |
+| `gaggimate://knowledge/profiles/EXAMPLES.md` | Need a JSON template for a style not in PROFILE_LIBRARY.md |
+| `gaggimate://knowledge/profiles/PUMP_AND_TRANSITIONS.md` | User asks about adaptive flow, ease-in-out transitions, or power mode |
+| `gaggimate://knowledge/profiles/STOP_CONDITIONS.md` | User asks about combining multiple stop conditions or non-volumetric targets |
+| `gaggimate://knowledge/profiles/TROUBLESHOOTING.md` | User reports a problem with an **existing** profile — never for new creation |
+| `gaggimate://knowledge/profiles/FLOW_VARIABLE_PRESSURE.md` | User specifically asks about Automatic Pro technique or flow-based variable pressure |
+| `gaggimate://knowledge/profiles/PROFILE_STRUCTURE.md` | Almost never — GAGGIMATE_PROFILE_CREATION_GUIDE.md covers the same fields |
 
 ### Step 4: Generate Profile JSON
 
