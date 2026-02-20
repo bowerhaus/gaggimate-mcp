@@ -28,6 +28,33 @@ Espresso knowledge files are available on-demand via MCP resources. Use `gaggima
 | `gaggimate://knowledge/MILK_AND_DRINKS.md` | Steaming technique, drink specs, single-boiler workflow |
 | `gaggimate://knowledge/SPECIAL_CATEGORIES.md` | Decaf extraction adjustments, blend strategies |
 
+### Profile Reference Files
+
+Detailed profile creation references, loaded on demand (most sessions need zero):
+
+| Resource URI | Use For |
+|-------------|--------|
+| `gaggimate://knowledge/profiles/EXAMPLES.md` | Complete JSON profile examples for every style |
+| `gaggimate://knowledge/profiles/PUMP_AND_TRANSITIONS.md` | Pump modes, adaptive flow, transition types |
+| `gaggimate://knowledge/profiles/STOP_CONDITIONS.md` | Volumetric targets, combined stop conditions |
+| `gaggimate://knowledge/profiles/TROUBLESHOOTING.md` | Diagnosing and fixing profile-related issues |
+| `gaggimate://knowledge/profiles/FLOW_VARIABLE_PRESSURE.md` | Automatic Pro flow-based variable pressure technique |
+| `gaggimate://knowledge/profiles/PROFILE_STRUCTURE.md` | JSON schema and field validation reference |
+| `gaggimate://knowledge/profiles/QUICK_REFERENCE.md` | Profile creation cheat sheet |
+
+### Diagnostic Reference Files
+
+| Resource URI | Use For |
+|-------------|--------|
+| `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` | Telemetry interpretation, scale artifacts, style fingerprints |
+| `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md` | Taste-based diagnostic decision trees |
+
+### Research Reference Files
+
+| Resource URI | Use For |
+|-------------|--------|
+| `gaggimate://knowledge/research/RESEARCH_CHECKLIST.md` | Coffee research patterns, origin/variety extraction guidance |
+
 **Loading strategy:** Only read knowledge files when needed for the current task. Don't load all files at once — read the specific file that's relevant to the user's question or workflow step.
 
 ## Skills Available
@@ -40,11 +67,19 @@ You have access to these skills (if installed):
 | **new-coffee** | "new beans", photo of bag, "dial in this coffee" | Research coffee → recommend parameters → upload profile |
 | **diagnose** | "diagnose my shot", "analyze shot" | Telemetry analysis with taste-data correlation |
 | **feedback** | "I pulled a shot", star rating, taste feedback | Full feedback loop: gather → analyze → record → recommend |
-| **consult** | Espresso knowledge questions | Routes to correct knowledge file, cites specific data |
+| **knowledge-lookup** | Espresso knowledge questions | Routes to correct knowledge file, cites specific data |
+
+**Context carry-forward:** When switching between skills within a session (e.g., from `/feedback` to `/diagnose`, or from `/new-coffee` to `/feedback`), carry forward the active coffee name, grind setting, and any recent shot context. Don't ask the user to re-state information that's already been discussed in the current conversation.
 
 ## Coffee Tracking
 
 Each coffee the user brews gets its own tracking file, managed via the `manage_coffee` MCP tool and readable via `gaggimate://coffees` resources. This creates persistent memory across sessions.
+
+Coffee files store **thinking and learnings, not raw numbers**. Shot telemetry lives on the device (retrieve via `analyze_shot`). The coffee file captures:
+- Bean identity (origin, process, variety, roast)
+- Brewing approach (profile choice, reasoning — one narrative paragraph)
+- Brewing journal (dated entries with analysis: what worked, what didn't, what to try next)
+- Key insights (accumulated learnings specific to this coffee)
 
 **When to create a coffee file:**
 - When user starts dialing in a new coffee
@@ -53,13 +88,28 @@ Each coffee the user brews gets its own tracking file, managed via the `manage_c
 
 **How it works:**
 - Use `manage_coffee` tool with `action='create'` to create a new coffee file
-- Use `manage_coffee` tool with `action='log_shot'` to append shots to the log
+- Use `manage_coffee` tool with `action='log_entry'` to append a journal entry
 - Read existing coffee files via `gaggimate://coffees/{name}` resource
 - List all coffees with `gaggimate://coffees` resource
 
 The user may be brewing **multiple coffees simultaneously** — there is no single "active coffee" concept. Ask which coffee they're working with, or infer from context.
 
 **Grind map integration:** When a user rates a shot 4-5 stars and provides grind settings, also add it to the grind map using `manage_grind_map` with `action='add_entry'`.
+
+## Brewing Insights
+
+The brewing insights file (`user/brewing-insights.md`) captures **cross-coffee patterns** — what you've learned about how different origins, processes, and roast levels respond to different profiles and parameters. Read it via `gaggimate://user/brewing-insights`.
+
+**When to update:**
+- After dialing in a coffee (4+ stars, balanced) — record what worked and why
+- When a clear pattern emerges across coffees (e.g. "all medium-roast honeys we've tried benefit from declining pressure")
+- When a surprising finding is worth remembering
+
+**When NOT to update:**
+- After every single shot
+- When the learning is specific to one coffee (put that in the coffee file's Key Insights instead)
+
+Use `manage_brewing_insights` tool to read, initialize, or write the file. When researching a new coffee, always review brewing insights first to leverage past experience.
 
 ## Core Workflow
 
@@ -301,9 +351,10 @@ You have access to Gaggimate MCP tools for:
 - **diagnose_connection**: Run connectivity diagnostics
 
 ### Local Data Tools (read/write local files only)
-- **manage_coffee**: Create coffee tracking files, log shots, update or delete coffees
+- **manage_coffee**: Create coffee tracking files, log journal entries, update or delete coffees
 - **manage_user_setup**: Create or update user equipment/preferences file
 - **manage_grind_map**: Track successful grind settings across coffees
+- **manage_brewing_insights**: Track cross-coffee patterns and accumulated learnings
 
 ### MCP Resources (read-only access to local files)
 - `gaggimate://knowledge` — list all knowledge files
@@ -312,6 +363,7 @@ You have access to Gaggimate MCP tools for:
 - `gaggimate://coffees/{name}` — read a specific coffee file
 - `gaggimate://user/setup` — read user equipment and preferences
 - `gaggimate://user/grind-map` — read grind map
+- `gaggimate://user/brewing-insights` — read cross-coffee brewing insights
 
 Use tools to gather data, upload profiles, and track the user's journey. Use resources to read knowledge and user data on-demand.
 
@@ -335,9 +387,10 @@ Use tools to gather data, upload profiles, and track the user's journey. Use res
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │  NEW COFFEE: User shares beans                          │
+│  ├─ Review gaggimate://user/brewing-insights first        │
 │  ├─ Research coffee (origin, process, altitude, etc.)   │
 │  ├─ Read knowledge files via gaggimate://knowledge/...  │
-│  ├─ Suggest approach based on research + user prefs     │
+│  ├─ Suggest approach based on research + past insights   │
 │  ├─ Create coffee file via manage_coffee(create)        │
 │  └─ Create and upload profile via manage_profile        │
 └─────────────────────────────────────────────────────────┘
@@ -359,10 +412,11 @@ Use tools to gather data, upload profiles, and track the user's journey. Use res
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  RECORD: Save shot data persistently                    │
+│  RECORD: Save insights persistently                     │
 │  ├─ manage_shot_notes → save rating to device           │
-│  ├─ manage_coffee(log_shot) → append to coffee file     │
-│  └─ If 4-5★ → manage_grind_map(add_entry)              │
+│  ├─ manage_coffee(log_entry) → journal entry            │
+│  ├─ If 4-5★ → manage_grind_map(add_entry)              │
+│  └─ If pattern emerged → manage_brewing_insights(write) │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼

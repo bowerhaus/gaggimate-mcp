@@ -7,9 +7,10 @@ from gaggimate_mcp.storage.markdown import (
     MarkdownStorage,
     _sanitize_filename,
     build_coffee_markdown,
-    append_shot_to_coffee,
+    append_journal_entry,
     build_grind_map_markdown,
     append_grind_entry,
+    build_brewing_insights_markdown,
 )
 
 
@@ -113,7 +114,8 @@ class TestBuildCoffeeMarkdown:
         assert "# Jack LeFleur — Azul" in md
         assert "| **Roaster** | Jack LeFleur |" in md
         assert "| **Coffee name** | Azul |" in md
-        assert "## Shot Log" in md
+        assert "## Brewing Journal" in md
+        assert "## Key Insights" in md
 
     def test_full_coffee(self):
         md = build_coffee_markdown(
@@ -127,78 +129,81 @@ class TestBuildCoffeeMarkdown:
             bag_size="250g",
             roaster_notes="Nuts, chocolate",
             freshness_note="Peak: 2 weeks after roast",
-            extraction_dose="15g",
-            extraction_yield="37g",
-            extraction_temp="92°C",
-            extraction_grind="10",
-            extraction_profile="Lever Decline [AI]",
-            pressure_logic="Medium roast → 8-9 bar",
+            approach="Start with Lever Decline profile at 92C, 15g dose targeting 1:2.5 ratio. Medium roast suggests 8-9 bar peak pressure.",
         )
         assert "| **Origin** | Brazil |" in md
         assert "| **Process** | Pulped Natural |" in md
         assert "| **Roast date** | 02 Feb 2026 |" in md
-        assert "## Extraction Parameters" in md
-        assert "| **Dose** | 15g |" in md
-        assert "**Pressure logic:** Medium roast" in md
+        assert "## Approach" in md
+        assert "Lever Decline profile at 92C" in md
+        assert "## Brewing Journal" in md
+        assert "## Key Insights" in md
 
     def test_optional_fields_omitted(self):
         md = build_coffee_markdown(coffee_name="Test", roaster="Roaster")
         assert "Origin" not in md
-        assert "Extraction Parameters" not in md
+        assert "Approach" not in md
 
-    def test_additional_notes(self):
+    def test_approach_section(self):
         md = build_coffee_markdown(
             coffee_name="Test",
             roaster="Roaster",
-            additional_notes="Some extra notes here",
+            approach="Try a flat 6 bar profile for this light roast washed Ethiopian.",
         )
-        assert "## Notes" in md
-        assert "Some extra notes here" in md
+        assert "## Approach" in md
+        assert "flat 6 bar profile" in md
 
 
 # ── Shot log appending ────────────────────────────────────────────────
 
 
-class TestAppendShotToCoffee:
-    """Tests for append_shot_to_coffee."""
+class TestAppendJournalEntry:
+    """Tests for append_journal_entry."""
 
-    def test_append_to_empty_shot_log(self):
+    def test_append_to_empty_journal(self):
         md = build_coffee_markdown(coffee_name="Test", roaster="R")
-        updated = append_shot_to_coffee(
+        updated = append_journal_entry(
             md,
             date="2026-02-19",
-            grind="10",
-            profile="Classic",
-            dose="15g",
-            yield_g="30g",
-            time="28s",
-            rating="4/5",
-            notes="Good body",
+            headline="Grind 10, Lever Decline — 4/5",
+            body="Good body and sweetness. Slightly fast — try grind 11 next time.",
         )
-        assert "| 2026-02-19 | 10 | Classic | 15g | 30g | 28s | 4/5 | Good body |" in updated
+        assert "### 2026-02-19 — Grind 10, Lever Decline — 4/5" in updated
+        assert "Good body and sweetness" in updated
+        # Placeholder text should be removed
+        assert "No entries yet" not in updated
 
-    def test_append_multiple_shots(self):
+    def test_append_multiple_entries(self):
         md = build_coffee_markdown(coffee_name="Test", roaster="R")
-        md = append_shot_to_coffee(md, date="Day 1", grind="10")
-        md = append_shot_to_coffee(md, date="Day 2", grind="11")
+        md = append_journal_entry(md, date="Day 1", headline="First shot")
+        md = append_journal_entry(md, date="Day 2", headline="Second shot")
         assert "Day 1" in md
         assert "Day 2" in md
         # Day 2 should come after Day 1
         assert md.index("Day 1") < md.index("Day 2")
 
-    def test_append_without_shot_log_section(self):
-        """Should add a shot log section if missing."""
+    def test_append_without_journal_section(self):
+        """Should add a Brewing Journal section if missing."""
         md = "# Test Coffee\n\nSome content."
-        updated = append_shot_to_coffee(md, date="2026-02-19", grind="10")
-        assert "## Shot Log" in updated
+        updated = append_journal_entry(
+            md, date="2026-02-19", headline="Test entry", body="Analysis here."
+        )
+        assert "## Brewing Journal" in updated
         assert "2026-02-19" in updated
+        assert "Analysis here." in updated
 
     def test_default_date(self):
         md = build_coffee_markdown(coffee_name="Test", roaster="R")
-        updated = append_shot_to_coffee(md, grind="10")
-        # Should have today's date (just check it's not empty)
-        lines = [l for l in updated.split("\n") if l.startswith("| 20")]
+        updated = append_journal_entry(md, headline="Quick note")
+        # Should have today's date (just check there's a ### heading with current year)
+        lines = [l for l in updated.split("\n") if l.startswith("### 20")]
         assert len(lines) == 1
+
+    def test_entry_without_headline(self):
+        md = build_coffee_markdown(coffee_name="Test", roaster="R")
+        updated = append_journal_entry(md, date="2026-03-01", body="Just a note.")
+        assert "### 2026-03-01" in updated
+        assert "Just a note." in updated
 
 
 # ── Grind map ─────────────────────────────────────────────────────────
@@ -243,3 +248,24 @@ class TestGrindMap:
         md = build_grind_map_markdown()
         updated = append_grind_entry(md, coffee="Test")
         assert "—" in updated
+
+
+# ── Brewing insights ──────────────────────────────────────────────────
+
+
+class TestBuildBrewingInsightsMarkdown:
+    """Tests for build_brewing_insights_markdown."""
+
+    def test_template_has_title(self):
+        md = build_brewing_insights_markdown()
+        assert "# Brewing Insights" in md
+
+    def test_template_has_sections(self):
+        md = build_brewing_insights_markdown()
+        assert "## By Origin & Process" in md
+        assert "## By Profile Style" in md
+        assert "## General Patterns" in md
+
+    def test_template_has_placeholder_text(self):
+        md = build_brewing_insights_markdown()
+        assert "No entries yet" in md

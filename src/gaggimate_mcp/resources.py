@@ -1,12 +1,14 @@
 """MCP resource endpoints for Gaggimate knowledge, coffees, and user data.
 
 Provides read-only access to local markdown files via MCP resources:
-- gaggimate://knowledge       — list all knowledge files
-- gaggimate://knowledge/{name} — read a specific knowledge file
+- gaggimate://knowledge                — list all knowledge files
+- gaggimate://knowledge/{name}         — read a top-level knowledge file
+- gaggimate://knowledge/{subdir}/{name} — read a knowledge file from a subdirectory
 - gaggimate://coffees          — list all coffee tracking files
 - gaggimate://coffees/{name}   — read a specific coffee file
 - gaggimate://user/setup       — read user setup/preferences
 - gaggimate://user/grind-map   — read grind map
+- gaggimate://user/brewing-insights — read cross-coffee brewing insights
 """
 
 from pathlib import Path
@@ -20,18 +22,20 @@ logger = get_logger(__name__)
 
 
 def _list_markdown_files(directory: Path) -> list[dict[str, str]]:
-    """List markdown files in a directory.
+    """List markdown files in a directory, including subdirectories.
 
     Args:
         directory: Path to scan for .md files
 
     Returns:
-        List of dicts with 'name' and 'filename' keys, sorted by name
+        List of dicts with 'name', 'filename', and optional 'subdirectory' keys,
+        sorted by subdirectory then name.
     """
     if not directory.is_dir():
         return []
 
     files = []
+    # Top-level files
     for path in sorted(directory.glob("*.md")):
         if path.name.startswith("."):
             continue
@@ -39,15 +43,34 @@ def _list_markdown_files(directory: Path) -> list[dict[str, str]]:
             "name": path.stem,
             "filename": path.name,
         })
+
+    # Subdirectory files (one level deep)
+    for subdir in sorted(directory.iterdir()):
+        if not subdir.is_dir() or subdir.name.startswith("."):
+            continue
+        for path in sorted(subdir.glob("*.md")):
+            if path.name.startswith("."):
+                continue
+            relative = f"{subdir.name}/{path.name}"
+            files.append({
+                "name": path.stem,
+                "filename": relative,
+                "subdirectory": subdir.name,
+            })
     return files
 
 
 def _read_markdown_file(directory: Path, name: str) -> str:
     """Read a markdown file from a directory.
 
+    Supports both top-level files ("BASICS.md") and subdirectory files
+    ("profiles/EXAMPLES.md"). Path traversal is prevented by checking
+    that the resolved path stays within the base directory.
+
     Args:
         directory: Base directory
-        name: Filename (with or without .md extension)
+        name: Filename or relative path (with or without .md extension).
+              May contain a single forward slash for subdirectory access.
 
     Returns:
         File contents as string
@@ -56,8 +79,13 @@ def _read_markdown_file(directory: Path, name: str) -> str:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the name attempts path traversal
     """
-    # Sanitize: prevent path traversal
-    if ".." in name or "/" in name or "\\" in name:
+    # Sanitize: reject path traversal patterns
+    if ".." in name or "\\" in name:
+        raise ValueError(f"Invalid file name: {name}")
+
+    # Allow at most one forward slash (subdirectory/filename)
+    parts = name.split("/")
+    if len(parts) > 2:
         raise ValueError(f"Invalid file name: {name}")
 
     # Add .md extension if not present
@@ -66,7 +94,10 @@ def _read_markdown_file(directory: Path, name: str) -> str:
 
     # Verify the resolved path is still inside the directory
     resolved = file_path.resolve()
-    if not str(resolved).startswith(str(directory.resolve())):
+    base_dir = directory.resolve()
+    try:
+        resolved.relative_to(base_dir)
+    except ValueError:
         raise ValueError(f"Path traversal detected: {name}")
 
     if not file_path.is_file():
@@ -107,7 +138,13 @@ def register_resources(mcp: FastMCP, config: GaggimateConfig) -> None:
             return "No knowledge files found."
 
         lines = ["# Available Knowledge Files", ""]
+        current_subdir = None
         for f in files:
+            subdir = f.get("subdirectory")
+            if subdir != current_subdir:
+                if subdir is not None:
+                    lines.append(f"\n## {subdir}/")
+                current_subdir = subdir
             lines.append(f"- **{f['name']}** → `gaggimate://knowledge/{f['filename']}`")
 
         return "\n".join(lines)
@@ -124,6 +161,19 @@ def register_resources(mcp: FastMCP, config: GaggimateConfig) -> None:
     def read_knowledge(filename: str) -> str:
         """Read a specific knowledge file."""
         return _read_markdown_file(knowledge_dir, filename)
+
+    @mcp.resource(
+        "gaggimate://knowledge/{subdir}/{filename}",
+        name="knowledge_subdir_file",
+        description=(
+            "Read a knowledge file from a subdirectory. "
+            "Use gaggimate://knowledge to see available files."
+        ),
+        mime_type="text/markdown",
+    )
+    def read_knowledge_subdir(subdir: str, filename: str) -> str:
+        """Read a knowledge file from a subdirectory."""
+        return _read_markdown_file(knowledge_dir, f"{subdir}/{filename}")
 
     # ── Coffee resources ─────────────────────────────────────────────
 
@@ -222,6 +272,29 @@ def register_resources(mcp: FastMCP, config: GaggimateConfig) -> None:
             )
 
         return grind_path.read_text(encoding="utf-8")
+
+    @mcp.resource(
+        "gaggimate://user/brewing-insights",
+        name="user_brewing_insights",
+        description=(
+            "Read the user's brewing insights — cross-coffee patterns and learnings. "
+            "Returns the brewing-insights.md file contents, or guidance to create one."
+        ),
+        mime_type="text/markdown",
+    )
+    def read_brewing_insights() -> str:
+        """Read brewing insights file."""
+        insights_path = user_dir / "brewing-insights.md"
+        if not insights_path.is_file():
+            return (
+                "# Brewing insights not yet started\n\n"
+                "No `user/brewing-insights.md` found. Use the `manage_brewing_insights` "
+                "tool with action='init' to create one.\n\n"
+                "This file will capture cross-coffee patterns and learnings — "
+                "e.g. which origin/process/roast combinations respond to which profiles."
+            )
+
+        return insights_path.read_text(encoding="utf-8")
 
     try:
         logger.info(

@@ -4,6 +4,7 @@ Provides read/write operations for markdown files managed by MCP tools:
 - User setup (user/user-setup.md)
 - Coffee tracking files (coffees/*.md)
 - Grind map (user/grind-map.md)
+- Brewing insights (user/brewing-insights.md)
 """
 
 from pathlib import Path
@@ -144,16 +145,13 @@ def build_coffee_markdown(
     bag_size: str = "",
     roaster_notes: str = "",
     freshness_note: str = "",
-    extraction_dose: str = "",
-    extraction_yield: str = "",
-    extraction_temp: str = "",
-    extraction_grind: str = "",
-    extraction_profile: str = "",
-    extraction_notes: str = "",
-    pressure_logic: str = "",
-    additional_notes: str = "",
+    approach: str = "",
 ) -> str:
     """Build a coffee tracking markdown file.
+
+    The coffee file captures bean identity, the brewing approach (narrative),
+    a brewing journal (dated analysis entries), and key insights. Raw shot
+    numbers live on the device — this file stores *thinking* and *learnings*.
 
     Args:
         coffee_name: Full coffee name
@@ -166,14 +164,9 @@ def build_coffee_markdown(
         bag_size: Bag size
         roaster_notes: Tasting notes from roaster
         freshness_note: Freshness/peak window note
-        extraction_dose: Recommended dose
-        extraction_yield: Target yield
-        extraction_temp: Temperature
-        extraction_grind: Grind setting
-        extraction_profile: Profile name
-        extraction_notes: Additional extraction notes
-        pressure_logic: Reasoning for pressure/profile choice
-        additional_notes: Any additional notes
+        approach: Narrative description of the brewing approach — profile
+            choice, pressure logic, starting parameters, and reasoning.
+            Written by the agent after researching the coffee.
 
     Returns:
         Complete markdown string
@@ -206,82 +199,53 @@ def build_coffee_markdown(
         lines.append("")
         lines.append(f"**Freshness note:** {freshness_note}")
 
-    # Extraction Parameters
-    if any([extraction_dose, extraction_yield, extraction_temp,
-            extraction_grind, extraction_profile]):
+    # Approach (narrative)
+    if approach:
         lines.append("")
         lines.append("---")
         lines.append("")
-        lines.append("## Extraction Parameters")
+        lines.append("## Approach")
         lines.append("")
-        lines.append("| Parameter | Value | Notes |")
-        lines.append("|-----------|-------|-------|")
-        if extraction_dose:
-            lines.append(f"| **Dose** | {extraction_dose} | |")
-        if extraction_yield:
-            lines.append(f"| **Yield** | {extraction_yield} | |")
-        if extraction_temp:
-            lines.append(f"| **Temperature** | {extraction_temp} | |")
-        if extraction_grind:
-            lines.append(f"| **Grind** | {extraction_grind} | |")
-        if extraction_profile:
-            lines.append(f"| **Profile** | {extraction_profile} | |")
+        lines.append(approach)
 
-        if pressure_logic:
-            lines.append("")
-            lines.append(f"**Pressure logic:** {pressure_logic}")
-
-        if extraction_notes:
-            lines.append("")
-            lines.append(f"**Notes:** {extraction_notes}")
-
-    # Shot Log (empty starter)
+    # Brewing Journal (empty starter)
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("## Shot Log")
+    lines.append("## Brewing Journal")
     lines.append("")
-    lines.append("| Date | Grind | Profile | Dose | Yield | Time | Rating | Notes |")
-    lines.append("|------|-------|---------|------|-------|------|--------|-------|")
+    lines.append("*No entries yet. Use the feedback skill after pulling a shot.*")
 
-    if additional_notes:
-        lines.append("")
-        lines.append("---")
-        lines.append("")
-        lines.append("## Notes")
-        lines.append("")
-        lines.append(additional_notes)
+    # Key Insights (empty starter)
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Key Insights")
+    lines.append("")
+    lines.append("*No insights yet. Patterns will emerge as you dial in.*")
 
     lines.append("")
     return "\n".join(lines)
 
 
-def append_shot_to_coffee(
+def append_journal_entry(
     content: str,
     *,
     date: str = "",
-    grind: str = "",
-    profile: str = "",
-    dose: str = "",
-    yield_g: str = "",
-    time: str = "",
-    rating: str = "",
-    notes: str = "",
+    headline: str = "",
+    body: str = "",
 ) -> str:
-    """Append a shot log row to an existing coffee markdown file.
+    """Append a brewing journal entry to a coffee markdown file.
 
-    Finds the Shot Log table and appends a new row.
+    Finds the Brewing Journal section and appends a dated entry.
+    Each entry has a headline (date, grind, profile, rating) and a
+    freeform body with the agent's analysis and next-step thinking.
 
     Args:
         content: Existing file content
-        date: Shot date
-        grind: Grind setting
-        profile: Profile used
-        dose: Dose in grams
-        yield_g: Yield in grams
-        time: Shot time
-        rating: Rating (e.g. "4/5")
-        notes: Shot notes
+        date: Entry date (defaults to today)
+        headline: Entry headline — e.g. "Grind 10, Lever Decline [AI] — 4/5"
+        body: Freeform analysis — what worked, what didn't, what to try next
 
     Returns:
         Updated file content
@@ -289,36 +253,50 @@ def append_shot_to_coffee(
     if not date:
         date = datetime.now().strftime("%Y-%m-%d")
 
-    row = f"| {date} | {grind} | {profile} | {dose} | {yield_g} | {time} | {rating} | {notes} |"
+    entry_lines = [f"### {date} — {headline}" if headline else f"### {date}"]
+    if body:
+        entry_lines.append(body)
+    entry_lines.append("")  # Blank line after entry
 
-    # Find the shot log table header and append after the separator line
     lines = content.split("\n")
     insert_idx = None
-    in_shot_log = False
 
     for i, line in enumerate(lines):
-        if "## Shot Log" in line:
-            in_shot_log = True
-        elif in_shot_log and line.startswith("|---"):
-            insert_idx = i + 1
-            # Find the last row of the table (skip existing rows)
-            for j in range(i + 1, len(lines)):
-                if lines[j].startswith("|"):
-                    insert_idx = j + 1
-                else:
+        if "## Brewing Journal" in line:
+            # Remove placeholder text if present
+            for k in range(i + 1, len(lines)):
+                if lines[k].strip().startswith("*No entries yet"):
+                    lines[k] = ""
                     break
+
+            # Find end of Brewing Journal section: stop before next ## or ---
+            # that precedes a ## heading (section separator)
+            j = i + 1
+            while j < len(lines):
+                stripped = lines[j].strip()
+                # Stop at next top-level section heading
+                if stripped.startswith("## ") and stripped != "## Brewing Journal":
+                    break
+                # Stop at a --- separator if followed (after blanks) by a ## heading
+                if stripped == "---":
+                    peek = j + 1
+                    while peek < len(lines) and lines[peek].strip() == "":
+                        peek += 1
+                    if peek < len(lines) and lines[peek].strip().startswith("## "):
+                        break
+                j += 1
+            insert_idx = j
             break
 
     if insert_idx is not None:
-        lines.insert(insert_idx, row)
+        for offset, entry_line in enumerate(entry_lines):
+            lines.insert(insert_idx + offset, entry_line)
     else:
-        # No shot log section found — append one
+        # No Brewing Journal section — append one
         lines.append("")
-        lines.append("## Shot Log")
+        lines.append("## Brewing Journal")
         lines.append("")
-        lines.append("| Date | Grind | Profile | Dose | Yield | Time | Rating | Notes |")
-        lines.append("|------|-------|---------|------|-------|------|--------|-------|")
-        lines.append(row)
+        lines.extend(entry_lines)
 
     return "\n".join(lines)
 
@@ -421,3 +399,32 @@ def append_grind_entry(
         lines.append(row)
 
     return "\n".join(lines)
+
+def build_brewing_insights_markdown() -> str:
+    """Build the initial brewing insights markdown file.
+
+    Returns:
+        Empty brewing insights template
+    """
+    return """# Brewing Insights
+
+Accumulated patterns and learnings across coffees. Review this when
+dialing in a new coffee to leverage past experience.
+
+## By Origin & Process
+
+*No entries yet. Patterns will emerge as you brew more coffees.*
+
+## By Profile Style
+
+*No entries yet.*
+
+## General Patterns
+
+*No entries yet.*
+
+---
+
+*This file captures cross-coffee learnings. Each insight links to the
+specific coffee file for full details.*
+"""

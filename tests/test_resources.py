@@ -16,11 +16,21 @@ from gaggimate_mcp.resources import (
 
 @pytest.fixture
 def tmp_knowledge(tmp_path):
-    """Create a temporary knowledge directory with sample files."""
+    """Create a temporary knowledge directory with sample files and subdirectories."""
     knowledge_dir = tmp_path / "knowledge"
     knowledge_dir.mkdir()
     (knowledge_dir / "ESPRESSO_BASICS.md").write_text("# Espresso Basics\nContent here.")
     (knowledge_dir / "PRESSURE_GUIDE.md").write_text("# Pressure Guide\nMore content.")
+
+    # Subdirectory with reference files
+    profiles_dir = knowledge_dir / "profiles"
+    profiles_dir.mkdir()
+    (profiles_dir / "EXAMPLES.md").write_text("# Profile Examples\nJSON examples.")
+    (profiles_dir / "TROUBLESHOOTING.md").write_text("# Troubleshooting\nFix profiles.")
+
+    diagnostics_dir = knowledge_dir / "diagnostics"
+    diagnostics_dir.mkdir()
+    (diagnostics_dir / "TELEMETRY_PATTERNS.md").write_text("# Telemetry\nPatterns here.")
     return knowledge_dir
 
 
@@ -70,11 +80,14 @@ class TestListMarkdownFiles:
     """Tests for _list_markdown_files helper."""
 
     def test_lists_md_files(self, tmp_knowledge):
-        """Should return all .md files sorted by name."""
+        """Should return all .md files including subdirectories."""
         files = _list_markdown_files(tmp_knowledge)
-        assert len(files) == 2
+        # 2 top-level + 2 profiles/ + 1 diagnostics/
+        assert len(files) == 5
+        # Top-level files come first
         assert files[0]["name"] == "ESPRESSO_BASICS"
         assert files[0]["filename"] == "ESPRESSO_BASICS.md"
+        assert "subdirectory" not in files[0]
         assert files[1]["name"] == "PRESSURE_GUIDE"
 
     def test_empty_directory(self, tmp_path):
@@ -108,6 +121,37 @@ class TestListMarkdownFiles:
         assert len(files) == 1
         assert files[0]["filename"] == "doc.md"
 
+    def test_lists_subdirectory_files(self, tmp_knowledge):
+        """Should include files from subdirectories with relative paths."""
+        files = _list_markdown_files(tmp_knowledge)
+        subdir_files = [f for f in files if "subdirectory" in f]
+        assert len(subdir_files) == 3
+
+        # Check diagnostics subdir
+        diag_files = [f for f in subdir_files if f["subdirectory"] == "diagnostics"]
+        assert len(diag_files) == 1
+        assert diag_files[0]["filename"] == "diagnostics/TELEMETRY_PATTERNS.md"
+        assert diag_files[0]["name"] == "TELEMETRY_PATTERNS"
+
+        # Check profiles subdir
+        prof_files = [f for f in subdir_files if f["subdirectory"] == "profiles"]
+        assert len(prof_files) == 2
+        filenames = {f["filename"] for f in prof_files}
+        assert "profiles/EXAMPLES.md" in filenames
+        assert "profiles/TROUBLESHOOTING.md" in filenames
+
+    def test_ignores_hidden_subdirectories(self, tmp_path):
+        """Should skip subdirectories starting with a dot."""
+        d = tmp_path / "knowledge"
+        d.mkdir()
+        hidden = d / ".hidden"
+        hidden.mkdir()
+        (hidden / "SECRET.md").write_text("nope")
+        (d / "visible.md").write_text("yes")
+        files = _list_markdown_files(d)
+        assert len(files) == 1
+        assert files[0]["name"] == "visible"
+
 
 class TestReadMarkdownFile:
     """Tests for _read_markdown_file helper."""
@@ -138,14 +182,36 @@ class TestReadMarkdownFile:
             _read_markdown_file(tmp_knowledge, "../etc/passwd")
 
     def test_path_traversal_slash(self, tmp_knowledge):
-        """Should reject names with forward slashes."""
+        """Should reject names with more than one slash."""
         with pytest.raises(ValueError, match="Invalid file name"):
-            _read_markdown_file(tmp_knowledge, "sub/file")
+            _read_markdown_file(tmp_knowledge, "sub/deep/file")
 
     def test_path_traversal_backslash(self, tmp_knowledge):
         """Should reject names with backslashes."""
         with pytest.raises(ValueError, match="Invalid file name"):
             _read_markdown_file(tmp_knowledge, "sub\\file")
+
+    def test_read_subdirectory_file(self, tmp_knowledge):
+        """Should read files from subdirectories via relative path."""
+        content = _read_markdown_file(tmp_knowledge, "profiles/EXAMPLES.md")
+        assert "# Profile Examples" in content
+
+    def test_read_subdirectory_file_without_extension(self, tmp_knowledge):
+        """Should read subdirectory file without .md extension."""
+        content = _read_markdown_file(tmp_knowledge, "profiles/EXAMPLES")
+        assert "# Profile Examples" in content
+
+    def test_subdirectory_traversal_blocked(self, tmp_path):
+        """Should block traversal via subdirectory names."""
+        d = tmp_path / "knowledge"
+        d.mkdir()
+        with pytest.raises(ValueError, match="Invalid file name"):
+            _read_markdown_file(d, "../etc/passwd")
+
+    def test_subdirectory_file_not_found(self, tmp_knowledge):
+        """Should raise FileNotFoundError for missing subdirectory file."""
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            _read_markdown_file(tmp_knowledge, "profiles/NONEXISTENT")
 
 
 # ── Resource registration tests ──────────────────────────────────────
@@ -163,6 +229,7 @@ class TestResourceRegistration:
         assert "gaggimate://coffees" in uris
         assert "gaggimate://user/setup" in uris
         assert "gaggimate://user/grind-map" in uris
+        assert "gaggimate://user/brewing-insights" in uris
 
     @pytest.mark.asyncio
     async def test_resource_templates_registered(self, mcp_with_resources):
@@ -170,6 +237,7 @@ class TestResourceRegistration:
         templates = await mcp_with_resources.list_resource_templates()
         template_uris = [t.uriTemplate for t in templates]
         assert "gaggimate://knowledge/{filename}" in template_uris
+        assert "gaggimate://knowledge/{subdir}/{filename}" in template_uris
         assert "gaggimate://coffees/{filename}" in template_uris
 
 
@@ -181,11 +249,16 @@ class TestKnowledgeResources:
 
     @pytest.mark.asyncio
     async def test_knowledge_index(self, mcp_with_resources):
-        """Should list all knowledge files."""
+        """Should list all knowledge files including subdirectories."""
         result = await mcp_with_resources.read_resource("gaggimate://knowledge")
         text = result[0].content if hasattr(result[0], "content") else str(result[0])
         assert "ESPRESSO_BASICS" in text
         assert "PRESSURE_GUIDE" in text
+        # Subdirectory files should appear
+        assert "profiles/" in text
+        assert "EXAMPLES" in text
+        assert "diagnostics/" in text
+        assert "TELEMETRY_PATTERNS" in text
 
     @pytest.mark.asyncio
     async def test_knowledge_index_empty(self, tmp_path):
@@ -213,6 +286,25 @@ class TestKnowledgeResources:
         text = result[0].content if hasattr(result[0], "content") else str(result[0])
         assert "# Espresso Basics" in text
         assert "Content here." in text
+
+    @pytest.mark.asyncio
+    async def test_read_knowledge_subdirectory_file(self, mcp_with_resources):
+        """Should read a knowledge file from a subdirectory."""
+        result = await mcp_with_resources.read_resource(
+            "gaggimate://knowledge/profiles/EXAMPLES.md"
+        )
+        text = result[0].content if hasattr(result[0], "content") else str(result[0])
+        assert "# Profile Examples" in text
+        assert "JSON examples." in text
+
+    @pytest.mark.asyncio
+    async def test_read_diagnostics_subdirectory_file(self, mcp_with_resources):
+        """Should read a diagnostics file from subdirectory."""
+        result = await mcp_with_resources.read_resource(
+            "gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md"
+        )
+        text = result[0].content if hasattr(result[0], "content") else str(result[0])
+        assert "# Telemetry" in text
 
 
 # ── Coffee resource tests ────────────────────────────────────────────
@@ -336,3 +428,44 @@ class TestUserResources:
         text = result[0].content if hasattr(result[0], "content") else str(result[0])
         assert "not configured" in text
         assert "Grind template." in text
+
+    @pytest.mark.asyncio
+    async def test_read_brewing_insights(self, tmp_path):
+        """Should read brewing insights file."""
+        user_dir = tmp_path / "user"
+        user_dir.mkdir()
+        (user_dir / "brewing-insights.md").write_text(
+            "# Brewing Insights\n\nBrazilian naturals love declining profiles."
+        )
+
+        config = GaggimateConfig(
+            knowledge_dir=tmp_path / "k",
+            coffees_dir=tmp_path / "c",
+            user_dir=user_dir,
+        )
+        mcp = FastMCP("test")
+        register_resources(mcp, config)
+
+        result = await mcp.read_resource("gaggimate://user/brewing-insights")
+        text = result[0].content if hasattr(result[0], "content") else str(result[0])
+        assert "# Brewing Insights" in text
+        assert "declining profiles" in text
+
+    @pytest.mark.asyncio
+    async def test_brewing_insights_missing_shows_guidance(self, tmp_path):
+        """Should show guidance when brewing-insights.md is missing."""
+        user_dir = tmp_path / "user"
+        user_dir.mkdir()
+
+        config = GaggimateConfig(
+            knowledge_dir=tmp_path / "k",
+            coffees_dir=tmp_path / "c",
+            user_dir=user_dir,
+        )
+        mcp = FastMCP("test")
+        register_resources(mcp, config)
+
+        result = await mcp.read_resource("gaggimate://user/brewing-insights")
+        text = result[0].content if hasattr(result[0], "content") else str(result[0])
+        assert "not yet started" in text
+        assert "manage_brewing_insights" in text

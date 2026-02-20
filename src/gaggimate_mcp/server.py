@@ -19,9 +19,10 @@ from gaggimate_mcp.storage.ratings import RatingStorage
 from gaggimate_mcp.storage.markdown import (
     MarkdownStorage,
     build_coffee_markdown,
-    append_shot_to_coffee,
+    append_journal_entry,
     build_grind_map_markdown,
     append_grind_entry,
+    build_brewing_insights_markdown,
     _sanitize_filename,
 )
 from gaggimate_mcp.models.rating import ShotRating, BalanceTaste
@@ -843,33 +844,24 @@ async def manage_coffee(
     bag_size: Optional[str] = None,
     roaster_notes: Optional[str] = None,
     freshness_note: Optional[str] = None,
-    extraction_dose: Optional[str] = None,
-    extraction_yield: Optional[str] = None,
-    extraction_temp: Optional[str] = None,
-    extraction_grind: Optional[str] = None,
-    extraction_profile: Optional[str] = None,
-    extraction_notes: Optional[str] = None,
-    pressure_logic: Optional[str] = None,
-    additional_notes: Optional[str] = None,
-    shot_date: Optional[str] = None,
-    shot_grind: Optional[str] = None,
-    shot_profile: Optional[str] = None,
-    shot_dose: Optional[str] = None,
-    shot_yield: Optional[str] = None,
-    shot_time: Optional[str] = None,
-    shot_rating: Optional[str] = None,
-    shot_notes: Optional[str] = None,
+    approach: Optional[str] = None,
+    entry_date: Optional[str] = None,
+    entry_headline: Optional[str] = None,
+    entry_body: Optional[str] = None,
     content: Optional[str] = None,
 ) -> str:
     """Manage coffee tracking files in the coffees/ directory.
 
-    Each coffee gets its own markdown file with bean info, extraction parameters,
-    and a shot log. Read coffee files via gaggimate://coffees resources.
+    Each coffee gets its own markdown file with bean identity, a narrative
+    brewing approach, a brewing journal (dated analysis entries), and key
+    insights. Raw shot numbers live on the device — this file stores
+    *thinking* and *learnings*. Read coffee files via gaggimate://coffees
+    resources.
 
     Args:
         action: Action to perform:
             - 'create': Create a new coffee file (requires coffee_name and roaster)
-            - 'log_shot': Append a shot to an existing coffee's shot log
+            - 'log_entry': Append a brewing journal entry (analysis, not raw numbers)
             - 'update': Overwrite a coffee file with new content
             - 'delete': Delete a coffee file
             - 'list': List all coffee files
@@ -883,22 +875,13 @@ async def manage_coffee(
         bag_size: Bag size (e.g. "250g")
         roaster_notes: Tasting notes from the roaster
         freshness_note: Freshness window note
-        extraction_dose: Recommended dose
-        extraction_yield: Target yield
-        extraction_temp: Temperature
-        extraction_grind: Grind setting
-        extraction_profile: Profile name
-        extraction_notes: Additional extraction notes
-        pressure_logic: Reasoning for pressure/profile choice
-        additional_notes: Any additional notes
-        shot_date: Date of shot (for 'log_shot', defaults to today)
-        shot_grind: Grind setting used (for 'log_shot')
-        shot_profile: Profile used (for 'log_shot')
-        shot_dose: Dose in grams (for 'log_shot')
-        shot_yield: Yield in grams (for 'log_shot')
-        shot_time: Shot time (for 'log_shot')
-        shot_rating: Rating (for 'log_shot', e.g. "4/5")
-        shot_notes: Shot notes (for 'log_shot')
+        approach: Narrative brewing approach — profile choice, pressure logic,
+            starting parameters, and reasoning (for 'create')
+        entry_date: Date of journal entry (for 'log_entry', defaults to today)
+        entry_headline: Journal entry headline, e.g. "Grind 10, Lever Decline [AI] — 4/5"
+            (for 'log_entry')
+        entry_body: Freeform analysis — what worked, what didn't, what to try next
+            (for 'log_entry')
         content: Full markdown content (for 'update' action)
 
     Returns:
@@ -942,14 +925,7 @@ async def manage_coffee(
                 bag_size=bag_size or "",
                 roaster_notes=roaster_notes or "",
                 freshness_note=freshness_note or "",
-                extraction_dose=extraction_dose or "",
-                extraction_yield=extraction_yield or "",
-                extraction_temp=extraction_temp or "",
-                extraction_grind=extraction_grind or "",
-                extraction_profile=extraction_profile or "",
-                extraction_notes=extraction_notes or "",
-                pressure_logic=pressure_logic or "",
-                additional_notes=additional_notes or "",
+                approach=approach or "",
             )
 
             path = coffee_storage.write(filename, md_content)
@@ -961,7 +937,7 @@ async def manage_coffee(
                 "resource_uri": f"gaggimate://coffees/{filename}.md",
             })
 
-        elif action == "log_shot":
+        elif action == "log_entry":
             if not coffee_name:
                 return json.dumps({
                     "success": False,
@@ -982,22 +958,17 @@ async def manage_coffee(
                     })
                 filename = coffee_name
 
-            updated = append_shot_to_coffee(
+            updated = append_journal_entry(
                 existing,
-                date=shot_date or "",
-                grind=shot_grind or "",
-                profile=shot_profile or "",
-                dose=shot_dose or "",
-                yield_g=shot_yield or "",
-                time=shot_time or "",
-                rating=shot_rating or "",
-                notes=shot_notes or "",
+                date=entry_date or "",
+                headline=entry_headline or "",
+                body=entry_body or "",
             )
 
             coffee_storage.write(filename, updated)
             return json.dumps({
                 "success": True,
-                "action": "log_shot",
+                "action": "log_entry",
                 "filename": f"{filename}.md",
                 "resource_uri": f"gaggimate://coffees/{filename}.md",
             })
@@ -1052,7 +1023,7 @@ async def manage_coffee(
         else:
             return json.dumps({
                 "success": False,
-                "error": f"Unknown action '{action}'. Use: create, log_shot, update, delete, list"
+                "error": f"Unknown action '{action}'. Use: create, log_entry, update, delete, list"
             })
 
     except Exception as e:
@@ -1272,6 +1243,100 @@ async def manage_grind_map(
 
     except Exception as e:
         logger.error("manage_grind_map_error", action=action, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def manage_brewing_insights(
+    action: str = "read",
+    content: Optional[str] = None,
+) -> str:
+    """Manage the brewing insights file — cross-coffee patterns and learnings.
+
+    The brewing insights file captures what you've learned across coffees:
+    which origin/process/roast combinations respond to which profiles, general
+    patterns, and links to specific coffee files for details. Read it via
+    gaggimate://user/brewing-insights resource; write/update via this tool.
+
+    The agent should update this file when meaningful patterns emerge from
+    brewing sessions — not after every single shot, but when there's a
+    genuine learning to record (e.g. "Brazilian naturals benefit from
+    declining pressure profiles").
+
+    Args:
+        action: Action to perform:
+            - 'read': Read current brewing insights
+            - 'write': Create or overwrite the entire brewing insights file
+            - 'init': Initialize a fresh brewing insights file from template
+
+    Returns:
+        JSON string with result
+    """
+    logger.info("manage_brewing_insights_called", action=action)
+
+    try:
+        if action == "read":
+            existing = user_storage.read("brewing-insights")
+            if existing:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": existing,
+                    "resource_uri": "gaggimate://user/brewing-insights",
+                })
+            else:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": None,
+                    "message": "No brewing insights file found. Use action='init' to create one.",
+                    "resource_uri": "gaggimate://user/brewing-insights",
+                })
+
+        elif action == "init":
+            if user_storage.exists("brewing-insights"):
+                return json.dumps({
+                    "success": False,
+                    "error": "Brewing insights file already exists. Use 'write' to overwrite."
+                })
+
+            md = build_brewing_insights_markdown()
+            path = user_storage.write("brewing-insights", md)
+            return json.dumps({
+                "success": True,
+                "action": "init",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/brewing-insights",
+                "message": "Brewing insights file initialized."
+            })
+
+        elif action == "write":
+            if not content:
+                return json.dumps({
+                    "success": False,
+                    "error": "content is required for 'write'. Provide full markdown."
+                })
+
+            path = user_storage.write("brewing-insights", content)
+            return json.dumps({
+                "success": True,
+                "action": "write",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/brewing-insights",
+                "message": "Brewing insights saved."
+            })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use: read, write, init"
+            })
+
+    except Exception as e:
+        logger.error("manage_brewing_insights_error", action=action, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"
