@@ -102,6 +102,30 @@ class TestMarkdownStorage:
         storage.write("test", "v2")
         assert storage.read("test") == "v2"
 
+    def test_path_traversal_dotdot_rejected(self, storage):
+        with pytest.raises(ValueError, match="Invalid filename"):
+            storage.read("../etc/passwd")
+
+    def test_path_traversal_absolute_rejected(self, storage):
+        with pytest.raises(ValueError, match="Invalid filename"):
+            storage.read("/etc/passwd")
+
+    def test_path_traversal_backslash_rejected(self, storage):
+        with pytest.raises(ValueError, match="Invalid filename"):
+            storage.write("foo\\bar", "content")
+
+    def test_path_traversal_exists_returns_false(self, storage):
+        """exists() should return False for traversal attempts, not raise."""
+        assert storage.exists("../etc/passwd") is False
+
+    def test_path_traversal_write_rejected(self, storage):
+        with pytest.raises(ValueError, match="Invalid filename"):
+            storage.write("../../evil", "content")
+
+    def test_path_traversal_delete_rejected(self, storage):
+        with pytest.raises(ValueError, match="Invalid filename"):
+            storage.delete("../secret")
+
 
 # ── Coffee markdown builder ──────────────────────────────────────────
 
@@ -248,6 +272,20 @@ class TestGrindMap:
         md = build_grind_map_markdown()
         updated = append_grind_entry(md, coffee="Test")
         assert "—" in updated
+
+    def test_pipe_in_value_escaped(self):
+        """Pipes in field values should be escaped to prevent table corruption."""
+        md = build_grind_map_markdown()
+        updated = append_grind_entry(md, coffee="Coffee | Special", grind="10|11")
+        # The raw pipe should be escaped
+        assert "Coffee \\| Special" in updated
+        assert "10\\|11" in updated
+
+    def test_newline_in_value_stripped(self):
+        """Newlines in field values should be stripped to prevent table corruption."""
+        md = build_grind_map_markdown()
+        updated = append_grind_entry(md, coffee="Coffee\nWith\nNewlines", grind="10")
+        assert "\n" not in updated.split("Coffee")[1].split("|")[0]
 
 
 # ── Brewing insights ──────────────────────────────────────────────────

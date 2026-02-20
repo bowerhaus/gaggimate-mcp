@@ -889,6 +889,34 @@ async def manage_coffee(
     """
     logger.info("manage_coffee_called", action=action, coffee_name=coffee_name)
 
+    def _find_coffee_file(name: str) -> str | None:
+        """Find an existing coffee file by name.
+
+        Tries exact match, sanitized name, and partial match against
+        available files. This handles the case where create uses
+        'roaster + coffee_name' but user passes just 'coffee_name'.
+
+        Returns:
+            Filename (without .md) if found, None otherwise
+        """
+        # Exact match (user passed the filename directly)
+        if coffee_storage.exists(name):
+            return name
+
+        # Try sanitized version
+        sanitized = _sanitize_filename(name)
+        if coffee_storage.exists(sanitized):
+            return sanitized
+
+        # Search for partial match (e.g. "azul" matches "jack-lefleur-azul")
+        available = coffee_storage.list_files()
+        sanitized_lower = sanitized.lower()
+        for f in available:
+            if sanitized_lower in f.lower():
+                return f
+
+        return None
+
     try:
         if action == "list":
             files = coffee_storage.list_files()
@@ -944,19 +972,15 @@ async def manage_coffee(
                     "error": "coffee_name is required to identify which coffee file to update"
                 })
 
-            # Try to find the file — check exact name first, then sanitized
-            filename = _sanitize_filename(coffee_name)
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file not found for '{coffee_name}'. "
+                             f"Available: {', '.join(coffee_storage.list_files())}"
+                })
+
             existing = coffee_storage.read(filename)
-            if existing is None:
-                # Try the raw coffee_name as filename
-                existing = coffee_storage.read(coffee_name)
-                if existing is None:
-                    return json.dumps({
-                        "success": False,
-                        "error": f"Coffee file not found for '{coffee_name}'. "
-                                 f"Available: {', '.join(coffee_storage.list_files())}"
-                    })
-                filename = coffee_name
 
             updated = append_journal_entry(
                 existing,
@@ -985,7 +1009,11 @@ async def manage_coffee(
                     "error": "content is required for 'update'. Provide the full markdown."
                 })
 
-            filename = _sanitize_filename(coffee_name)
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                # For update, allow creating with sanitized name
+                filename = _sanitize_filename(coffee_name)
+
             path = coffee_storage.write(filename, content)
             return json.dumps({
                 "success": True,
@@ -1002,11 +1030,14 @@ async def manage_coffee(
                     "error": "coffee_name is required for 'delete'"
                 })
 
-            filename = _sanitize_filename(coffee_name)
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file not found for '{coffee_name}'"
+                })
+
             deleted = coffee_storage.delete(filename)
-            if not deleted:
-                # Try raw name
-                deleted = coffee_storage.delete(coffee_name)
 
             if deleted:
                 return json.dumps({
@@ -1058,7 +1089,7 @@ async def manage_user_setup(
     try:
         if action == "read":
             existing = user_storage.read("user-setup")
-            if existing:
+            if existing is not None:
                 return json.dumps({
                     "success": True,
                     "action": "read",
@@ -1156,7 +1187,7 @@ async def manage_grind_map(
     try:
         if action == "read":
             existing = user_storage.read("grind-map")
-            if existing:
+            if existing is not None:
                 return json.dumps({
                     "success": True,
                     "action": "read",
@@ -1280,7 +1311,7 @@ async def manage_brewing_insights(
     try:
         if action == "read":
             existing = user_storage.read("brewing-insights")
-            if existing:
+            if existing is not None:
                 return json.dumps({
                     "success": True,
                     "action": "read",

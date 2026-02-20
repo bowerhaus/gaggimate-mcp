@@ -1,5 +1,5 @@
 ---
-name: consult
+name: knowledge-lookup
 description: Answer espresso knowledge questions from the authoritative knowledge files.
 Use when the user asks about; temperature, pressure, ratios, grind settings, freshness,
 extraction theory, puck prep, channeling, baskets, decaf, blends, milk steaming, drink specs,
@@ -7,7 +7,7 @@ profiles, shot styles, or any espresso concept. Routes to the correct knowledge 
 and answers from its content rather than from memory or training data.
 ---
 
-# Espresso Knowledge Consult Skill
+# Knowledge Lookup Skill
 
 You are answering an espresso knowledge question by consulting the authoritative knowledge files in your context. Do NOT answer from memory or training data — find the answer in the knowledge files first, then respond from their content.
 
@@ -42,6 +42,19 @@ Use the routing table below to identify which file(s) to load via `gaggimate://k
 If the question spans two topics (e.g., "what pressure for a natural at light roast?"), load and consult both the primary and secondary resources.
 
 If no keywords match, default to `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — it covers the broadest range of topics.
+
+#### User Data Resources
+
+If the question is about the user's personal data or history (rather than espresso theory), route to user data resources instead of — or in addition to — knowledge files.
+
+| Keywords | Resource | Notes |
+|----------|----------|-------|
+| grind map, grind setting history, what worked, what grind | `gaggimate://user/grind-map` | Successful grind settings across coffees |
+| my setup, my equipment, my machine, my grinder, my basket | `gaggimate://user/setup` | Equipment, preferences, puck prep routine |
+| history with, last time I brewed, previous shots, this coffee, how did [coffee] go | `gaggimate://coffees/{name}` | Per-coffee brewing journal and insights |
+| patterns, what works for, experience with, similar coffees, learnings | `gaggimate://user/brewing-insights` | Cross-coffee patterns and accumulated learnings |
+
+To find the right coffee file, first list available coffees via `gaggimate://coffees`, then load the specific one via `gaggimate://coffees/{name}`.
 
 ### 2. ANSWER from File Content
 

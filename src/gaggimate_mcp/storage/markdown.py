@@ -22,7 +22,7 @@ def _sanitize_filename(name: str) -> str:
         name: Human-readable name (e.g. "Jack LeFleur — Azul")
 
     Returns:
-        Safe filename without extension (e.g. "jacklefleur-azul")
+        Safe filename without extension (e.g. "jack-lefleur-azul")
     """
     # Lowercase and replace common separators
     safe = name.lower()
@@ -51,6 +51,33 @@ class MarkdownStorage:
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
 
+    def _resolve_path(self, filename: str) -> Path:
+        """Resolve a filename to a safe path within the storage directory.
+
+        Args:
+            filename: Filename with or without .md extension
+
+        Returns:
+            Resolved path within the storage directory
+
+        Raises:
+            ValueError: If the filename would escape the storage directory
+        """
+        if not filename.endswith(".md"):
+            filename = f"{filename}.md"
+
+        if ".." in filename or filename.startswith("/") or "\\" in filename:
+            raise ValueError(f"Invalid filename: {filename}")
+
+        path = (self.directory / filename).resolve()
+        base = self.directory.resolve()
+        try:
+            path.relative_to(base)
+        except ValueError:
+            raise ValueError(f"Path traversal detected: {filename}")
+
+        return path
+
     def read(self, filename: str) -> str | None:
         """Read a markdown file.
 
@@ -60,10 +87,7 @@ class MarkdownStorage:
         Returns:
             File contents, or None if file doesn't exist
         """
-        if not filename.endswith(".md"):
-            filename = f"{filename}.md"
-
-        path = self.directory / filename
+        path = self._resolve_path(filename)
         if not path.is_file():
             return None
 
@@ -79,10 +103,7 @@ class MarkdownStorage:
         Returns:
             Path to the written file
         """
-        if not filename.endswith(".md"):
-            filename = f"{filename}.md"
-
-        path = self.directory / filename
+        path = self._resolve_path(filename)
         path.write_text(content, encoding="utf-8")
         return path
 
@@ -95,10 +116,10 @@ class MarkdownStorage:
         Returns:
             True if file exists
         """
-        if not filename.endswith(".md"):
-            filename = f"{filename}.md"
-
-        return (self.directory / filename).is_file()
+        try:
+            return self._resolve_path(filename).is_file()
+        except ValueError:
+            return False
 
     def delete(self, filename: str) -> bool:
         """Delete a markdown file.
@@ -109,10 +130,7 @@ class MarkdownStorage:
         Returns:
             True if file was deleted, False if it didn't exist
         """
-        if not filename.endswith(".md"):
-            filename = f"{filename}.md"
-
-        path = self.directory / filename
+        path = self._resolve_path(filename)
         if path.is_file():
             path.unlink()
             return True
@@ -362,9 +380,15 @@ def append_grind_entry(
     if not date:
         date = datetime.now().strftime("%b %d")
 
+    # Escape pipes and normalize newlines in all fields to prevent table corruption
+    def _sanitize_cell(value: str) -> str:
+        return value.replace("|", "\\|").replace("\n", " ").strip()
+
     row = (
-        f"| {coffee} | {roast} | {process} | {origin} | {days_off_roast} "
-        f"| {grind} | {profile} | {ratio} | {temp} | {rating} | {date} |"
+        f"| {_sanitize_cell(coffee)} | {_sanitize_cell(roast)} | {_sanitize_cell(process)} "
+        f"| {_sanitize_cell(origin)} | {_sanitize_cell(days_off_roast)} "
+        f"| {_sanitize_cell(grind)} | {_sanitize_cell(profile)} | {_sanitize_cell(ratio)} "
+        f"| {_sanitize_cell(temp)} | {_sanitize_cell(rating)} | {_sanitize_cell(date)} |"
     )
 
     lines = content.split("\n")
