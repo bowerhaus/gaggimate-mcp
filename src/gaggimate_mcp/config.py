@@ -31,6 +31,11 @@ class GaggimateConfig(BaseSettings):
     profiles_dir: Path = Path("./profiles")
     storage_path: Path = Path("./data")
 
+    # Content directories (for MCP resources)
+    knowledge_dir: Path = Path("./knowledge")
+    coffees_dir: Path = Path("./coffees")
+    user_dir: Path = Path("./user")
+
     # Agent settings
     ai_profile_suffix: str = " [AI]"
     ai_notes_prefix: str = "[Updated by AI]: "

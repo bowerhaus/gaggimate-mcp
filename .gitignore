@@ -48,6 +48,14 @@ htmlcov/
 # Runtime data (profiles, ratings)
 data/
 
+# User-specific files (created from *.example.md templates)
+user/user-setup.md
+user/grind-map.md
+
+# Coffee tracking files (managed by MCP tools)
+coffees/*.md
+!coffees/.gitkeep
+
 # Development files (not for public repo)
 typescript-reference/
 docs/

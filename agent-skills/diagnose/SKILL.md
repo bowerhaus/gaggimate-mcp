@@ -32,7 +32,17 @@ Use: analyze_shot(shot_id)
 Use: manage_shot_notes(shot_id, action="get")
 ```
 
-### 1b. IDENTIFY Shot Style
+### 1b. CHECK Coffee History
+
+If the coffee being diagnosed is known, load its tracking file to check for patterns across recent shots:
+
+1. List available coffees via `gaggimate://coffees`
+2. Load the relevant file via `gaggimate://coffees/{name}`
+3. Compare the current shot against previous entries in the shot log table
+
+**Why this matters:** Trend analysis helps distinguish between one-off puck prep issues and systematic dialing problems. For example, if the last 3 shots were all sour, that's a persistent under-extraction pattern requiring a larger grind adjustment — not a one-off fluke.
+
+### 1c. IDENTIFY Shot Style
 
 Before analyzing, identify the shot style so you compare against the right expectations. Use three tiers of detection (try in order, use first that succeeds):
 
@@ -63,7 +73,7 @@ Match `profile_name` from `analyze_shot`:
 
 **Tier 3 — Telemetry fingerprint (last resort):**
 
-See `references/TELEMETRY_PATTERNS.md` (Style Detection Fingerprints section).
+Load `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` and see the Style Detection Fingerprints section.
 
 ### 2. ANALYZE Telemetry
 
@@ -76,7 +86,7 @@ See `references/TELEMETRY_PATTERNS.md` (Style Detection Fingerprints section).
 
 State your estimated dose out and how you derived it, then move on. A ±2g estimate is fine.
 
-**Load style-specific expectations** from `PRESSURE_GUIDE.md` (Pressure by Shot Style) and `PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
+**Load style-specific expectations** from `gaggimate://knowledge/PRESSURE_GUIDE.md` (Pressure by Shot Style) and `gaggimate://knowledge/PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
 
 **Universal thresholds** (style-independent):
 
@@ -102,7 +112,7 @@ Flag an anomaly only when a metric falls **outside the identified style's expect
 
 Cross-reference the user's taste feedback with telemetry patterns.
 
-**See:** `references/TELEMETRY_PATTERNS.md` for detailed correlation matrix and `references/DIAGNOSTIC_TREES.md` for taste-based decision trees.
+**See:** `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for detailed correlation matrix and `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md` for taste-based decision trees.
 
 ### 4. RECOMMEND Actions
 

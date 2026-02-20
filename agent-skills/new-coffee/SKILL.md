@@ -28,7 +28,15 @@ Systematically research a coffee and propose starting extraction parameters.
 - Parse roaster and coffee name
 - Ask for roast date if not mentioned
 
-### 2. RESEARCH via Web Search
+### 2. REVIEW Brewing Insights
+
+Before researching externally, check what we already know:
+- Read `gaggimate://user/brewing-insights` for cross-coffee patterns
+- Read `gaggimate://user/grind-map` for successful grind settings on similar coffees
+- Look for coffees with matching attributes (origin, process, roast level)
+- If a similar coffee was brewed before, leverage those learnings as a starting point
+
+### 3. RESEARCH via Web Search
 
 Search for the specific coffee to find:
 - Processing method (washed, natural, honey, anaerobic)
@@ -37,18 +45,18 @@ Search for the specific coffee to find:
 - Roast level (light, medium, dark) — infer from tasting notes if not stated
 - Roaster's tasting notes
 
-**See:** `references/RESEARCH_CHECKLIST.md` for detailed research patterns, origin profiles, and variety extraction guidance.
+**See:** `gaggimate://knowledge/research/RESEARCH_CHECKLIST.md` for detailed research patterns, origin profiles, and variety extraction guidance.
 
-### 3. SYNTHESIZE Recommendations
+### 4. SYNTHESIZE Recommendations
 
-Build recommendations using:
-- **Temperature:** From `ESPRESSO_BREWING_BASICS.md` roast guidelines
-- **Pressure:** From `PRESSURE_GUIDE.md` roast × processing matrix
+Load the relevant knowledge files via MCP resources and build recommendations:
+- **Temperature:** From `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` roast guidelines
+- **Pressure:** From `gaggimate://knowledge/PRESSURE_GUIDE.md` roast × processing matrix
 - **Ratio:** From processing method patterns (washed: 1:2, natural: 1:2-2.5, etc.)
-- **Profile:** From `PROFILE_LIBRARY.md` by roast/process, adjusted for correct pressure
+- **Profile:** From `gaggimate://knowledge/PROFILE_LIBRARY.md` by roast/process, adjusted for correct pressure
 - **Dose:** Based on user's basket size. **Dose = basket size** (e.g., 18g basket → 18g dose). Don't underdose.
 
-### 4. CONFIRM with User
+### 5. CONFIRM with User
 
 Before finalizing, ask:
 > "This [process] [origin] typically shines with [approach]. Would you like to start there, or prefer a more conservative/adventurous approach?"
@@ -58,7 +66,7 @@ Options to offer:
 - **Recommended:** Profile matched to bean characteristics
 - **Adventurous:** Bloom profile or turbo shot if appropriate
 
-### 5. UPLOAD Profile (if requested)
+### 6. UPLOAD Profile (if requested)
 
 Use MCP tool to upload:
 ```
@@ -67,12 +75,31 @@ manage_profile(action="create", profile_name="[Coffee Name] [AI]", temperature=X
 
 Always add `[AI]` suffix to profile names.
 
-### 6. UPDATE Coffee Tracking
+### 7. CREATE Coffee Tracking File
 
-After researching and setting up a new coffee, offer to create or update the user's **Coffee Tracking** document — a markdown artifact they can save and re-upload to the project as a knowledge file. Include:
-- Bean profile (roaster, origin, process, roast level, variety, tasting notes, roast date)
-- Starting parameters (temp, grind, ratio, profile, dose)
-- Space for tasting notes table
+After researching and setting up a new coffee, create a coffee tracking file via MCP:
+```
+manage_coffee(
+  action="create",
+  coffee_name="[coffee-name]",
+  roaster="[roaster]",
+  origin="[country, region]",
+  process="[washed/natural/honey/anaerobic]",
+  roast_level="[light/medium/dark]",
+  variety="[if known]",
+  roast_date="YYYY-MM-DD",
+  bag_size="[e.g. 250g]",
+  roaster_notes="[tasting notes from bag/roaster]",
+  freshness_note="[e.g. 10 days off roast, in peak window]",
+  approach="[Profile name] at [temp]. [Pressure logic from PRESSURE_GUIDE]. Starting at grind [X], [dose]g in, targeting 1:[ratio]. [Why this approach suits this bean — connect origin, process, and roast level to the profile choice. If similar to a previous coffee, reference that experience.]"
+)
+```
+
+The `approach` field is a narrative paragraph — not a table of numbers. It should explain
+*why* you chose this profile/params for this specific bean, connecting the research to
+the recommendation. Reference brewing insights from similar coffees if applicable.
+
+This creates a persistent tracking file accessible in all future sessions via `gaggimate://coffees/{name}`.
 
 ---
 

@@ -16,9 +16,19 @@ from gaggimate_mcp.api.http import GaggimateHTTPClient
 from gaggimate_mcp.transformers.shot import transform_shot_for_ai
 from gaggimate_mcp.storage.profiles import ProfileStorage
 from gaggimate_mcp.storage.ratings import RatingStorage
+from gaggimate_mcp.storage.markdown import (
+    MarkdownStorage,
+    build_coffee_markdown,
+    append_journal_entry,
+    build_grind_map_markdown,
+    append_grind_entry,
+    build_brewing_insights_markdown,
+    _sanitize_filename,
+)
 from gaggimate_mcp.models.rating import ShotRating, BalanceTaste
 from gaggimate_mcp.errors import GaggimateError
 from gaggimate_mcp.diagnostics import diagnose_connection as run_diagnostics
+from gaggimate_mcp.resources import register_resources
 
 
 # Initialize configuration and logging
@@ -29,11 +39,16 @@ logger = get_logger(__name__)
 # Create FastMCP server
 mcp = FastMCP("gaggimate-mcp")
 
+# Register MCP resources (knowledge, coffees, user data)
+register_resources(mcp, config)
+
 # Initialize clients and storage
 ws_client = GaggimateWebSocketClient(config)
 http_client = GaggimateHTTPClient(config)
 profile_storage = ProfileStorage(config)
 rating_storage = RatingStorage(config)
+coffee_storage = MarkdownStorage(config.coffees_dir)
+user_storage = MarkdownStorage(config.user_dir)
 
 
 def _get_error_suggestion(error: GaggimateError) -> str:
@@ -804,6 +819,555 @@ async def list_recent_shots(limit: int = 10) -> str:
         })
     except Exception as e:
         logger.error("list_recent_shots_unexpected_error", limit=limit, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        })
+
+
+# ── Local Data Management Tools ──────────────────────────────────────────────
+# These tools manage local markdown files (coffees, user setup, grind map).
+# They do NOT communicate with the Gaggimate device — only read/write files.
+# Read access is via MCP resources (gaggimate:// URIs), writes are via these tools.
+
+
+@mcp.tool()
+async def manage_coffee(
+    action: str,
+    coffee_name: Optional[str] = None,
+    roaster: Optional[str] = None,
+    origin: Optional[str] = None,
+    process: Optional[str] = None,
+    variety: Optional[str] = None,
+    roast_level: Optional[str] = None,
+    roast_date: Optional[str] = None,
+    bag_size: Optional[str] = None,
+    roaster_notes: Optional[str] = None,
+    freshness_note: Optional[str] = None,
+    approach: Optional[str] = None,
+    entry_date: Optional[str] = None,
+    entry_headline: Optional[str] = None,
+    entry_body: Optional[str] = None,
+    content: Optional[str] = None,
+) -> str:
+    """Manage coffee tracking files in the coffees/ directory.
+
+    Each coffee gets its own markdown file with bean identity, a narrative
+    brewing approach, a brewing journal (dated analysis entries), and key
+    insights. Raw shot numbers live on the device — this file stores
+    *thinking* and *learnings*. Read coffee files via gaggimate://coffees
+    resources.
+
+    Args:
+        action: Action to perform:
+            - 'create': Create a new coffee file (requires coffee_name and roaster)
+            - 'log_entry': Append a brewing journal entry (analysis, not raw numbers)
+            - 'update': Overwrite a coffee file with new content
+            - 'delete': Delete a coffee file
+            - 'list': List all coffee files
+        coffee_name: Coffee name (used for file identification)
+        roaster: Roaster name (required for 'create')
+        origin: Country/region of origin
+        process: Processing method (e.g. "Washed", "Natural")
+        variety: Coffee variety (e.g. "Yellow Catuai")
+        roast_level: Roast level (e.g. "Medium", "Light")
+        roast_date: Roast date as string
+        bag_size: Bag size (e.g. "250g")
+        roaster_notes: Tasting notes from the roaster
+        freshness_note: Freshness window note
+        approach: Narrative brewing approach — profile choice, pressure logic,
+            starting parameters, and reasoning (for 'create')
+        entry_date: Date of journal entry (for 'log_entry', defaults to today)
+        entry_headline: Journal entry headline, e.g. "Grind 10, Lever Decline [AI] — 4/5"
+            (for 'log_entry')
+        entry_body: Freeform analysis — what worked, what didn't, what to try next
+            (for 'log_entry')
+        content: Full markdown content (for 'update' action)
+
+    Returns:
+        JSON string with result
+    """
+    logger.info("manage_coffee_called", action=action, coffee_name=coffee_name)
+
+    def _find_coffee_file(name: str) -> str | None:
+        """Find an existing coffee file by name.
+
+        Tries exact match, sanitized name, and partial match against
+        available files. This handles the case where create uses
+        'roaster + coffee_name' but user passes just 'coffee_name'.
+
+        Returns:
+            Filename (without .md) if found, None otherwise
+        """
+        # Exact match (user passed the filename directly)
+        if coffee_storage.exists(name):
+            return name
+
+        # Try sanitized version
+        sanitized = _sanitize_filename(name)
+        if coffee_storage.exists(sanitized):
+            return sanitized
+
+        # Search for partial match (e.g. "azul" matches "jack-lefleur-azul")
+        available = coffee_storage.list_files()
+        sanitized_lower = sanitized.lower()
+        for f in available:
+            if sanitized_lower in f.lower():
+                return f
+
+        return None
+
+    try:
+        if action == "list":
+            files = coffee_storage.list_files()
+            return json.dumps({
+                "success": True,
+                "action": "list",
+                "coffees": files,
+                "count": len(files),
+                "resource_uri": "gaggimate://coffees",
+            })
+
+        elif action == "create":
+            if not coffee_name or not roaster:
+                return json.dumps({
+                    "success": False,
+                    "error": "coffee_name and roaster are required for 'create'"
+                })
+
+            filename = _sanitize_filename(f"{roaster} {coffee_name}")
+            if coffee_storage.exists(filename):
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file '{filename}.md' already exists. Use 'update' or 'log_shot' instead."
+                })
+
+            md_content = build_coffee_markdown(
+                coffee_name=coffee_name,
+                roaster=roaster,
+                origin=origin or "",
+                process=process or "",
+                variety=variety or "",
+                roast_level=roast_level or "",
+                roast_date=roast_date or "",
+                bag_size=bag_size or "",
+                roaster_notes=roaster_notes or "",
+                freshness_note=freshness_note or "",
+                approach=approach or "",
+            )
+
+            path = coffee_storage.write(filename, md_content)
+            return json.dumps({
+                "success": True,
+                "action": "create",
+                "filename": f"{filename}.md",
+                "path": str(path),
+                "resource_uri": f"gaggimate://coffees/{filename}.md",
+            })
+
+        elif action == "log_entry":
+            if not coffee_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "coffee_name is required to identify which coffee file to update"
+                })
+
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file not found for '{coffee_name}'. "
+                             f"Available: {', '.join(coffee_storage.list_files())}"
+                })
+
+            existing = coffee_storage.read(filename)
+
+            updated = append_journal_entry(
+                existing,
+                date=entry_date or "",
+                headline=entry_headline or "",
+                body=entry_body or "",
+            )
+
+            coffee_storage.write(filename, updated)
+            return json.dumps({
+                "success": True,
+                "action": "log_entry",
+                "filename": f"{filename}.md",
+                "resource_uri": f"gaggimate://coffees/{filename}.md",
+            })
+
+        elif action == "update":
+            if not coffee_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "coffee_name is required for 'update'"
+                })
+            if not content:
+                return json.dumps({
+                    "success": False,
+                    "error": "content is required for 'update'. Provide the full markdown."
+                })
+
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                # For update, allow creating with sanitized name
+                filename = _sanitize_filename(coffee_name)
+
+            path = coffee_storage.write(filename, content)
+            return json.dumps({
+                "success": True,
+                "action": "update",
+                "filename": f"{filename}.md",
+                "path": str(path),
+                "resource_uri": f"gaggimate://coffees/{filename}.md",
+            })
+
+        elif action == "delete":
+            if not coffee_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "coffee_name is required for 'delete'"
+                })
+
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file not found for '{coffee_name}'"
+                })
+
+            deleted = coffee_storage.delete(filename)
+
+            if deleted:
+                return json.dumps({
+                    "success": True,
+                    "action": "delete",
+                    "message": f"Deleted coffee file for '{coffee_name}'"
+                })
+            else:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee file not found for '{coffee_name}'"
+                })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use: create, log_entry, update, delete, list"
+            })
+
+    except Exception as e:
+        logger.error("manage_coffee_error", action=action, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def manage_user_setup(
+    action: str = "read",
+    content: Optional[str] = None,
+) -> str:
+    """Manage the user setup file (equipment, preferences, workflow).
+
+    The user setup file stores equipment details, flavor preferences, and workflow
+    notes. Read it via gaggimate://user/setup resource; write/update via this tool.
+
+    Args:
+        action: Action to perform:
+            - 'read': Read current user setup (returns content or template guidance)
+            - 'write': Create or overwrite the user setup file
+        content: Full markdown content for the user setup file (required for 'write')
+
+    Returns:
+        JSON string with result
+    """
+    logger.info("manage_user_setup_called", action=action)
+
+    try:
+        if action == "read":
+            existing = user_storage.read("user-setup")
+            if existing is not None:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": existing,
+                    "resource_uri": "gaggimate://user/setup",
+                })
+            else:
+                # Check for example template
+                example = user_storage.read("user-setup.example")
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": None,
+                    "message": "No user setup file found. Use action='write' to create one.",
+                    "example_available": example is not None,
+                    "resource_uri": "gaggimate://user/setup",
+                })
+
+        elif action == "write":
+            if not content:
+                return json.dumps({
+                    "success": False,
+                    "error": "content is required for 'write'. Provide full markdown for user-setup.md."
+                })
+
+            path = user_storage.write("user-setup", content)
+            return json.dumps({
+                "success": True,
+                "action": "write",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/setup",
+                "message": "User setup saved successfully."
+            })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use: read, write"
+            })
+
+    except Exception as e:
+        logger.error("manage_user_setup_error", action=action, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def manage_grind_map(
+    action: str = "read",
+    content: Optional[str] = None,
+    coffee: Optional[str] = None,
+    roast: Optional[str] = None,
+    process: Optional[str] = None,
+    origin: Optional[str] = None,
+    days_off_roast: Optional[str] = None,
+    grind: Optional[str] = None,
+    profile: Optional[str] = None,
+    ratio: Optional[str] = None,
+    temp: Optional[str] = None,
+    rating: Optional[str] = None,
+    date: Optional[str] = None,
+) -> str:
+    """Manage the grind map — a record of successful grind settings.
+
+    The grind map tracks which grind settings worked for which coffees,
+    building a personal reference over time. Read via gaggimate://user/grind-map
+    resource; write/update via this tool.
+
+    Args:
+        action: Action to perform:
+            - 'read': Read current grind map
+            - 'write': Create or overwrite the entire grind map
+            - 'add_entry': Append a successful grind setting row
+            - 'init': Initialize a fresh grind map from template
+        content: Full markdown content (for 'write' action)
+        coffee: Coffee name (for 'add_entry')
+        roast: Roast level (for 'add_entry')
+        process: Processing method (for 'add_entry')
+        origin: Origin country (for 'add_entry')
+        days_off_roast: Days since roast (for 'add_entry', default "—")
+        grind: Grind setting (for 'add_entry')
+        profile: Profile used (for 'add_entry')
+        ratio: Brew ratio (for 'add_entry', e.g. "1:2")
+        temp: Temperature (for 'add_entry', e.g. "93°C")
+        rating: Rating (for 'add_entry', e.g. "4")
+        date: Date (for 'add_entry', defaults to today)
+
+    Returns:
+        JSON string with result
+    """
+    logger.info("manage_grind_map_called", action=action)
+
+    try:
+        if action == "read":
+            existing = user_storage.read("grind-map")
+            if existing is not None:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": existing,
+                    "resource_uri": "gaggimate://user/grind-map",
+                })
+            else:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": None,
+                    "message": "No grind map found. Use action='init' to create one.",
+                    "resource_uri": "gaggimate://user/grind-map",
+                })
+
+        elif action == "init":
+            if user_storage.exists("grind-map"):
+                return json.dumps({
+                    "success": False,
+                    "error": "Grind map already exists. Use 'add_entry' to add rows, or 'write' to overwrite."
+                })
+
+            md = build_grind_map_markdown()
+            path = user_storage.write("grind-map", md)
+            return json.dumps({
+                "success": True,
+                "action": "init",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/grind-map",
+                "message": "Grind map initialized."
+            })
+
+        elif action == "add_entry":
+            existing = user_storage.read("grind-map")
+            if not existing:
+                # Auto-initialize if missing
+                existing = build_grind_map_markdown()
+
+            updated = append_grind_entry(
+                existing,
+                coffee=coffee or "",
+                roast=roast or "",
+                process=process or "",
+                origin=origin or "",
+                days_off_roast=days_off_roast or "—",
+                grind=grind or "",
+                profile=profile or "",
+                ratio=ratio or "",
+                temp=temp or "",
+                rating=rating or "",
+                date=date or "",
+            )
+
+            path = user_storage.write("grind-map", updated)
+            return json.dumps({
+                "success": True,
+                "action": "add_entry",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/grind-map",
+                "message": "Grind entry added."
+            })
+
+        elif action == "write":
+            if not content:
+                return json.dumps({
+                    "success": False,
+                    "error": "content is required for 'write'. Provide full markdown."
+                })
+
+            path = user_storage.write("grind-map", content)
+            return json.dumps({
+                "success": True,
+                "action": "write",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/grind-map",
+                "message": "Grind map saved."
+            })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use: read, write, add_entry, init"
+            })
+
+    except Exception as e:
+        logger.error("manage_grind_map_error", action=action, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def manage_brewing_insights(
+    action: str = "read",
+    content: Optional[str] = None,
+) -> str:
+    """Manage the brewing insights file — cross-coffee patterns and learnings.
+
+    The brewing insights file captures what you've learned across coffees:
+    which origin/process/roast combinations respond to which profiles, general
+    patterns, and links to specific coffee files for details. Read it via
+    gaggimate://user/brewing-insights resource; write/update via this tool.
+
+    The agent should update this file when meaningful patterns emerge from
+    brewing sessions — not after every single shot, but when there's a
+    genuine learning to record (e.g. "Brazilian naturals benefit from
+    declining pressure profiles").
+
+    Args:
+        action: Action to perform:
+            - 'read': Read current brewing insights
+            - 'write': Create or overwrite the entire brewing insights file
+            - 'init': Initialize a fresh brewing insights file from template
+
+    Returns:
+        JSON string with result
+    """
+    logger.info("manage_brewing_insights_called", action=action)
+
+    try:
+        if action == "read":
+            existing = user_storage.read("brewing-insights")
+            if existing is not None:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": existing,
+                    "resource_uri": "gaggimate://user/brewing-insights",
+                })
+            else:
+                return json.dumps({
+                    "success": True,
+                    "action": "read",
+                    "content": None,
+                    "message": "No brewing insights file found. Use action='init' to create one.",
+                    "resource_uri": "gaggimate://user/brewing-insights",
+                })
+
+        elif action == "init":
+            if user_storage.exists("brewing-insights"):
+                return json.dumps({
+                    "success": False,
+                    "error": "Brewing insights file already exists. Use 'write' to overwrite."
+                })
+
+            md = build_brewing_insights_markdown()
+            path = user_storage.write("brewing-insights", md)
+            return json.dumps({
+                "success": True,
+                "action": "init",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/brewing-insights",
+                "message": "Brewing insights file initialized."
+            })
+
+        elif action == "write":
+            if not content:
+                return json.dumps({
+                    "success": False,
+                    "error": "content is required for 'write'. Provide full markdown."
+                })
+
+            path = user_storage.write("brewing-insights", content)
+            return json.dumps({
+                "success": True,
+                "action": "write",
+                "path": str(path),
+                "resource_uri": "gaggimate://user/brewing-insights",
+                "message": "Brewing insights saved."
+            })
+
+        else:
+            return json.dumps({
+                "success": False,
+                "error": f"Unknown action '{action}'. Use: read, write, init"
+            })
+
+    except Exception as e:
+        logger.error("manage_brewing_insights_error", action=action, error=str(e))
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"

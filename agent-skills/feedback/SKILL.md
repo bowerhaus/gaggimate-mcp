@@ -15,11 +15,11 @@ You are gathering shot feedback, diagnosing extraction, recording results, and r
 
 ## Context
 
-All knowledge files are always available in your context. Reference these as needed:
-- **ESPRESSO_BREWING_BASICS.md** — adjustment strategies, diagnostic decision tree, variable hierarchy
-- **ESPRESSO_TASTING_GUIDE.md** — sour vs bitter diagnosis, tasting methodology
-- **PRESSURE_GUIDE.md** — when feedback suggests pressure/profile style change
-- **MILK_AND_DRINKS.md** — when shot is dialed in and user wants drink recommendations
+Knowledge files are available on-demand via MCP resources. Load only what's needed:
+- `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — adjustment strategies, diagnostic decision tree, variable hierarchy
+- `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` — sour vs bitter diagnosis, tasting methodology
+- `gaggimate://knowledge/PRESSURE_GUIDE.md` — when feedback suggests pressure/profile style change
+- `gaggimate://knowledge/MILK_AND_DRINKS.md` — when shot is dialed in and user wants drink recommendations
 
 ---
 
@@ -27,9 +27,9 @@ All knowledge files are always available in your context. Reference these as nee
 
 ### 1. GATHER Context
 
-- Check if a `user-setup.md` file exists in the project knowledge. If so, reference the user's equipment, basket size, and preferences.
-- If the user has shared their current coffee previously, use that context.
-- If not: ask the user what coffee they're brewing before proceeding.
+- Read `gaggimate://user/setup` to load the user's equipment, basket size, and preferences.
+- Read `gaggimate://coffees` to check for existing coffee tracking files, then load the relevant one via `gaggimate://coffees/{name}`.
+- If no coffee context exists: ask the user what coffee they're brewing before proceeding.
 - **Stale check:** If roast date is 30+ days old, gently ask if user is still on this bag.
 
 ### 2. COLLECT Feedback
@@ -93,24 +93,77 @@ If a shot ID is available, sync feedback to the device:
 manage_shot_notes(shot_id, action="update", rating=X, balance_taste="...", notes="...", grind_setting="...", dose_in=X, dose_out=X)
 ```
 
-#### 4b. Coffee Tracking Artifact
+#### 4b. Coffee Tracking (via MCP)
 
-If the user has a **Coffee Tracking** document in their project, offer to update it with a new tasting entry:
-
-```markdown
-### Shot [#] — [Date]
-- **Coffee:** [name]
-- **Rating:** [X]/5 | **Balance:** [sour/balanced/bitter]
-- **Grind:** [setting] | **Dose:** [in]g → [out]g (1:[ratio])
-- **Profile:** [name]
-- **Notes:** [observations]
-- **Adjustment:** [what was changed for next shot]
+Log a brewing journal entry to the coffee's tracking file — analysis, not raw numbers:
+```
+manage_coffee(
+  action="log_entry",
+  coffee_name="[coffee-name]",
+  entry_date="YYYY-MM-DD",
+  entry_headline="Grind [X], [Profile Name] — [X/5]",
+  entry_body="[Agent's analysis: what worked, what didn't, taste description, what to try next. Reference shot ID if available.]"
+)
 ```
 
-If the user doesn't have a Coffee Tracking document yet and this is a good shot (4+ stars), suggest creating one:
-> "Would you like me to create a Coffee Tracking document? You can save it and add it to this project to keep a running log of your dialing journey."
+The journal entry should capture *thinking*, not numbers. Include:
+- What the shot tasted like and why (connect to extraction theory)
+- What worked well and what didn't
+- Specific recommendation for next shot
+- Shot ID reference if available (for `analyze_shot` later)
 
-**If 4+ stars AND grind setting provided**, also suggest adding it to a "Grind Map" section in the tracking document — successful grind settings for future reference.
+If no coffee tracking file exists yet, create one first:
+```
+manage_coffee(
+  action="create",
+  coffee_name="[coffee-name]",
+  roaster="...",
+  origin="...",
+  process="...",
+  roast_level="...",
+  roaster_notes="[tasting notes from bag]",
+  approach="[Profile name] at [temp]. [Pressure logic reasoning]. Starting at grind [X], [dose]g in, targeting 1:[ratio]. [Why this approach suits this bean.]"
+)
+```
+
+#### 4c. Grind Map (if 4+ stars)
+
+**If 4+ stars AND grind setting provided**, add to the grind map:
+```
+manage_grind_map(
+  action="add_entry",
+  coffee="[name]",
+  roast="[light/medium/dark]",
+  process="[washed/natural/honey/anaerobic]",
+  origin="[country/region]",
+  days_off_roast="[X days]",
+  grind="[setting]",
+  profile="[name]",
+  ratio="1:X",
+  temp="X°C",
+  rating="X/5",
+  date="YYYY-MM-DD"
+)
+```
+
+#### 4d. Brewing Insights (when patterns emerge)
+
+When a meaningful pattern emerges (not after every shot), update the cross-coffee insights:
+1. Read current insights: `gaggimate://user/brewing-insights` (or init via `manage_brewing_insights(action="init")` if it doesn't exist)
+2. Update with the new learning:
+```
+manage_brewing_insights(
+  action="write",
+  content="[updated full markdown with the new insight added to the appropriate section]"
+)
+```
+
+**When to update brewing insights:**
+- Coffee is dialed in (4+ stars, balanced) — record what worked and why
+- A clear pattern emerges (e.g. "declining pressure works for all medium-roast honeys we've tried")
+- A surprising finding worth remembering across coffees
+
+**When NOT to update:** After every single shot. Only when there's a genuine cross-coffee learning.
 
 ### 5. SUGGEST Next Steps
 
@@ -148,10 +201,10 @@ If user wants full milk science, steaming technique, or drink recipes → refere
 ## Quick Reference
 
 **User says:** "3 stars, sour, grind 12, 22g in"
-**Action:** Gather context → record via MCP → diagnose (sour = extract more) → recommend grind/yield change → update Coffee Tracking if present
+**Action:** Gather context → analyze → record journal entry (analysis, not numbers) → diagnose (sour = extract more) → recommend grind/yield change
 
 **User says:** "5 stars, balanced, amazing sweetness"
-**Action:** Gather context → celebrate → record via MCP → suggest adding to Coffee Tracking grind map → recommend drink format
+**Action:** Gather context → celebrate → record journal entry → add to grind map → update brewing insights if pattern emerged → recommend drink format
 
 **User says:** "it was sour AND bitter"
-**Action:** Gather context → diagnose **channeling** → recommend puck prep fix, NOT grind change → record
+**Action:** Gather context → diagnose **channeling** → recommend puck prep fix, NOT grind change → record journal entry

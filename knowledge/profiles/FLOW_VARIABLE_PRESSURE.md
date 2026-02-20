@@ -228,6 +228,6 @@ This creates a **40-second linear transition** from the previous flow (e.g., 1.8
 
 ## Related Resources
 
-- [Automatic Pro Profile Guide](../../agent-knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md)
-- [How the Automatic Pro Profile works](../../agent-knowledge/automatic-pro/How%20the%20Automatic%20Pro%20Profile%20works.md)
-- [Profile Creation Guide](../../agent-knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md)
+- [Automatic Pro Profile Guide](../../knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md)
+- [How the Automatic Pro Profile works](../../knowledge/automatic-pro/How%20the%20Automatic%20Pro%20Profile%20works.md)
+- [Profile Creation Guide](../../knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md)
