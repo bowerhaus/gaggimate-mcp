@@ -99,7 +99,7 @@ Detects channeling from pressure/flow volatility.
 |-----|-------|
 | `pressure_stability` | VERY_STABLE (<0.15) · STABLE (<0.35) · MODERATE_JITTER (<0.6) · JITTERY (<1.0) · VOLATILE |
 | `flow_stability` | VERY_STABLE (<0.10) · STABLE (<0.25) · MODERATE_JITTER (<0.50) · JITTERY (<0.80) · VOLATILE |
-| `pressure_drop` | NORMAL (≥−0.5) · MODERATE_DROP (≥−1.5) · STEEP_DROP (≥−3.0) · CLIFF |
+| `pressure_drop` | NORMAL (≥−1.0) · MODERATE_DROP (≥−2.5) · STEEP_DROP (≥−5.0) · CLIFF |
 | `late_flow_trend` | STABLE (<0.02) · SLIGHT_ACCELERATION (<0.05) · MODERATE_ACCELERATION (<0.10) · RAPID_ACCELERATION |
 
 **Risk scoring:** Scoring adds points for high pressure volatility, high flow volatility,
@@ -119,7 +119,7 @@ Temperature stability vs target during brew.
 
 | Key | Bands |
 |-----|-------|
-| `overshoot` / `undershoot` | MINIMAL (<0.5) · SLIGHT (<1.5) · MODERATE (<3.0) · SIGNIFICANT |
+| `overshoot` / `undershoot` | MINIMAL (<0.5) · SLIGHT (<1.0) · MODERATE (<2.0) · SIGNIFICANT |
 | `stability` | VERY_STABLE (<0.3) · STABLE (<0.8) · MODERATE (<1.5) · UNSTABLE |
 
 ### Extraction Metrics
@@ -211,7 +211,7 @@ Phase names from the firmware are classified automatically:
 | `ramp_rate_bar_s` | bar/s | How fast pressure ramps up |
 | `saturation_time_s` | s | Time until flow stabilises (puck saturation) |
 
-**Annotations:** `ramp_rate` → VERY_SLOW (<0.5) · SLOW (<1.5) · NORMAL (<3.0) · FAST (<5.0) · VERY_FAST
+**Annotations:** `ramp_rate` → GENTLE (<0.5) · MODERATE (<1.5) · BRISK (<3.0) · AGGRESSIVE (<5.0) · VERY_AGGRESSIVE
 
 ### Brew-Specific Fields
 
@@ -258,8 +258,8 @@ Phase names from the firmware are classified automatically:
 
 ### Temperature Problems
 - `stability_std_c` > 1.5 (UNSTABLE) → equipment issue
-- `overshoot_c` > 3.0 → thermosiphon or PID issue
-- `undershoot_c` > 3.0 → machine not heated properly
+- `overshoot_c` > 2.0 → thermosiphon or PID issue
+- `undershoot_c` > 2.0 → machine not heated properly
 
 ### Good Shot Indicators
 - Resistance MODERATE, STABLE, GRADUAL_DECLINE

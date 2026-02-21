@@ -331,8 +331,6 @@ def process_phases(shot: ShotData) -> list[PhaseData]:
     """
     return _build_phases(shot, include_samples=True, include_diagnostics=False)
 
-    return phases
-
 
 # ═══════════════════════════════════════════════════════════════════
 # DIAGNOSTIC FEATURE COMPUTATION
@@ -389,8 +387,8 @@ _FLOW_ACCELERATION_BANDS: list[tuple[float, str]] = [
 
 _TEMP_OVERSHOOT_BANDS: list[tuple[float, str]] = [
     (0.5, "MINIMAL"),
-    (1.5, "SLIGHT"),
-    (3.0, "MODERATE"),
+    (1.0, "SLIGHT"),
+    (2.0, "MODERATE"),
     (float('inf'), "SIGNIFICANT"),
 ]
 
@@ -411,9 +409,9 @@ _RESISTANCE_SLOPE_BANDS: list[tuple[float, str]] = [
 ]
 
 _PRESSURE_DROP_RATE_BANDS: list[tuple[float, str]] = [
-    (-0.5, "NORMAL"),
-    (-1.5, "MODERATE_DROP"),
-    (-3.0, "STEEP_DROP"),
+    (-1.0, "NORMAL"),
+    (-2.5, "MODERATE_DROP"),
+    (-5.0, "STEEP_DROP"),
     (float('-inf'), "CLIFF"),
 ]
 
@@ -439,11 +437,11 @@ _TAPER_SMOOTHNESS_BANDS: list[tuple[float, str]] = [
 ]
 
 _RAMP_RATE_BANDS: list[tuple[float, str]] = [
-    (0.5, "VERY_SLOW"),
-    (1.5, "SLOW"),
-    (3.0, "NORMAL"),
-    (5.0, "FAST"),
-    (float('inf'), "VERY_FAST"),
+    (0.5, "GENTLE"),
+    (1.5, "MODERATE"),
+    (3.0, "BRISK"),
+    (5.0, "AGGRESSIVE"),
+    (float('inf'), "VERY_AGGRESSIVE"),
 ]
 
 
@@ -652,11 +650,13 @@ def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
     r_avg = _round2(_safe_mean(resistance_values))
     r_std = _round2(_safe_std(resistance_values))
     r_slope = _round2(_linear_slope(resistance_values, dt))
-    r_peak = _round2(max(resistance_values)) if resistance_values else 0.0
-    r_peak_idx = (
-        resistance_values.index(max(resistance_values))
-        if resistance_values else 0
-    )
+    if resistance_values:
+        r_peak_val = max(resistance_values)
+        r_peak = _round2(r_peak_val)
+        r_peak_idx = resistance_values.index(r_peak_val)
+    else:
+        r_peak = 0.0
+        r_peak_idx = 0
     r_peak_timing = (
         _round2(r_peak_idx / len(resistance_values))
         if resistance_values else 0.0

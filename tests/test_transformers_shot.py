@@ -338,9 +338,9 @@ class TestHelperFunctions:
 
     def test_annotate_descending_pressure_drop(self):
         assert _annotate_descending(-0.3, _PRESSURE_DROP_RATE_BANDS) == "NORMAL"
-        assert _annotate_descending(-1.0, _PRESSURE_DROP_RATE_BANDS) == "MODERATE_DROP"
-        assert _annotate_descending(-2.0, _PRESSURE_DROP_RATE_BANDS) == "STEEP_DROP"
-        assert _annotate_descending(-5.0, _PRESSURE_DROP_RATE_BANDS) == "CLIFF"
+        assert _annotate_descending(-1.5, _PRESSURE_DROP_RATE_BANDS) == "MODERATE_DROP"
+        assert _annotate_descending(-3.0, _PRESSURE_DROP_RATE_BANDS) == "STEEP_DROP"
+        assert _annotate_descending(-6.0, _PRESSURE_DROP_RATE_BANDS) == "CLIFF"
 
     def test_assess_channeling_risk_low(self):
         assert _assess_channeling_risk(0.1, 0.05, -0.3, 0.01) == "LOW"
@@ -645,8 +645,8 @@ class TestShotDiagnostics:
         assert diag is not None
         assert diag['temperature']['overshoot_c'] == 2.0
         assert diag['temperature']['undershoot_c'] == 2.0
-        assert diag['temperature']['annotations']['overshoot'] == 'MODERATE'
-        assert diag['temperature']['annotations']['undershoot'] == 'MODERATE'
+        assert diag['temperature']['annotations']['overshoot'] == 'SIGNIFICANT'
+        assert diag['temperature']['annotations']['undershoot'] == 'SIGNIFICANT'
 
 
 class TestDetailLevels:
