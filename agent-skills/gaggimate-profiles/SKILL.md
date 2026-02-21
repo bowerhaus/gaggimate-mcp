@@ -77,6 +77,12 @@ Always output complete, valid JSON with ALL required fields:
   ]
 }
 ```
+**Phase naming for shot analysis:** The `analyze_shot` tool classifies phases by substring-matching the `name` field. Use names containing recognised keywords so specific diagnostic metrics are computed per phase:
+- **Preinfusion phases**: include `preinfusion`, `pre-infusion`, `soak`, `bloom`, or `fill` (e.g. "Pre-infusion", "Bloom", "Long Soak")
+- **Decline/taper phases**: include `decline`, `taper`, or `cooldown` (e.g. "Decline", "Gentle Taper")
+- **Brew phases**: any other name works (e.g. "Ramp", "Hold", "Extraction")
+
+If the name contains none of these keywords, the analyzer falls back to telemetry heuristics — but explicit naming is always preferred.
 
 **Volumetric target:** Always set to `dose × ratio` using the user's basket size. Library profiles in PROFILE_LIBRARY.md are sized for 22g — adjust if user's basket differs.
 

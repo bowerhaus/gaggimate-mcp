@@ -13,6 +13,8 @@ from gaggimate_mcp.transformers.shot import (
     _linear_slope,
     _compute_rmse,
     _classify_phase,
+    _classify_phase_by_name,
+    _classify_phase_by_telemetry,
     _compute_phase_diagnostics,
     _compute_profile_compliance,
     _get_brew_phase_samples,
@@ -28,8 +30,8 @@ from gaggimate_mcp.transformers.shot import (
     _PRESSURE_OVERSHOOT_BANDS,
     _RAMP_RATE_BANDS,
     _TAPER_SMOOTHNESS_BANDS,
-    _PREINFUSION_NAMES,
-    _DECLINE_NAMES,
+    _PREINFUSION_KEYWORDS,
+    _DECLINE_KEYWORDS,
 )
 
 
@@ -748,17 +750,88 @@ class TestDetailLevels:
 class TestPhaseClassification:
     """Tests for phase name classification."""
 
-    def test_preinfusion_names(self):
+    def test_preinfusion_exact_names(self):
         for name in ['Preinfusion', 'pre-infusion', 'PI', 'soak', 'Bloom', 'fill', 'Preinfuse']:
             assert _classify_phase(name) == 'preinfusion', f"Failed for: {name}"
 
-    def test_decline_names(self):
+    def test_preinfusion_substring_names(self):
+        """Creative names containing preinfusion keywords should match."""
+        for name in ['Gentle Pre-infusion', 'Blooming Phase', 'Long Soak', 'Quick Fill']:
+            assert _classify_phase(name) == 'preinfusion', f"Failed for: {name}"
+
+    def test_decline_exact_names(self):
         for name in ['Decline', 'taper', 'ramp-down', 'Ramp Down', 'cool down', 'cooldown']:
             assert _classify_phase(name) == 'decline', f"Failed for: {name}"
 
+    def test_decline_substring_names(self):
+        """Creative names containing decline keywords should match."""
+        for name in ['Gentle Decline', 'Smooth Taper', 'Final Cooldown']:
+            assert _classify_phase(name) == 'decline', f"Failed for: {name}"
+
     def test_brew_names(self):
+        """Known brew-ish names fall through to brew without telemetry."""
         for name in ['Extraction', 'Brew', 'Main', 'Hold', 'flat', 'Step 2']:
             assert _classify_phase(name) == 'brew', f"Failed for: {name}"
+
+    def test_unrecognised_name_defaults_to_brew(self):
+        """Without telemetry samples, unrecognised names default to brew."""
+        assert _classify_phase('My Custom Phase') == 'brew'
+        assert _classify_phase('Phase 3') == 'brew'
+
+    def test_telemetry_fallback_preinfusion(self):
+        """First phase with low pressure and rising trend -> preinfusion."""
+        samples = [
+            {'cp': 1.0, 'pf': 0.5},
+            {'cp': 2.0, 'pf': 1.0},
+            {'cp': 3.0, 'pf': 1.5},
+            {'cp': 4.0, 'pf': 2.0},
+        ]
+        result = _classify_phase(
+            'My Custom Phase', phase_samples=samples,
+            phase_index=0, total_phases=3,
+        )
+        assert result == 'preinfusion'
+
+    def test_telemetry_fallback_decline(self):
+        """Last phase with declining pressure -> decline."""
+        samples = [
+            {'cp': 8.0, 'pf': 2.0},
+            {'cp': 7.0, 'pf': 2.1},
+            {'cp': 6.0, 'pf': 2.2},
+            {'cp': 4.5, 'pf': 2.3},
+        ]
+        result = _classify_phase(
+            'Finish', phase_samples=samples,
+            phase_index=2, total_phases=3,
+        )
+        assert result == 'decline'
+
+    def test_telemetry_fallback_brew(self):
+        """Middle phase with stable high pressure -> brew."""
+        samples = [
+            {'cp': 9.0, 'pf': 2.0},
+            {'cp': 9.0, 'pf': 2.1},
+            {'cp': 8.9, 'pf': 2.0},
+            {'cp': 9.0, 'pf': 2.1},
+        ]
+        result = _classify_phase(
+            'My Custom Phase', phase_samples=samples,
+            phase_index=1, total_phases=3,
+        )
+        assert result == 'brew'
+
+    def test_name_match_takes_priority_over_telemetry(self):
+        """Even if telemetry looks like brew, name match wins."""
+        # High pressure samples that look like brew
+        samples = [
+            {'cp': 9.0, 'pf': 2.0},
+            {'cp': 9.0, 'pf': 2.1},
+        ]
+        result = _classify_phase(
+            'Preinfusion', phase_samples=samples,
+            phase_index=1, total_phases=3,
+        )
+        assert result == 'preinfusion'
 
 
 class TestProfileCompliance:

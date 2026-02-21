@@ -515,7 +515,7 @@ def _get_brew_phase_samples(shot: ShotData) -> list[dict]:
     if shot.phases:
         brew_samples: list[dict] = []
         for i, phase in enumerate(shot.phases):
-            if phase.phase_name.lower().strip() in _PREINFUSION_NAMES:
+            if _classify_phase_by_name(phase.phase_name) == "preinfusion":
                 continue
             start_idx = phase.sample_index
             end_idx = (
@@ -585,24 +585,80 @@ def _compute_rmse(actual: list[float], target: list[float]) -> float:
 
 # --- Phase classification ---
 
-_PREINFUSION_NAMES = frozenset({
+_PREINFUSION_KEYWORDS = (
     'preinfusion', 'pre-infusion', 'pi', 'soak',
     'bloom', 'fill', 'preinfuse',
-})
+)
 
-_DECLINE_NAMES = frozenset({
+_DECLINE_KEYWORDS = (
     'decline', 'taper', 'ramp-down', 'ramp down',
     'cool down', 'cooldown',
-})
+)
 
 
-def _classify_phase(name: str) -> str:
-    """Classify a phase name into preinfusion / brew / decline."""
+def _classify_phase_by_name(name: str) -> Optional[str]:
+    """Try to classify a phase name via keyword matching.
+
+    Returns 'preinfusion', 'brew', 'decline', or None if unrecognised.
+    Uses substring matching so creative names like 'Gentle Pre-infusion'
+    or 'Blooming Phase' still match.
+    """
     normalized = name.lower().strip()
-    if normalized in _PREINFUSION_NAMES:
+    for kw in _PREINFUSION_KEYWORDS:
+        if kw in normalized:
+            return "preinfusion"
+    for kw in _DECLINE_KEYWORDS:
+        if kw in normalized:
+            return "decline"
+    return None
+
+
+def _classify_phase_by_telemetry(
+    phase_samples: list[dict], phase_index: int, total_phases: int,
+) -> str:
+    """Fallback: classify a phase from its telemetry shape.
+
+    Heuristics:
+    - First phase with low avg pressure and rising trend → preinfusion
+    - Last phase with declining pressure trend → decline
+    - Everything else → brew
+    """
+    pressures = [s.get('cp', 0.0) for s in phase_samples]
+    if len(pressures) < 2:
+        return "brew"
+
+    avg_p = sum(pressures) / len(pressures)
+    slope = (pressures[-1] - pressures[0]) / max(len(pressures) - 1, 1)
+
+    # First phase, low pressure, rising → preinfusion
+    if phase_index == 0 and avg_p < 5.0 and slope >= 0:
         return "preinfusion"
-    if normalized in _DECLINE_NAMES:
+
+    # Last phase (not first), declining pressure → decline
+    if phase_index == total_phases - 1 and phase_index > 0 and slope < -0.3:
         return "decline"
+
+    return "brew"
+
+
+def _classify_phase(
+    name: str,
+    phase_samples: Optional[list[dict]] = None,
+    phase_index: int = 0,
+    total_phases: int = 1,
+) -> str:
+    """Classify a phase into preinfusion / brew / decline.
+
+    Tries keyword matching on the phase name first.  Falls back to
+    telemetry-based heuristics when the name is not recognised.
+    """
+    result = _classify_phase_by_name(name)
+    if result is not None:
+        return result
+    if phase_samples is not None:
+        return _classify_phase_by_telemetry(
+            phase_samples, phase_index, total_phases,
+        )
     return "brew"
 
 
@@ -1167,7 +1223,12 @@ def _build_phases(
                 pd["samples"] = _select_samples(phase_samples, all_samples)
 
             if include_diagnostics and dt > 0 and len(phase_samples) >= 3:
-                phase_type = _classify_phase(phase.phase_name)
+                phase_type = _classify_phase(
+                    phase.phase_name,
+                    phase_samples=phase_samples,
+                    phase_index=i,
+                    total_phases=len(shot.phases),
+                )
                 pd["diagnostics"] = _compute_phase_diagnostics(
                     phase_samples, phase_type, dt,
                 )
