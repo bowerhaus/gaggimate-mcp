@@ -26,6 +26,15 @@ Diagnose espresso extraction issues by correlating Gaggimate telemetry data with
 ```
 Use: analyze_shot(shot_id)
 ```
+This returns **summary-level** diagnostics by default (resistance, channeling risk,
+temperature stability, profile compliance). If you need per-phase breakdowns or
+full time-series data, escalate:
+```
+Use: analyze_shot(shot_id, detail="per_phase")   # per-phase diagnostics + representative samples
+Use: analyze_shot(shot_id, detail="detailed")    # all time-series samples (high token cost)
+```
+See `gaggimate://knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md` for the
+complete metric reference, annotation bands, and interpretation cheat sheet.
 
 **Fetch shot notes if available:**
 ```
@@ -93,20 +102,40 @@ State your estimated dose out and how you derived it, then move on. A ±2g estim
 | Metric | Normal | Anomaly |
 |--------|--------|---------|
 | Temperature variance | ±1°C from target | >2°C = equipment instability |
-| Pressure spike above profile target | — | >1.5 bar above = too fine / channeling |
+| Pressure spike above profile target | — | >1.0 bar above = almost certainly too fine / channeling (>0.5 unusual) |
 
 Flag an anomaly only when a metric falls **outside the identified style's expected range**.
 
 ### 2b. COMPARE Intended vs Actual (when profile definition available)
 
+**Profile compliance metrics** are included in the diagnostics automatically
+when target pressure/flow data is in the shot. Key fields:
+- `pressure_rmse_bar` — how closely the machine followed target pressure (lower = better)
+- `max_pressure_overshoot_bar` — largest single overshoot above target
+- `flow_rmse_ml_s` — flow adherence (when target flow data available)
+- `max_flow_overshoot_ml_s` — largest flow above target (when target flow data available)
+- `max_flow_undershoot_ml_s` — largest flow below target (when target flow data available)
+
+> **Grind diagnosis priority:** Flow deviation is a more reliable grind indicator
+> than pressure overshoot. The Gaggimate/gaggiuino PID actively controls pump power
+> to maintain target pressure, so pressure overshoot is artificially limited by the
+> controller. Flow rate is a *consequence* of grind + dose + puck prep and cannot be
+> masked by the pump — making `max_flow_overshoot_ml_s` / `max_flow_undershoot_ml_s`
+> the stronger signal for grind mismatch. Always check flow deviation first when
+> diagnosing grind issues.
+
 | Comparison | Interpretation |
 |------------|----------------|
-| Pressure exceeded target by >1.5 bar | Grind too fine or dose too high |
-| Pressure never reached target (>1.5 bar below) | Context-dependent: normal for post-bloom ramps, too coarse for non-bloom |
+| `max_flow_overshoot_ml_s` > 0.7 | Grind too coarse — flow significantly above target (strongest grind signal) |
+| `max_flow_undershoot_ml_s` > 0.7 | Grind too fine — flow significantly below target (strongest grind signal) |
+| `max_pressure_overshoot_bar` > 1.0 | Grind too fine — machine can't push water through puck (>0.5 already unusual) |
+| `max_pressure_undershoot_bar` > 1.0 (non-bloom context) | Grind too coarse |
+| `pressure_rmse_bar` annotation POOR | Profile not being followed — check grind, dose, or profile params |
+| Pressure exceeded target by >1.0 bar | Grind too fine or dose too high (highly unusual overshoot) |
+| Pressure never reached target (>1.0 bar below) | Context-dependent: normal for post-bloom ramps, too coarse for non-bloom |
 | Volumetric target reached much earlier than phase duration | Grind too coarse (flow too fast) |
 | Volumetric target not reached within phase duration | Grind too fine (flow too slow) |
 | Decline phase pressure stayed >1 bar above target floor | Grind too fine — high puck resistance |
-| Flow during extraction well above/below profile's flow target | Grind mismatch for this style |
 
 ### 3. CORRELATE Taste with Telemetry
 

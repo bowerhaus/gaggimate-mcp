@@ -59,7 +59,6 @@ coffees/*.md
 # Development files (not for public repo)
 typescript-reference/
 docs/
-!docs/gaggimate_profile_creation_guide.md
 archive/
 .claude/
 .github/copilot-instructions.md

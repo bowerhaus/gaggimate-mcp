@@ -4,7 +4,9 @@ This module converts raw binary shot data into a structured format
 optimized for AI analysis and natural language processing.
 """
 
-from typing import TypedDict, Optional
+import math
+from typing import NotRequired, Optional, TypedDict
+
 from gaggimate_mcp.parsers.shot import ShotData
 
 
@@ -56,6 +58,37 @@ class TransformedSample(TypedDict):
     weight_g: float
 
 
+class PhaseDiagnostics(TypedDict, total=False):
+    """Per-phase diagnostic metrics. Fields vary by phase_type.
+
+    Common fields: phase_type, avg_pressure_bar, avg_flow_ml_s,
+    pressure_rmse_bar, flow_rmse_ml_s, annotations.
+
+    Preinfusion: ramp_rate_bar_s, saturation_time_s
+    Brew: resistance_avg, resistance_slope, channeling_risk,
+          pressure_stability_bar, flow_stability_ml_s
+    Decline: taper_rate_bar_s, taper_smoothness
+    """
+    phase_type: str
+    avg_pressure_bar: float
+    avg_flow_ml_s: float
+    pressure_rmse_bar: float
+    flow_rmse_ml_s: float
+    # Preinfusion
+    ramp_rate_bar_s: float
+    saturation_time_s: float
+    # Brew
+    resistance_avg: float
+    resistance_slope: float
+    channeling_risk: str
+    pressure_stability_bar: float
+    flow_stability_ml_s: float
+    # Decline
+    taper_rate_bar_s: float
+    taper_smoothness: float
+    annotations: dict[str, str]
+
+
 class PhaseData(TypedDict):
     """Phase data for AI analysis."""
     name: str
@@ -66,7 +99,117 @@ class PhaseData(TypedDict):
     avg_temperature_c: float
     avg_pressure_bar: float
     total_flow_ml: float
-    samples: list[TransformedSample]
+    samples: NotRequired[list[TransformedSample]]
+    diagnostics: NotRequired[PhaseDiagnostics]
+
+
+class ResistanceDiagnostics(TypedDict):
+    """Puck resistance diagnostics — the master diagnostic metric.
+
+    Computed as pressure / flow² (quadratic Darcy model).
+    Captures grind fineness, puck prep quality, channeling, and erosion.
+    """
+    avg: float
+    std: float
+    slope: float
+    peak: float
+    peak_timing_pct: float
+    annotations: dict[str, str]
+
+
+class ChannelingIndicators(TypedDict):
+    """Channeling detection from pressure/flow volatility.
+
+    High volatility in the free variable (flow in pressure mode,
+    pressure in flow mode) indicates channeling.
+    """
+    pressure_volatility_bar: float
+    flow_volatility_ml_s: float
+    pressure_max_drop_rate_bar_s: float
+    flow_acceleration_late_ml_s2: float
+    overall_risk: str
+    annotations: dict[str, str]
+
+
+class TemperatureDiagnostics(TypedDict):
+    """Temperature stability vs target during brew phase."""
+    overshoot_c: float
+    undershoot_c: float
+    stability_std_c: float
+    annotations: dict[str, str]
+
+
+class ExtractionMetrics(TypedDict):
+    """Extraction quality metrics for brew phase."""
+    pressure_auc_bar_s: float
+    pressure_slope_brew_bar_s: float
+    flow_slope_brew_ml_s2: float
+    flow_avg_brew_ml_s: float
+    annotations: dict[str, str]
+
+
+class WeightDiagnostics(TypedDict):
+    """Weight/yield curve diagnostics from scale data."""
+    rate_avg_g_s: Optional[float]
+    rate_std_g_s: Optional[float]
+    scale_connected: bool
+    annotations: dict[str, str]
+
+
+class ProfileComplianceMetrics(TypedDict):
+    """Profile adherence metrics — RMSE between target and actual.
+
+    Measures how well the machine followed the programmed profile.
+    pressure_overshoot > 1.0 bar is highly unusual and almost certainly
+    indicates grind too fine, excessive dose, or a puck preparation issue.
+
+    **Important:** Flow deviation is a more reliable grind indicator than
+    pressure overshoot because the Gaggimate/gaggiuino PID actively
+    controls pump power to maintain target pressure.  Pressure overshoot
+    is therefore artificially limited by the controller.  Flow rate,
+    however, is a *consequence* of grind+dose+puck-prep and cannot be
+    masked by the pump — making flow overshoot/undershoot the stronger
+    signal for diagnosing grind mismatch.
+    """
+    pressure_rmse_bar: float
+    flow_rmse_ml_s: Optional[float]
+    max_pressure_overshoot_bar: float
+    max_pressure_undershoot_bar: float
+    max_flow_overshoot_ml_s: Optional[float]
+    max_flow_undershoot_ml_s: Optional[float]
+    annotations: dict[str, str]
+
+
+class ShotDiagnostics(TypedDict):
+    """Complete shot diagnostics for AI analysis.
+
+    Pre-computed features with interpretive annotations for optimal
+    LLM reasoning. Features are grouped by diagnostic purpose.
+    """
+    resistance: ResistanceDiagnostics
+    channeling: ChannelingIndicators
+    temperature: TemperatureDiagnostics
+    extraction: ExtractionMetrics
+    weight: WeightDiagnostics
+    profile_compliance: Optional[ProfileComplianceMetrics]
+
+
+class SummaryDiagnostics(TypedDict):
+    """Lightweight diagnostics for summary detail level.
+
+    Contains only the key indicators an LLM needs for a quick
+    assessment, minimising token usage while preserving actionability.
+    """
+    resistance_avg: float
+    resistance_slope: float
+    channeling_risk: str
+    temperature_stability_c: float
+    pressure_rmse_bar: float
+    max_overshoot_bar: float
+    flow_rmse_ml_s: Optional[float]
+    max_flow_overshoot_ml_s: Optional[float]
+    scale_connected: bool
+    annotations: dict[str, str]
 
 
 class TransformedShot(TypedDict):
@@ -79,6 +222,8 @@ class TransformedShot(TypedDict):
     final_weight_g: Optional[float]
     summary: ShotSummary
     phases: list[PhaseData]
+    diagnostics: Optional[ShotDiagnostics | SummaryDiagnostics]
+    detail_level: NotRequired[str]
 
 
 def calculate_total_volume(samples: list[dict], interval_ms: int) -> float:
@@ -188,121 +333,883 @@ def calculate_summary(shot: ShotData) -> ShotSummary:
 def process_phases(shot: ShotData) -> list[PhaseData]:
     """Process shot phases for AI analysis.
 
+    Backward-compatible wrapper around ``_build_phases``.
+    Returns phases with representative samples but no diagnostics.
+
     Args:
         shot: Parsed shot data
 
     Returns:
         List of phase data with statistics and representative samples
     """
-    phases: list[PhaseData] = []
+    return _build_phases(shot, include_samples=True, include_diagnostics=False)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DIAGNOSTIC FEATURE COMPUTATION
+# Physics-informed features with interpretive annotations for LLM
+# reasoning. See docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md.
+# ═══════════════════════════════════════════════════════════════════
+
+# --- Annotation threshold bands ---
+# Ascending: value < upper_bound → label
+_PRESSURE_VOLATILITY_BANDS: list[tuple[float, str]] = [
+    (0.15, "VERY_STABLE"),
+    (0.35, "STABLE"),
+    (0.6, "MODERATE_JITTER"),
+    (1.0, "JITTERY"),
+    (float('inf'), "VOLATILE"),
+]
+
+_FLOW_VOLATILITY_BANDS: list[tuple[float, str]] = [
+    (0.10, "VERY_STABLE"),
+    (0.25, "STABLE"),
+    (0.50, "MODERATE_JITTER"),
+    (0.80, "JITTERY"),
+    (float('inf'), "VOLATILE"),
+]
+
+_RESISTANCE_LEVEL_BANDS: list[tuple[float, str]] = [
+    (0.5, "VERY_LOW"),
+    (1.5, "LOW"),
+    (3.0, "MODERATE"),
+    (5.0, "HIGH"),
+    (float('inf'), "VERY_HIGH"),
+]
+
+_RESISTANCE_STABILITY_BANDS: list[tuple[float, str]] = [
+    (0.2, "VERY_STABLE"),
+    (0.5, "STABLE"),
+    (1.0, "MODERATE"),
+    (float('inf'), "VOLATILE"),
+]
+
+_RESISTANCE_PEAK_TIMING_BANDS: list[tuple[float, str]] = [
+    (0.15, "EARLY"),
+    (0.35, "GOOD_TIMING"),
+    (0.60, "MID_SHOT"),
+    (float('inf'), "LATE"),
+]
+
+_FLOW_ACCELERATION_BANDS: list[tuple[float, str]] = [
+    (0.02, "STABLE"),
+    (0.05, "SLIGHT_ACCELERATION"),
+    (0.10, "MODERATE_ACCELERATION"),
+    (float('inf'), "RAPID_ACCELERATION"),
+]
+
+_TEMP_OVERSHOOT_BANDS: list[tuple[float, str]] = [
+    (0.5, "MINIMAL"),
+    (1.0, "SLIGHT"),
+    (2.0, "MODERATE"),
+    (float('inf'), "SIGNIFICANT"),
+]
+
+_TEMP_STABILITY_BANDS: list[tuple[float, str]] = [
+    (0.3, "VERY_STABLE"),
+    (0.8, "STABLE"),
+    (1.5, "MODERATE"),
+    (float('inf'), "UNSTABLE"),
+]
+
+# Descending: value >= lower_bound → label
+_RESISTANCE_SLOPE_BANDS: list[tuple[float, str]] = [
+    (0.05, "INCREASING"),
+    (-0.02, "FLAT"),
+    (-0.08, "GRADUAL_DECLINE"),
+    (-0.15, "MODERATE_DECLINE"),
+    (float('-inf'), "STEEP_DECLINE"),
+]
+
+_PRESSURE_DROP_RATE_BANDS: list[tuple[float, str]] = [
+    (-1.0, "NORMAL"),
+    (-2.5, "MODERATE_DROP"),
+    (-5.0, "STEEP_DROP"),
+    (float('-inf'), "CLIFF"),
+]
+
+_PROFILE_ADHERENCE_BANDS: list[tuple[float, str]] = [
+    (0.3, "EXCELLENT"),
+    (0.8, "GOOD"),
+    (1.5, "FAIR"),
+    (float('inf'), "POOR"),
+]
+
+_PRESSURE_OVERSHOOT_BANDS: list[tuple[float, str]] = [
+    (0.25, "WITHIN_TOLERANCE"),
+    (0.5, "MINOR_OVERSHOOT"),
+    (1.0, "NOTABLE_OVERSHOOT"),
+    (float('inf'), "SEVERE_OVERSHOOT"),
+]
+
+_FLOW_DEVIATION_BANDS: list[tuple[float, str]] = [
+    (0.3, "WITHIN_TOLERANCE"),
+    (0.7, "MINOR_DEVIATION"),
+    (1.5, "NOTABLE_DEVIATION"),
+    (float('inf'), "SEVERE_DEVIATION"),
+]
+
+_TAPER_SMOOTHNESS_BANDS: list[tuple[float, str]] = [
+    (0.2, "VERY_SMOOTH"),
+    (0.5, "SMOOTH"),
+    (1.0, "MODERATE"),
+    (float('inf'), "ROUGH"),
+]
+
+_RAMP_RATE_BANDS: list[tuple[float, str]] = [
+    (0.5, "GENTLE"),
+    (1.5, "MODERATE"),
+    (3.0, "BRISK"),
+    (5.0, "AGGRESSIVE"),
+    (float('inf'), "VERY_AGGRESSIVE"),
+]
+
+
+# --- Helper functions ---
+
+def _annotate_ascending(value: float, bands: list[tuple[float, str]]) -> str:
+    """Classify value using ascending threshold bands (upper_bound, label)."""
+    for upper, label in bands:
+        if value < upper:
+            return label
+    return bands[-1][1]
+
+
+def _annotate_descending(value: float, bands: list[tuple[float, str]]) -> str:
+    """Classify value using descending threshold bands (lower_bound, label)."""
+    for lower, label in bands:
+        if value >= lower:
+            return label
+    return bands[-1][1]
+
+
+def _safe_mean(values: list[float]) -> float:
+    """Calculate mean, returning 0.0 for empty lists."""
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
+
+
+def _safe_std(values: list[float]) -> float:
+    """Calculate population standard deviation, returning 0.0 for < 2 values."""
+    if len(values) < 2:
+        return 0.0
+    mean = sum(values) / len(values)
+    variance = sum((x - mean) ** 2 for x in values) / len(values)
+    return math.sqrt(variance)
+
+
+def _linear_slope(values: list[float], dt: float) -> float:
+    """Calculate linear regression slope (units per second).
+
+    Args:
+        values: Ordered measurements
+        dt: Time interval between consecutive samples in seconds
+
+    Returns:
+        Slope in units/second, or 0.0 if insufficient data
+    """
+    n = len(values)
+    if n < 2 or dt <= 0:
+        return 0.0
+    x = [i * dt for i in range(n)]
+    x_mean = sum(x) / n
+    y_mean = sum(values) / n
+    numerator = sum((xi - x_mean) * (yi - y_mean) for xi, yi in zip(x, values))
+    denominator = sum((xi - x_mean) ** 2 for xi in x)
+    if denominator == 0:
+        return 0.0
+    return numerator / denominator
+
+
+def _get_brew_phase_samples(shot: ShotData) -> list[dict]:
+    """Extract samples from the brew/extraction phase (excluding pre-infusion).
+
+    Uses phase definitions if available, otherwise falls back to
+    detecting when pressure reaches 50% of peak.
+    """
     samples = shot.samples
-
     if not samples:
-        return phases
+        return []
 
-    # If shot has defined phases, process each one
     if shot.phases:
+        brew_samples: list[dict] = []
         for i, phase in enumerate(shot.phases):
-            start_index = phase.sample_index
-            end_index = shot.phases[i + 1].sample_index if i + 1 < len(shot.phases) else len(samples)
-            phase_samples = samples[start_index:end_index]
-
-            if not phase_samples:
+            if _classify_phase_by_name(phase.phase_name) == "preinfusion":
                 continue
+            start_idx = phase.sample_index
+            end_idx = (
+                shot.phases[i + 1].sample_index
+                if i + 1 < len(shot.phases)
+                else len(samples)
+            )
+            brew_samples.extend(samples[start_idx:end_idx])
+        return brew_samples if brew_samples else samples
 
-            # Calculate phase statistics - only include samples that have the measurement
-            temperatures = [s['ct'] for s in phase_samples if 'ct' in s]
-            pressures = [s['cp'] for s in phase_samples if 'cp' in s]
+    # Fallback: skip samples before pressure reaches 50% of peak
+    pressures = [s.get('cp', 0.0) for s in samples]
+    peak = max(pressures) if pressures else 0.0
+    if peak > 0:
+        threshold = peak * 0.5
+        for i, p in enumerate(pressures):
+            if p >= threshold:
+                return samples[i:]
+    return samples
 
-            avg_temp = round(sum(temperatures) / len(temperatures) * 10) / 10 if temperatures else 0.0
-            avg_pressure = round(sum(pressures) / len(pressures) * 10) / 10 if pressures else 0.0
-            total_flow = calculate_total_volume(phase_samples, shot.sample_interval)
 
-            # Select representative samples (beginning, middle, end)
-            representative_samples: list[TransformedSample] = []
-            indices = [0, len(phase_samples) // 2, len(phase_samples) - 1]
-            unique_indices = sorted(set(indices))
+def _assess_channeling_risk(
+    pressure_vol: float,
+    flow_vol: float,
+    max_drop_rate: float,
+    flow_accel: float,
+) -> str:
+    """Assess overall channeling risk from individual indicators."""
+    score = 0
+    if pressure_vol >= 0.35:
+        score += 1
+    if pressure_vol >= 0.6:
+        score += 1
+    if flow_vol >= 0.25:
+        score += 1
+    if flow_vol >= 0.5:
+        score += 1
+    if max_drop_rate <= -1.5:
+        score += 1
+    if max_drop_rate <= -3.0:
+        score += 1
+    if flow_accel >= 0.05:
+        score += 1
+    if flow_accel >= 0.10:
+        score += 1
+    if score <= 1:
+        return "LOW"
+    if score <= 3:
+        return "MODERATE"
+    if score <= 5:
+        return "HIGH"
+    return "VERY_HIGH"
 
-            for idx in unique_indices:
-                if idx < len(phase_samples):
-                    sample = phase_samples[idx]
-                    representative_samples.append(TransformedSample(
-                        time_seconds=round((sample.get('t', 0.0) / 1000.0) * 10) / 10,
-                        temperature_c=round(sample.get('ct', 0.0) * 10) / 10,
-                        pressure_bar=round(sample.get('cp', 0.0) * 10) / 10,
-                        flow_ml_s=round(sample.get('pf', 0.0) * 10) / 10,
-                        weight_g=round(sample.get('v', 0.0) * 10) / 10,
-                    ))
 
-            start_time = phase_samples[0].get('t', 0.0) / 1000.0
-            end_time = phase_samples[-1].get('t', 0.0) / 1000.0
-            duration = max(0.0, end_time - start_time + shot.sample_interval / 1000.0)
+def _round2(value: float) -> float:
+    """Round to 2 decimal places."""
+    return round(value * 100) / 100
 
-            phases.append(PhaseData(
-                name=phase.phase_name,
-                phase_number=phase.phase_number,
-                start_time_seconds=round(start_time * 10) / 10,
-                duration_seconds=round(duration * 10) / 10,
-                sample_count=len(phase_samples),
-                avg_temperature_c=avg_temp,
-                avg_pressure_bar=avg_pressure,
-                total_flow_ml=total_flow,
-                samples=representative_samples,
-            ))
+
+def _compute_rmse(actual: list[float], target: list[float]) -> float:
+    """Compute RMSE between actual and target value sequences."""
+    if not actual or len(actual) != len(target):
+        return 0.0
+    sse = sum((a - t) ** 2 for a, t in zip(actual, target))
+    return math.sqrt(sse / len(actual))
+
+
+# --- Phase classification ---
+
+_PREINFUSION_KEYWORDS = (
+    'preinfusion', 'pre-infusion', 'pi', 'soak',
+    'bloom', 'fill', 'preinfuse',
+)
+
+_DECLINE_KEYWORDS = (
+    'decline', 'taper', 'ramp-down', 'ramp down',
+    'cool down', 'cooldown',
+)
+
+
+def _classify_phase_by_name(name: str) -> Optional[str]:
+    """Try to classify a phase name via keyword matching.
+
+    Returns 'preinfusion', 'brew', 'decline', or None if unrecognised.
+    Uses substring matching so creative names like 'Gentle Pre-infusion'
+    or 'Blooming Phase' still match.
+    """
+    normalized = name.lower().strip()
+    for kw in _PREINFUSION_KEYWORDS:
+        if kw in normalized:
+            return "preinfusion"
+    for kw in _DECLINE_KEYWORDS:
+        if kw in normalized:
+            return "decline"
+    return None
+
+
+def _classify_phase_by_telemetry(
+    phase_samples: list[dict], phase_index: int, total_phases: int,
+) -> str:
+    """Fallback: classify a phase from its telemetry shape.
+
+    Heuristics:
+    - First phase with low avg pressure and rising trend → preinfusion
+    - Last phase with declining pressure trend → decline
+    - Everything else → brew
+    """
+    pressures = [s.get('cp', 0.0) for s in phase_samples]
+    if len(pressures) < 2:
+        return "brew"
+
+    avg_p = sum(pressures) / len(pressures)
+    slope = (pressures[-1] - pressures[0]) / max(len(pressures) - 1, 1)
+
+    # First phase, low pressure, rising → preinfusion
+    if phase_index == 0 and avg_p < 5.0 and slope >= 0:
+        return "preinfusion"
+
+    # Last phase (not first), declining pressure → decline
+    if phase_index == total_phases - 1 and phase_index > 0 and slope < -0.3:
+        return "decline"
+
+    return "brew"
+
+
+def _classify_phase(
+    name: str,
+    phase_samples: Optional[list[dict]] = None,
+    phase_index: int = 0,
+    total_phases: int = 1,
+) -> str:
+    """Classify a phase into preinfusion / brew / decline.
+
+    Tries keyword matching on the phase name first.  Falls back to
+    telemetry-based heuristics when the name is not recognised.
+    """
+    result = _classify_phase_by_name(name)
+    if result is not None:
+        return result
+    if phase_samples is not None:
+        return _classify_phase_by_telemetry(
+            phase_samples, phase_index, total_phases,
+        )
+    return "brew"
+
+
+def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
+    """Compute diagnostic features from shot telemetry data.
+
+    Pre-computes physics-informed features with interpretive annotations
+    for optimal LLM reasoning. Features are grouped by diagnostic purpose:
+    puck resistance, channeling indicators, temperature stability,
+    extraction quality, and weight/yield analysis.
+
+    Returns None if insufficient data for meaningful analysis (< 5 total
+    samples or < 3 brew-phase samples).
+    """
+    samples = shot.samples
+    if not samples or len(samples) < 5:
+        return None
+
+    dt = shot.sample_interval / 1000.0  # seconds per sample
+
+    brew_samples = _get_brew_phase_samples(shot)
+    if len(brew_samples) < 3:
+        return None
+
+    # Extract brew-phase arrays
+    brew_pressures = [s.get('cp', 0.0) for s in brew_samples]
+    brew_flows = [s.get('pf', 0.0) for s in brew_samples]
+    brew_temps = [s.get('ct', 0.0) for s in brew_samples]
+    brew_target_temps = [s.get('tt', 0.0) for s in brew_samples]
+
+    # Full-shot pressure for AUC
+    all_pressures = [s.get('cp', 0.0) for s in samples]
+
+    # Weight data (may not be available if no Bluetooth scale)
+    brew_weights = [s.get('v', 0.0) for s in brew_samples]
+    has_scale = any(w > 0 for w in brew_weights)
+
+    # ── PUCK RESISTANCE (the master diagnostic) ──────────────
+    # R = P / F² (quadratic Darcy model)
+    resistance_values: list[float] = []
+    for p, f in zip(brew_pressures, brew_flows):
+        if f > 0.1:  # Skip near-zero flow to avoid division artifacts
+            resistance_values.append(p / (f * f))
+
+    r_avg = _round2(_safe_mean(resistance_values))
+    r_std = _round2(_safe_std(resistance_values))
+    r_slope = _round2(_linear_slope(resistance_values, dt))
+    if resistance_values:
+        r_peak_val = max(resistance_values)
+        r_peak = _round2(r_peak_val)
+        r_peak_idx = resistance_values.index(r_peak_val)
     else:
-        # No phases defined - create single 'extraction' phase
-        temperatures = [s.get('ct', 0.0) for s in samples]
-        pressures = [s.get('cp', 0.0) for s in samples]
+        r_peak = 0.0
+        r_peak_idx = 0
+    r_peak_timing = (
+        _round2(r_peak_idx / len(resistance_values))
+        if resistance_values else 0.0
+    )
 
-        avg_temp = round(sum(temperatures) / len(temperatures) * 10) / 10 if temperatures else 0.0
-        avg_pressure = round(sum(pressures) / len(pressures) * 10) / 10 if pressures else 0.0
-        total_flow = calculate_total_volume(samples, shot.sample_interval)
+    resistance = ResistanceDiagnostics(
+        avg=r_avg,
+        std=r_std,
+        slope=r_slope,
+        peak=r_peak,
+        peak_timing_pct=r_peak_timing,
+        annotations={
+            "level": _annotate_ascending(r_avg, _RESISTANCE_LEVEL_BANDS),
+            "stability": _annotate_ascending(r_std, _RESISTANCE_STABILITY_BANDS),
+            "erosion": _annotate_descending(r_slope, _RESISTANCE_SLOPE_BANDS),
+            "saturation": _annotate_ascending(
+                r_peak_timing, _RESISTANCE_PEAK_TIMING_BANDS
+            ),
+        },
+    )
 
-        # Representative samples
-        representative_samples: list[TransformedSample] = []
-        indices = [0, len(samples) // 2, len(samples) - 1]
-        unique_indices = sorted(set(indices))
+    # ── CHANNELING INDICATORS ────────────────────────────────
+    p_volatility = _round2(_safe_std(brew_pressures))
+    f_volatility = _round2(_safe_std(brew_flows))
 
-        for idx in unique_indices:
-            if idx < len(samples):
-                sample = samples[idx]
-                representative_samples.append(TransformedSample(
-                    time_seconds=round((sample.get('t', 0.0) / 1000.0) * 10) / 10,
-                    temperature_c=round(sample.get('ct', 0.0) * 10) / 10,
-                    pressure_bar=round(sample.get('cp', 0.0) * 10) / 10,
-                    flow_ml_s=round(sample.get('pf', 0.0) * 10) / 10,
-                    weight_g=round(sample.get('v', 0.0) * 10) / 10,
-                ))
+    # Max pressure drop rate (most negative dP/dt)
+    p_derivatives: list[float] = []
+    for i in range(1, len(brew_pressures)):
+        dp_dt = (brew_pressures[i] - brew_pressures[i - 1]) / dt
+        p_derivatives.append(dp_dt)
+    p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
 
-        phases.append(PhaseData(
-            name='extraction',
-            phase_number=0,
-            start_time_seconds=0.0,
-            duration_seconds=round(shot.duration / 1000.0 * 10) / 10,
-            sample_count=len(samples),
-            avg_temperature_c=avg_temp,
-            avg_pressure_bar=avg_pressure,
-            total_flow_ml=total_flow,
-            samples=representative_samples,
+    # Flow acceleration in late shot (last 40% of brew phase)
+    late_start = int(len(brew_flows) * 0.6)
+    late_flows = brew_flows[late_start:]
+    f_accel_late = _round2(_linear_slope(late_flows, dt))
+
+    overall_risk = _assess_channeling_risk(
+        p_volatility, f_volatility, p_max_drop, f_accel_late
+    )
+
+    channeling = ChannelingIndicators(
+        pressure_volatility_bar=p_volatility,
+        flow_volatility_ml_s=f_volatility,
+        pressure_max_drop_rate_bar_s=p_max_drop,
+        flow_acceleration_late_ml_s2=f_accel_late,
+        overall_risk=overall_risk,
+        annotations={
+            "pressure_stability": _annotate_ascending(
+                p_volatility, _PRESSURE_VOLATILITY_BANDS
+            ),
+            "flow_stability": _annotate_ascending(
+                f_volatility, _FLOW_VOLATILITY_BANDS
+            ),
+            "pressure_drop": _annotate_descending(
+                p_max_drop, _PRESSURE_DROP_RATE_BANDS
+            ),
+            "late_flow_trend": _annotate_ascending(
+                f_accel_late, _FLOW_ACCELERATION_BANDS
+            ),
+        },
+    )
+
+    # ── TEMPERATURE DIAGNOSTICS ──────────────────────────────
+    temp_deviations = [
+        ct - tt
+        for ct, tt in zip(brew_temps, brew_target_temps)
+        if tt > 0  # Skip if no target temp recorded
+    ]
+    t_overshoot = max(temp_deviations) if temp_deviations else 0.0
+    t_undershoot = abs(min(temp_deviations)) if temp_deviations else 0.0
+    t_std = _round2(_safe_std(brew_temps))
+
+    temperature = TemperatureDiagnostics(
+        overshoot_c=_round2(max(0.0, t_overshoot)),
+        undershoot_c=_round2(max(0.0, t_undershoot)),
+        stability_std_c=t_std,
+        annotations={
+            "overshoot": _annotate_ascending(
+                max(0.0, t_overshoot), _TEMP_OVERSHOOT_BANDS
+            ),
+            "undershoot": _annotate_ascending(
+                max(0.0, t_undershoot), _TEMP_OVERSHOOT_BANDS
+            ),
+            "stability": _annotate_ascending(t_std, _TEMP_STABILITY_BANDS),
+        },
+    )
+
+    # ── EXTRACTION METRICS ───────────────────────────────────
+    # Pressure AUC (trapezoidal approximation over full shot)
+    p_auc = _round2(sum(p * dt for p in all_pressures))
+    p_slope = _round2(_linear_slope(brew_pressures, dt))
+    f_slope = _round2(_linear_slope(brew_flows, dt))
+    f_avg = _round2(_safe_mean(brew_flows))
+
+    extraction = ExtractionMetrics(
+        pressure_auc_bar_s=p_auc,
+        pressure_slope_brew_bar_s=p_slope,
+        flow_slope_brew_ml_s2=f_slope,
+        flow_avg_brew_ml_s=f_avg,
+        annotations={
+            "pressure_trend": _annotate_descending(
+                p_slope, _RESISTANCE_SLOPE_BANDS
+            ),
+            "flow_trend": (
+                "DECLINING" if f_slope < -0.02
+                else "STABLE" if f_slope < 0.02
+                else "INCREASING"
+            ),
+        },
+    )
+
+    # ── WEIGHT / YIELD DIAGNOSTICS ───────────────────────────
+    w_rate_avg: Optional[float] = None
+    w_rate_std: Optional[float] = None
+    weight_annotations: dict[str, str] = {}
+
+    if has_scale:
+        weight_rates: list[float] = []
+        for i in range(1, len(brew_weights)):
+            rate = (brew_weights[i] - brew_weights[i - 1]) / dt
+            if rate >= 0:  # Only accumulating weight
+                weight_rates.append(rate)
+        if weight_rates:
+            w_rate_avg = _round2(_safe_mean(weight_rates))
+            w_rate_std = _round2(_safe_std(weight_rates))
+            weight_annotations["rate_stability"] = _annotate_ascending(
+                w_rate_std, _FLOW_VOLATILITY_BANDS
+            )
+    else:
+        weight_annotations["note"] = "No scale data available"
+
+    weight = WeightDiagnostics(
+        rate_avg_g_s=w_rate_avg,
+        rate_std_g_s=w_rate_std,
+        scale_connected=has_scale,
+        annotations=weight_annotations,
+    )
+
+    # ── PROFILE COMPLIANCE ────────────────────────────────────
+    profile_compliance = _compute_profile_compliance(samples, dt)
+
+    return ShotDiagnostics(
+        resistance=resistance,
+        channeling=channeling,
+        temperature=temperature,
+        extraction=extraction,
+        weight=weight,
+        profile_compliance=profile_compliance,
+    )
+
+
+def _compute_profile_compliance(
+    samples: list[dict], dt: float,
+) -> Optional[ProfileComplianceMetrics]:
+    """Compute how well the shot follows the target profile.
+
+    Compares actual pressure/flow against target pressure/flow
+    (tp/tf fields) using RMSE and max overshoot/undershoot.
+    pressure_overshoot > 1.0 bar is highly unusual and almost certainly
+    indicates grind too fine, excessive dose, or a puck preparation issue.
+    """
+    # Only include samples where target pressure was recorded
+    p_pairs = [(s.get('cp', 0.0), s['tp']) for s in samples if 'tp' in s]
+    if len(p_pairs) < 3:
+        return None
+
+    p_actual = [a for a, _ in p_pairs]
+    p_target = [t for _, t in p_pairs]
+    p_rmse = _round2(_compute_rmse(p_actual, p_target))
+
+    deviations = [a - t for a, t in p_pairs]
+    max_overshoot = _round2(max(0.0, max(deviations)))
+    max_undershoot = _round2(max(0.0, abs(min(deviations))))
+
+    # Flow compliance (optional — tf may not always be set)
+    f_pairs = [(s.get('pf', 0.0), s['tf']) for s in samples if 'tf' in s]
+    f_rmse: Optional[float] = None
+    max_flow_overshoot: Optional[float] = None
+    max_flow_undershoot: Optional[float] = None
+    if len(f_pairs) >= 3:
+        f_rmse = _round2(_compute_rmse(
+            [a for a, _ in f_pairs], [t for _, t in f_pairs],
         ))
+        f_deviations = [a - t for a, t in f_pairs]
+        max_flow_overshoot = _round2(max(0.0, max(f_deviations)))
+        max_flow_undershoot = _round2(max(0.0, abs(min(f_deviations))))
 
-    return phases
+    annotations: dict[str, str] = {
+        "pressure_adherence": _annotate_ascending(
+            p_rmse, _PROFILE_ADHERENCE_BANDS
+        ),
+        "pressure_overshoot": _annotate_ascending(
+            max_overshoot, _PRESSURE_OVERSHOOT_BANDS
+        ),
+    }
+    if f_rmse is not None:
+        annotations["flow_adherence"] = _annotate_ascending(
+            f_rmse, _PROFILE_ADHERENCE_BANDS
+        )
+    if max_flow_overshoot is not None:
+        annotations["flow_overshoot"] = _annotate_ascending(
+            max_flow_overshoot, _FLOW_DEVIATION_BANDS
+        )
+    if max_flow_undershoot is not None:
+        annotations["flow_undershoot"] = _annotate_ascending(
+            max_flow_undershoot, _FLOW_DEVIATION_BANDS
+        )
+
+    return ProfileComplianceMetrics(
+        pressure_rmse_bar=p_rmse,
+        flow_rmse_ml_s=f_rmse,
+        max_pressure_overshoot_bar=max_overshoot,
+        max_pressure_undershoot_bar=max_undershoot,
+        max_flow_overshoot_ml_s=max_flow_overshoot,
+        max_flow_undershoot_ml_s=max_flow_undershoot,
+        annotations=annotations,
+    )
 
 
-def transform_shot_for_ai(shot: ShotData) -> TransformedShot:
+def _compute_phase_diagnostics(
+    phase_samples: list[dict], phase_type: str, dt: float,
+) -> PhaseDiagnostics:
+    """Compute diagnostics specific to a phase type.
+
+    Metrics computed depend on phase_type:
+    - preinfusion: ramp rate, saturation time
+    - brew: resistance, channeling, stability
+    - decline: taper rate, taper smoothness
+    All phases get RMSE vs target and basic stats.
+    """
+    pressures = [s.get('cp', 0.0) for s in phase_samples]
+    flows = [s.get('pf', 0.0) for s in phase_samples]
+
+    avg_p = _round2(_safe_mean(pressures))
+    avg_f = _round2(_safe_mean(flows))
+
+    # Per-phase RMSE vs target
+    p_pairs = [(s.get('cp', 0.0), s['tp']) for s in phase_samples if 'tp' in s]
+    p_rmse = _round2(_compute_rmse(
+        [a for a, _ in p_pairs], [t for _, t in p_pairs],
+    )) if p_pairs else 0.0
+
+    f_pairs = [(s.get('pf', 0.0), s['tf']) for s in phase_samples if 'tf' in s]
+    f_rmse = _round2(_compute_rmse(
+        [a for a, _ in f_pairs], [t for _, t in f_pairs],
+    )) if f_pairs else 0.0
+
+    annotations: dict[str, str] = {
+        "pressure_adherence": _annotate_ascending(
+            p_rmse, _PROFILE_ADHERENCE_BANDS
+        ),
+    }
+
+    result: PhaseDiagnostics = {
+        "phase_type": phase_type,
+        "avg_pressure_bar": avg_p,
+        "avg_flow_ml_s": avg_f,
+        "pressure_rmse_bar": p_rmse,
+        "flow_rmse_ml_s": f_rmse,
+        "annotations": annotations,
+    }
+
+    if phase_type == "preinfusion":
+        ramp_rate = _round2(_linear_slope(pressures, dt))
+        # Saturation: time for flow to stabilise
+        sat_time = _round2(len(phase_samples) * dt)
+        for i in range(2, len(flows)):
+            window = flows[max(0, i - 2):i + 1]
+            if len(window) >= 2 and _safe_std(window) < 0.15 and _safe_mean(window) > 0.1:
+                sat_time = _round2(i * dt)
+                break
+        result["ramp_rate_bar_s"] = ramp_rate
+        result["saturation_time_s"] = sat_time
+        annotations["ramp_rate"] = _annotate_ascending(
+            abs(ramp_rate), _RAMP_RATE_BANDS
+        )
+
+    elif phase_type == "brew":
+        r_values = [
+            p / (f * f) for p, f in zip(pressures, flows) if f > 0.1
+        ]
+        r_avg = _round2(_safe_mean(r_values))
+        r_slope = _round2(_linear_slope(r_values, dt))
+        p_vol = _round2(_safe_std(pressures))
+        f_vol = _round2(_safe_std(flows))
+        p_derivs = [
+            (pressures[i] - pressures[i - 1]) / dt
+            for i in range(1, len(pressures))
+        ]
+        p_max_drop = min(p_derivs) if p_derivs else 0.0
+        late_start = int(len(flows) * 0.6)
+        f_accel = _linear_slope(flows[late_start:], dt)
+        risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+
+        result["resistance_avg"] = r_avg
+        result["resistance_slope"] = r_slope
+        result["channeling_risk"] = risk
+        result["pressure_stability_bar"] = p_vol
+        result["flow_stability_ml_s"] = f_vol
+        annotations["resistance_level"] = _annotate_ascending(
+            r_avg, _RESISTANCE_LEVEL_BANDS
+        )
+        annotations["resistance_erosion"] = _annotate_descending(
+            r_slope, _RESISTANCE_SLOPE_BANDS
+        )
+        annotations["channeling"] = risk
+        annotations["pressure_stability"] = _annotate_ascending(
+            p_vol, _PRESSURE_VOLATILITY_BANDS
+        )
+        annotations["flow_stability"] = _annotate_ascending(
+            f_vol, _FLOW_VOLATILITY_BANDS
+        )
+
+    elif phase_type == "decline":
+        taper_rate = _round2(_linear_slope(pressures, dt))
+        p_derivs = [
+            (pressures[i] - pressures[i - 1]) / dt
+            for i in range(1, len(pressures))
+        ]
+        taper_smooth = _round2(_safe_std(p_derivs)) if p_derivs else 0.0
+        result["taper_rate_bar_s"] = taper_rate
+        result["taper_smoothness"] = taper_smooth
+        annotations["taper_smoothness"] = _annotate_ascending(
+            taper_smooth, _TAPER_SMOOTHNESS_BANDS
+        )
+
+    return result
+
+
+def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
+    """Compute lightweight diagnostics for the summary detail level.
+
+    Returns only key indicators an LLM needs for a quick assessment.
+    """
+    samples = shot.samples
+    if not samples or len(samples) < 5:
+        return None
+
+    dt = shot.sample_interval / 1000.0
+    brew_samples = _get_brew_phase_samples(shot)
+    if len(brew_samples) < 3:
+        return None
+
+    brew_pressures = [s.get('cp', 0.0) for s in brew_samples]
+    brew_flows = [s.get('pf', 0.0) for s in brew_samples]
+    brew_temps = [s.get('ct', 0.0) for s in brew_samples]
+    brew_weights = [s.get('v', 0.0) for s in brew_samples]
+
+    # Resistance
+    r_values = [p / (f * f) for p, f in zip(brew_pressures, brew_flows) if f > 0.1]
+    r_avg = _round2(_safe_mean(r_values))
+    r_slope = _round2(_linear_slope(r_values, dt))
+
+    # Channeling
+    p_vol = _safe_std(brew_pressures)
+    f_vol = _safe_std(brew_flows)
+    p_derivs = [
+        (brew_pressures[i] - brew_pressures[i - 1]) / dt
+        for i in range(1, len(brew_pressures))
+    ]
+    p_max_drop = min(p_derivs) if p_derivs else 0.0
+    late_start = int(len(brew_flows) * 0.6)
+    f_accel = _linear_slope(brew_flows[late_start:], dt)
+    risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+
+    # Temperature
+    t_std = _round2(_safe_std(brew_temps))
+
+    # Profile compliance
+    p_rmse = 0.0
+    max_overshoot = 0.0
+    p_targets = [(s.get('cp', 0.0), s['tp']) for s in brew_samples if 'tp' in s]
+    if p_targets:
+        p_rmse = _round2(_compute_rmse(
+            [a for a, _ in p_targets], [t for _, t in p_targets],
+        ))
+        devs = [a - t for a, t in p_targets]
+        max_overshoot = _round2(max(0.0, max(devs)))
+
+    # Flow compliance (optional — tf may not always be set)
+    f_rmse: Optional[float] = None
+    max_flow_overshoot: Optional[float] = None
+    f_targets = [(s.get('pf', 0.0), s['tf']) for s in brew_samples if 'tf' in s]
+    if len(f_targets) >= 3:
+        f_rmse = _round2(_compute_rmse(
+            [a for a, _ in f_targets], [t for _, t in f_targets],
+        ))
+        f_devs = [a - t for a, t in f_targets]
+        max_flow_overshoot = _round2(max(0.0, max(f_devs)))
+
+    # Scale
+    has_scale = any(w > 0 for w in brew_weights)
+
+    annotations: dict[str, str] = {
+        "resistance_level": _annotate_ascending(r_avg, _RESISTANCE_LEVEL_BANDS),
+        "resistance_erosion": _annotate_descending(r_slope, _RESISTANCE_SLOPE_BANDS),
+        "channeling_risk": risk,
+        "temperature_stability": _annotate_ascending(t_std, _TEMP_STABILITY_BANDS),
+        "pressure_adherence": _annotate_ascending(p_rmse, _PROFILE_ADHERENCE_BANDS),
+        "pressure_overshoot": _annotate_ascending(
+            max_overshoot, _PRESSURE_OVERSHOOT_BANDS
+        ),
+    }
+    if f_rmse is not None:
+        annotations["flow_adherence"] = _annotate_ascending(
+            f_rmse, _PROFILE_ADHERENCE_BANDS
+        )
+    if max_flow_overshoot is not None:
+        annotations["flow_overshoot"] = _annotate_ascending(
+            max_flow_overshoot, _FLOW_DEVIATION_BANDS
+        )
+
+    return SummaryDiagnostics(
+        resistance_avg=r_avg,
+        resistance_slope=r_slope,
+        channeling_risk=risk,
+        temperature_stability_c=t_std,
+        pressure_rmse_bar=p_rmse,
+        max_overshoot_bar=max_overshoot,
+        flow_rmse_ml_s=f_rmse,
+        max_flow_overshoot_ml_s=max_flow_overshoot,
+        scale_connected=has_scale,
+        annotations=annotations,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DETAIL LEVELS
+# ═══════════════════════════════════════════════════════════════════
+
+VALID_DETAIL_LEVELS = ("summary", "per_phase", "detailed")
+
+
+def transform_shot_for_ai(
+    shot: ShotData, detail: str = "summary",
+) -> TransformedShot:
     """Transform shot data for AI analysis.
 
-    Converts raw binary shot data into a structured format optimized
-    for AI analysis, including summary statistics and phase breakdowns.
+    Converts raw binary shot data into a structured format optimised
+    for AI analysis. The *detail* parameter controls output granularity:
+
+    - **summary** (default): Key indicators only — resistance avg/slope,
+      channeling risk, temperature stability, profile compliance RMSE
+      and max overshoot. Phases listed with stats but no samples.
+      Minimal token usage.
+    - **per_phase**: Full shot diagnostics *plus* per-phase diagnostics
+      (preinfusion/brew/decline specific metrics) with representative
+      samples per phase.
+    - **detailed**: Everything in per_phase *plus* all time-series
+      samples per phase.
 
     Args:
         shot: Parsed shot data
+        detail: Granularity level ("summary", "per_phase", "detailed")
 
     Returns:
-        Transformed shot data
+        Transformed shot data with diagnostics appropriate to detail level
     """
-    summary = calculate_summary(shot)
-    phases = process_phases(shot)
+    if detail not in VALID_DETAIL_LEVELS:
+        detail = "summary"
+
+    summary_stats = calculate_summary(shot)
+    dt = shot.sample_interval / 1000.0
+
+    if detail == "summary":
+        phases = _build_phases(shot, include_samples=False, include_diagnostics=False, dt=dt)
+        diagnostics: Optional[ShotDiagnostics | SummaryDiagnostics] = compute_summary_diagnostics(shot)
+    elif detail == "per_phase":
+        phases = _build_phases(shot, include_samples=True, include_diagnostics=True, dt=dt)
+        diagnostics = compute_shot_diagnostics(shot)
+    else:  # detailed
+        phases = _build_phases(
+            shot, include_samples=True, include_diagnostics=True,
+            all_samples=True, dt=dt,
+        )
+        diagnostics = compute_shot_diagnostics(shot)
 
     return TransformedShot(
         shot_id=shot.id,
@@ -311,6 +1218,125 @@ def transform_shot_for_ai(shot: ShotData) -> TransformedShot:
         timestamp=shot.timestamp,
         duration_seconds=round(shot.duration / 1000.0 * 10) / 10,
         final_weight_g=shot.weight,
-        summary=summary,
+        summary=summary_stats,
         phases=phases,
+        diagnostics=diagnostics,
+        detail_level=detail,
     )
+
+
+def _build_phases(
+    shot: ShotData,
+    *,
+    include_samples: bool = True,
+    include_diagnostics: bool = False,
+    all_samples: bool = False,
+    dt: float = 0.0,
+) -> list[PhaseData]:
+    """Build phase list with configurable content.
+
+    This is the internal implementation behind ``process_phases`` and
+    the detail-level logic in ``transform_shot_for_ai``.
+    """
+    phases: list[PhaseData] = []
+    samples = shot.samples
+    if not samples:
+        return phases
+
+    if shot.phases:
+        for i, phase in enumerate(shot.phases):
+            start_index = phase.sample_index
+            end_index = (
+                shot.phases[i + 1].sample_index
+                if i + 1 < len(shot.phases)
+                else len(samples)
+            )
+            phase_samples = samples[start_index:end_index]
+            if not phase_samples:
+                continue
+
+            temperatures = [s['ct'] for s in phase_samples if 'ct' in s]
+            pressures = [s['cp'] for s in phase_samples if 'cp' in s]
+            avg_temp = round(sum(temperatures) / len(temperatures) * 10) / 10 if temperatures else 0.0
+            avg_pressure = round(sum(pressures) / len(pressures) * 10) / 10 if pressures else 0.0
+            total_flow = calculate_total_volume(phase_samples, shot.sample_interval)
+
+            start_time = phase_samples[0].get('t', 0.0) / 1000.0
+            end_time = phase_samples[-1].get('t', 0.0) / 1000.0
+            duration = max(0.0, end_time - start_time + shot.sample_interval / 1000.0)
+
+            pd: PhaseData = {
+                "name": phase.phase_name,
+                "phase_number": phase.phase_number,
+                "start_time_seconds": round(start_time * 10) / 10,
+                "duration_seconds": round(duration * 10) / 10,
+                "sample_count": len(phase_samples),
+                "avg_temperature_c": avg_temp,
+                "avg_pressure_bar": avg_pressure,
+                "total_flow_ml": total_flow,
+            }
+
+            if include_samples:
+                pd["samples"] = _select_samples(phase_samples, all_samples)
+
+            if include_diagnostics and dt > 0 and len(phase_samples) >= 3:
+                phase_type = _classify_phase(
+                    phase.phase_name,
+                    phase_samples=phase_samples,
+                    phase_index=i,
+                    total_phases=len(shot.phases),
+                )
+                pd["diagnostics"] = _compute_phase_diagnostics(
+                    phase_samples, phase_type, dt,
+                )
+
+            phases.append(pd)
+    else:
+        # No phases defined — single 'extraction' phase
+        temperatures = [s.get('ct', 0.0) for s in samples]
+        pressures = [s.get('cp', 0.0) for s in samples]
+        avg_temp = round(sum(temperatures) / len(temperatures) * 10) / 10 if temperatures else 0.0
+        avg_pressure = round(sum(pressures) / len(pressures) * 10) / 10 if pressures else 0.0
+        total_flow = calculate_total_volume(samples, shot.sample_interval)
+
+        pd = {
+            "name": "extraction",
+            "phase_number": 0,
+            "start_time_seconds": 0.0,
+            "duration_seconds": round(shot.duration / 1000.0 * 10) / 10,
+            "sample_count": len(samples),
+            "avg_temperature_c": avg_temp,
+            "avg_pressure_bar": avg_pressure,
+            "total_flow_ml": total_flow,
+        }
+
+        if include_samples:
+            pd["samples"] = _select_samples(samples, all_samples)
+
+        if include_diagnostics and dt > 0 and len(samples) >= 3:
+            pd["diagnostics"] = _compute_phase_diagnostics(samples, "brew", dt)
+
+        phases.append(pd)  # type: ignore[arg-type]
+
+    return phases
+
+
+def _select_samples(samples: list[dict], all_samples: bool) -> list[TransformedSample]:
+    """Select representative or all samples from a phase."""
+    if all_samples:
+        indices = range(len(samples))
+    else:
+        indices = sorted(set([0, len(samples) // 2, len(samples) - 1]))
+
+    result: list[TransformedSample] = []
+    for idx in indices:
+        if idx < len(samples):
+            s = samples[idx]
+            result.append(TransformedSample(
+                time_seconds=round((s.get('t', 0.0) / 1000.0) * 10) / 10,
+                temperature_c=round(s.get('ct', 0.0) * 10) / 10,
+                pressure_bar=round(s.get('cp', 0.0) * 10) / 10,
+                flow_ml_s=round(s.get('pf', 0.0) * 10) / 10,
+                weight_g=round(s.get('v', 0.0) * 10) / 10,
+            ))
+    return result

@@ -75,6 +75,36 @@ Each phase represents a distinct stage in the extraction process.
 - **`brew`**: Main extraction phase (pressure/flow control)
 - **`decline`**: Pressure taper/finish phase (optional)
 
+### Phase Naming for Shot Analysis
+
+The `analyze_shot` tool classifies each phase by its **`name`** field (not the `phase` field) to provide phase-specific diagnostics. The shot log binary only stores the free-text `name`, so choosing recognisable names ensures accurate analysis using relevant metrics.
+
+#### Recognised Keywords (substring matching, case-insensitive)
+
+The analyzer uses **substring matching**, so creative names like "Gentle Pre-infusion" or "Blooming Phase" still work as long as they contain a recognised keyword.
+
+| Classification | Recognised Keywords | Example Names |
+|----------------|---------------------|---------------|
+| **preinfusion** | `preinfusion`, `pre-infusion`, `pi`, `soak`, `bloom`, `fill`, `preinfuse` | "Pre-infusion", "Gentle Soak", "Bloom", "Long Fill" |
+| **decline** | `decline`, `taper`, `ramp-down`, `ramp down`, `cool down`, `cooldown` | "Decline", "Smooth Taper", "Final Cooldown" |
+| **brew** | _(everything else)_ | "Extraction", "Hold", "Main", "Ramp", "Step 2" |
+
+#### Telemetry Fallback
+
+When the phase name contains **none** of the above keywords, the analyzer falls back to pressure telemetry heuristics:
+
+- **First phase** with low average pressure (< 5 bar) and rising trend → classified as **preinfusion**
+- **Last phase** (not the first) with declining pressure slope → classified as **decline**
+- **All other unrecognised phases** → classified as **brew**
+
+#### Best Practices for Phase Names
+
+1. **Include a keyword** from the table above so the analyzer classifies the phase correctly without guessing
+2. **Preinfusion**: Use names containing "preinfusion", "pre-infusion", "soak", "bloom", or "fill"
+3. **Decline/taper**: Use names containing "decline", "taper", or "cooldown"
+4. **Brew phases**: Any name that does not contain a preinfusion or decline keyword is treated as brew — no special naming required
+5. **Avoid ambiguity**: A name like "Ramp" is fine for brew; avoid using it if you mean preinfusion
+
 ---
 
 ## Pump Configuration

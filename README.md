@@ -72,6 +72,12 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 
 ## Changelog
 
+### 2026-02-21
+- **Physics-informed shot diagnostics**: `analyze_shot` now computes puck resistance (P/F²), channeling risk scoring, temperature deviation tracking, pressure/flow stability, profile compliance metrics, and per-phase breakdowns — all with human-readable band annotations
+- **3-level detail system**: New `detail` parameter (`summary`/`per_phase`/`detailed`) controls diagnostic depth vs. token cost. Summary for triage, per_phase for isolating problems, detailed for full time-series
+- **Calibrated diagnostic thresholds**: Pressure drop rate bands widened for 100ms sample noise, temperature overshoot bands tightened to match INEI ±2°C tolerance, ramp rate labels renamed from SLOW/FAST to GENTLE/AGGRESSIVE to avoid value judgments on intentionally slow preinfusion ramps
+- **Research documentation**: Added `knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md` with physics rationale and source citations for all threshold decisions
+
 ### 2026-02-20
 - **Narrative coffee tracking**: Coffee files now store analysis and insights instead of raw numbers — brewing approach (narrative), journal entries (dated analysis), and key insights. Raw shot data stays on the device; the agent records *thinking* and *learnings*
 - **Brewing insights**: New `manage_brewing_insights` tool and `gaggimate://user/brewing-insights` resource for cross-coffee pattern recognition — what works for which origin, which profiles suit which processing method, general learnings that carry across coffees
@@ -188,7 +194,13 @@ This server provides eight tools and six resources that give AI agents the capab
 Create, view, update, delete, and list brewing profiles on your Gaggimate device. Profiles define the entire extraction process—water temperature, pre-infusion settings, pressure curves, and flow targets. The AI can build profiles optimized for specific beans or brewing styles. **Partial updates** are supported—you can change just temperature, phases, or name without respecifying everything. Profiles created by AI are automatically tagged with `[AI]` in their name so you can identify them.
 
 #### `analyze_shot`
-Retrieve comprehensive data from any shot, including temperature curves, pressure readings, flow rates, and extraction timing. The raw binary shot logs are parsed and transformed into an AI-friendly format with computed statistics like average pressure, temperature stability, and total extraction volume. This gives the AI the context it needs to understand what happened during extraction.
+Retrieve and analyze any shot with a **3-level detail system** that balances insight vs. token cost:
+
+- **`summary`** (default): Key indicators for quick triage — puck resistance, channeling risk, temperature stability, profile compliance, and human-readable annotation labels. Start here.
+- **`per_phase`**: Full diagnostics plus per-phase breakdowns (preinfusion ramp rate, brew stability, decline taper smoothness) with representative samples. Use when diagnosing which phase has a problem.
+- **`detailed`**: Everything in `per_phase` plus all time-series samples. Use for deep analysis when exact timings matter.
+
+Raw binary shot logs are parsed and transformed into an AI-friendly format with physics-informed diagnostics: puck resistance modeling (P/F²), channeling risk scoring, temperature deviation tracking, pressure/flow stability analysis, and profile compliance metrics. Every numeric metric is accompanied by a band annotation (e.g., `MODERATE`, `STABLE`, `SLIGHT_OVERSHOOT`) so the AI can interpret values without needing to know the thresholds.
 
 #### `manage_shot_notes`
 Record ratings (0-5 stars), tasting notes, and brewing parameters for any shot. Notes are synced directly to your Gaggimate device via WebSocket and also stored locally as backup. You can track taste balance (bitter/balanced/sour), grind settings, and dose weights. Notes added by AI are prefixed with `[AI]:` for transparency.
@@ -349,8 +361,8 @@ knowledge/
 ├── MILK_AND_DRINKS.md                    # Steaming, drink specs, single-boiler workflow
 ├── SPECIAL_CATEGORIES.md                 # Decaf adjustments, blend strategies
 ├── profiles/                             # Profile creation references (structure, pumps, examples)
-├── diagnostics/                          # Diagnostic trees, telemetry patterns
-└── research/                             # Research checklists for new coffees
+├── diagnostics/                          # Diagnostic trees, telemetry patterns, shot diagnostics reference
+└── research/                             # Research checklists, espresso physics & threshold calibration
 
 agent-skills/
 ├── gaggimate-profiles/     # Profile creation with conditional reference loading
