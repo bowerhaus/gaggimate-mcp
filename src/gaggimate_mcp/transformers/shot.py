@@ -160,12 +160,23 @@ class ProfileComplianceMetrics(TypedDict):
     """Profile adherence metrics — RMSE between target and actual.
 
     Measures how well the machine followed the programmed profile.
-    pressure_overshoot > 1.5 bar often indicates grind too fine.
+    pressure_overshoot > 1.0 bar is highly unusual and almost certainly
+    indicates grind too fine, excessive dose, or a puck preparation issue.
+
+    **Important:** Flow deviation is a more reliable grind indicator than
+    pressure overshoot because the Gaggimate/gaggiuino PID actively
+    controls pump power to maintain target pressure.  Pressure overshoot
+    is therefore artificially limited by the controller.  Flow rate,
+    however, is a *consequence* of grind+dose+puck-prep and cannot be
+    masked by the pump — making flow overshoot/undershoot the stronger
+    signal for diagnosing grind mismatch.
     """
     pressure_rmse_bar: float
     flow_rmse_ml_s: Optional[float]
     max_pressure_overshoot_bar: float
     max_pressure_undershoot_bar: float
+    max_flow_overshoot_ml_s: Optional[float]
+    max_flow_undershoot_ml_s: Optional[float]
     annotations: dict[str, str]
 
 
@@ -195,6 +206,8 @@ class SummaryDiagnostics(TypedDict):
     temperature_stability_c: float
     pressure_rmse_bar: float
     max_overshoot_bar: float
+    flow_rmse_ml_s: Optional[float]
+    max_flow_overshoot_ml_s: Optional[float]
     scale_connected: bool
     annotations: dict[str, str]
 
@@ -423,10 +436,17 @@ _PROFILE_ADHERENCE_BANDS: list[tuple[float, str]] = [
 ]
 
 _PRESSURE_OVERSHOOT_BANDS: list[tuple[float, str]] = [
-    (0.5, "WITHIN_TOLERANCE"),
-    (1.0, "SLIGHT_OVERSHOOT"),
-    (1.5, "MODERATE_OVERSHOOT"),
-    (float('inf'), "SIGNIFICANT_OVERSHOOT"),
+    (0.25, "WITHIN_TOLERANCE"),
+    (0.5, "MINOR_OVERSHOOT"),
+    (1.0, "NOTABLE_OVERSHOOT"),
+    (float('inf'), "SEVERE_OVERSHOOT"),
+]
+
+_FLOW_DEVIATION_BANDS: list[tuple[float, str]] = [
+    (0.3, "WITHIN_TOLERANCE"),
+    (0.7, "MINOR_DEVIATION"),
+    (1.5, "NOTABLE_DEVIATION"),
+    (float('inf'), "SEVERE_DEVIATION"),
 ]
 
 _TAPER_SMOOTHNESS_BANDS: list[tuple[float, str]] = [
@@ -872,7 +892,8 @@ def _compute_profile_compliance(
 
     Compares actual pressure/flow against target pressure/flow
     (tp/tf fields) using RMSE and max overshoot/undershoot.
-    pressure_overshoot > 1.5 bar often indicates grind too fine.
+    pressure_overshoot > 1.0 bar is highly unusual and almost certainly
+    indicates grind too fine, excessive dose, or a puck preparation issue.
     """
     # Only include samples where target pressure was recorded
     p_pairs = [(s.get('cp', 0.0), s['tp']) for s in samples if 'tp' in s]
@@ -887,13 +908,18 @@ def _compute_profile_compliance(
     max_overshoot = _round2(max(0.0, max(deviations)))
     max_undershoot = _round2(max(0.0, abs(min(deviations))))
 
-    # Flow RMSE (optional — tf may not always be set)
+    # Flow compliance (optional — tf may not always be set)
     f_pairs = [(s.get('pf', 0.0), s['tf']) for s in samples if 'tf' in s]
     f_rmse: Optional[float] = None
+    max_flow_overshoot: Optional[float] = None
+    max_flow_undershoot: Optional[float] = None
     if len(f_pairs) >= 3:
         f_rmse = _round2(_compute_rmse(
             [a for a, _ in f_pairs], [t for _, t in f_pairs],
         ))
+        f_deviations = [a - t for a, t in f_pairs]
+        max_flow_overshoot = _round2(max(0.0, max(f_deviations)))
+        max_flow_undershoot = _round2(max(0.0, abs(min(f_deviations))))
 
     annotations: dict[str, str] = {
         "pressure_adherence": _annotate_ascending(
@@ -907,12 +933,22 @@ def _compute_profile_compliance(
         annotations["flow_adherence"] = _annotate_ascending(
             f_rmse, _PROFILE_ADHERENCE_BANDS
         )
+    if max_flow_overshoot is not None:
+        annotations["flow_overshoot"] = _annotate_ascending(
+            max_flow_overshoot, _FLOW_DEVIATION_BANDS
+        )
+    if max_flow_undershoot is not None:
+        annotations["flow_undershoot"] = _annotate_ascending(
+            max_flow_undershoot, _FLOW_DEVIATION_BANDS
+        )
 
     return ProfileComplianceMetrics(
         pressure_rmse_bar=p_rmse,
         flow_rmse_ml_s=f_rmse,
         max_pressure_overshoot_bar=max_overshoot,
         max_pressure_undershoot_bar=max_undershoot,
+        max_flow_overshoot_ml_s=max_flow_overshoot,
+        max_flow_undershoot_ml_s=max_flow_undershoot,
         annotations=annotations,
     )
 
@@ -1077,6 +1113,17 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
         devs = [a - t for a, t in p_targets]
         max_overshoot = _round2(max(0.0, max(devs)))
 
+    # Flow compliance (optional — tf may not always be set)
+    f_rmse: Optional[float] = None
+    max_flow_overshoot: Optional[float] = None
+    f_targets = [(s.get('pf', 0.0), s['tf']) for s in brew_samples if 'tf' in s]
+    if len(f_targets) >= 3:
+        f_rmse = _round2(_compute_rmse(
+            [a for a, _ in f_targets], [t for _, t in f_targets],
+        ))
+        f_devs = [a - t for a, t in f_targets]
+        max_flow_overshoot = _round2(max(0.0, max(f_devs)))
+
     # Scale
     has_scale = any(w > 0 for w in brew_weights)
 
@@ -1090,6 +1137,14 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
             max_overshoot, _PRESSURE_OVERSHOOT_BANDS
         ),
     }
+    if f_rmse is not None:
+        annotations["flow_adherence"] = _annotate_ascending(
+            f_rmse, _PROFILE_ADHERENCE_BANDS
+        )
+    if max_flow_overshoot is not None:
+        annotations["flow_overshoot"] = _annotate_ascending(
+            max_flow_overshoot, _FLOW_DEVIATION_BANDS
+        )
 
     return SummaryDiagnostics(
         resistance_avg=r_avg,
@@ -1098,6 +1153,8 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
         temperature_stability_c=t_std,
         pressure_rmse_bar=p_rmse,
         max_overshoot_bar=max_overshoot,
+        flow_rmse_ml_s=f_rmse,
+        max_flow_overshoot_ml_s=max_flow_overshoot,
         scale_connected=has_scale,
         annotations=annotations,
     )

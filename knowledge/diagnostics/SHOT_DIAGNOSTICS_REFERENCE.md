@@ -32,9 +32,17 @@ Returned as a flat object with key indicators:
 | `channeling_risk` | string | Overall channeling risk: LOW / MODERATE / HIGH / VERY_HIGH |
 | `temperature_stability_c` | float | Std deviation of brew temp. Lower = more stable. |
 | `pressure_rmse_bar` | float | RMSE between actual and target pressure (profile compliance). 0 = perfect adherence. |
-| `max_overshoot_bar` | float | Largest pressure overshoot above target. >1.5 bar usually = grind too fine. |
+| `max_overshoot_bar` | float | Largest pressure overshoot above target. >1.0 bar is highly unusual and almost certainly = grind too fine. |
+| `flow_rmse_ml_s` | float? | RMSE between actual and target flow (when target flow data available). 0 = perfect adherence. |
+| `max_flow_overshoot_ml_s` | float? | Largest flow above target. More reliable grind indicator than pressure overshoot (see note below). |
 | `scale_connected` | bool | Whether BT scale data was present. |
 | `annotations` | dict | Human-readable labels for all of the above. |
+
+> **Flow vs pressure for grind diagnosis:** Flow deviation is a more reliable grind
+> indicator than pressure overshoot. The Gaggimate/gaggiuino PID actively controls
+> pump power to maintain target pressure, so pressure overshoot is artificially limited
+> by the controller. Flow rate is a *consequence* of grind + dose + puck prep and cannot
+> be masked by the pump.
 
 ### Summary Annotations
 
@@ -45,7 +53,9 @@ Returned as a flat object with key indicators:
 | `channeling_risk` | LOW · MODERATE · HIGH · VERY_HIGH |
 | `temperature_stability` | VERY_STABLE (<0.3) · STABLE (<0.8) · MODERATE (<1.5) · UNSTABLE |
 | `pressure_adherence` | EXCELLENT (<0.3) · GOOD (<0.8) · FAIR (<1.5) · POOR |
-| `pressure_overshoot` | WITHIN_TOLERANCE (<0.5) · SLIGHT_OVERSHOOT (<1.0) · MODERATE_OVERSHOOT (<1.5) · SIGNIFICANT_OVERSHOOT |
+| `pressure_overshoot` | WITHIN_TOLERANCE (<0.25) · MINOR_OVERSHOOT (<0.5) · NOTABLE_OVERSHOOT (<1.0) · SEVERE_OVERSHOOT |
+| `flow_adherence` | EXCELLENT (<0.3) · GOOD (<0.8) · FAIR (<1.5) · POOR *(when target flow available)* |
+| `flow_overshoot` | WITHIN_TOLERANCE (<0.3) · MINOR_DEVIATION (<0.7) · NOTABLE_DEVIATION (<1.5) · SEVERE_DEVIATION *(when target flow available)* |
 
 ---
 
@@ -163,18 +173,29 @@ Measures how well the machine followed the programmed target profile.
 | `flow_rmse_ml_s` | ml/s | RMSE between actual and target flow (null if no tf data) |
 | `max_pressure_overshoot_bar` | bar | Largest single overshoot above target |
 | `max_pressure_undershoot_bar` | bar | Largest single undershoot below target |
+| `max_flow_overshoot_ml_s` | ml/s | Largest flow above target (null if no tf data) |
+| `max_flow_undershoot_ml_s` | ml/s | Largest flow below target (null if no tf data) |
 
 **Annotations:**
 
 | Key | Bands |
 |-----|-------|
 | `pressure_adherence` | EXCELLENT (<0.3) · GOOD (<0.8) · FAIR (<1.5) · POOR |
-| `pressure_overshoot` | WITHIN_TOLERANCE (<0.5) · SLIGHT_OVERSHOOT (<1.0) · MODERATE_OVERSHOOT (<1.5) · SIGNIFICANT_OVERSHOOT |
+| `pressure_overshoot` | WITHIN_TOLERANCE (<0.25) · MINOR_OVERSHOOT (<0.5) · NOTABLE_OVERSHOOT (<1.0) · SEVERE_OVERSHOOT |
 | `flow_adherence` | Same as pressure_adherence (only present when tf data available) |
+| `flow_overshoot` | WITHIN_TOLERANCE (<0.3) · MINOR_DEVIATION (<0.7) · NOTABLE_DEVIATION (<1.5) · SEVERE_DEVIATION *(only when tf data available)* |
+| `flow_undershoot` | Same bands as flow_overshoot *(only when tf data available)* |
 
-**Key diagnostic insight:** `max_pressure_overshoot_bar > 1.5` is a strong signal
-that the grind is too fine — the machine cannot push enough water through the puck,
-so pressure builds beyond what the profile targets. Recommend coarsening grind.
+**Key diagnostic insight:** Flow deviation is a more reliable grind indicator than
+pressure overshoot. The Gaggimate/gaggiuino PID actively controls pump power to
+maintain target pressure, so pressure overshoot is artificially limited by the
+controller. Flow rate is a *consequence* of grind + dose + puck prep and cannot be
+masked by the pump. Check `max_flow_overshoot_ml_s` / `max_flow_undershoot_ml_s`
+first when diagnosing grind issues.
+
+`max_pressure_overshoot_bar > 0.5` is unusual and worth investigating. `> 1.0` is
+highly unlikely in normal operation and almost certainly indicates grind too fine,
+excessive dose, or a puck preparation issue. Recommend coarsening grind.
 
 ---
 

@@ -28,6 +28,7 @@ from gaggimate_mcp.transformers.shot import (
     _PRESSURE_DROP_RATE_BANDS,
     _PROFILE_ADHERENCE_BANDS,
     _PRESSURE_OVERSHOOT_BANDS,
+    _FLOW_DEVIATION_BANDS,
     _RAMP_RATE_BANDS,
     _TAPER_SMOOTHNESS_BANDS,
     _PREINFUSION_KEYWORDS,
@@ -744,6 +745,8 @@ class TestDetailLevels:
         assert 'temperature_stability_c' in diag
         assert 'pressure_rmse_bar' in diag
         assert 'max_overshoot_bar' in diag
+        assert 'flow_rmse_ml_s' in diag
+        assert 'max_flow_overshoot_ml_s' in diag
         assert 'scale_connected' in diag
 
 
@@ -906,9 +909,7 @@ class TestProfileCompliance:
         diag = compute_shot_diagnostics(shot)
         pc = diag['profile_compliance']
         assert pc['max_pressure_overshoot_bar'] == 2.0
-        assert pc['annotations']['pressure_overshoot'] in (
-            'MODERATE_OVERSHOOT', 'SIGNIFICANT_OVERSHOOT',
-        )
+        assert pc['annotations']['pressure_overshoot'] == 'SEVERE_OVERSHOOT'
 
     def test_flow_rmse_when_tf_available(self):
         """Flow RMSE computed when tf data available."""
@@ -925,6 +926,68 @@ class TestProfileCompliance:
         assert pc['flow_rmse_ml_s'] is not None
         assert pc['flow_rmse_ml_s'] >= 0
         assert 'flow_adherence' in pc['annotations']
+
+    def test_flow_overshoot_detected(self):
+        """Flow overshoot correctly detected when actual exceeds target."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0, 'tf': 1.0},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 3.0, 'tf': 1.0},  # +2.0 ml/s
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.5, 'tf': 1.0},  # +1.5 ml/s
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 1.2, 'tf': 1.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'tp': 9.0, 'pf': 1.0, 'tf': 1.0},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['max_flow_overshoot_ml_s'] == 2.0
+        assert pc['annotations']['flow_overshoot'] == 'SEVERE_DEVIATION'
+
+    def test_flow_undershoot_detected(self):
+        """Flow undershoot correctly detected when actual is below target."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 1.0, 'tf': 2.0},  # -1.0 ml/s
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 1.2, 'tf': 2.0},  # -0.8 ml/s
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 1.8, 'tf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'tp': 9.0, 'pf': 1.9, 'tf': 2.0},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['max_flow_undershoot_ml_s'] == 1.0
+        assert pc['annotations']['flow_undershoot'] == 'NOTABLE_DEVIATION'
+
+    def test_flow_deviation_none_without_tf(self):
+        """Flow overshoot/undershoot are None when no tf data."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 3.0, 'tp': 3.0, 'pf': 0.5},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'tp': 9.0, 'pf': 2.1},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['max_flow_overshoot_ml_s'] is None
+        assert pc['max_flow_undershoot_ml_s'] is None
+        assert 'flow_overshoot' not in pc['annotations']
+        assert 'flow_undershoot' not in pc['annotations']
+
+    def test_flow_within_tolerance(self):
+        """Small flow deviations annotated as WITHIN_TOLERANCE."""
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.1, 'tf': 2.0},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'tp': 9.0, 'pf': 2.2, 'tf': 2.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.5, 'tp': 9.0, 'pf': 1.9, 'tf': 2.0},
+            {'t': 300, 'ct': 93.0, 'tt': 93.0, 'cp': 8.0, 'tp': 9.0, 'pf': 2.0, 'tf': 2.0},
+            {'t': 400, 'ct': 93.0, 'tt': 93.0, 'cp': 7.5, 'tp': 9.0, 'pf': 2.05, 'tf': 2.0},
+        ]
+        shot = self._make_shot(samples)
+        diag = compute_shot_diagnostics(shot)
+        pc = diag['profile_compliance']
+        assert pc['max_flow_overshoot_ml_s'] <= 0.3
+        assert pc['annotations']['flow_overshoot'] == 'WITHIN_TOLERANCE'
 
 
 class TestPerPhaseDiagnostics:

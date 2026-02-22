@@ -358,9 +358,43 @@ Summary of all threshold changes made based on this research:
 | Late flow trend bands | Acceleration thresholds align with channel-opening signatures in TELEMETRY_PATTERNS.md. |
 | Temperature stability bands | Std dev bands appropriate — 0.3 °C "VERY_STABLE" matches Decent's ±1 °C spec. |
 | Profile adherence bands | RMSE thresholds reasonable against ±0.5 bar pump regulation noise. |
-| Pressure overshoot bands | 0.5 / 1.0 / 1.5 bar thresholds match practical over-tamping / fine-grind signatures. |
+| Pressure overshoot bands | 0.25 / 0.5 / 1.0 bar thresholds calibrated from practitioner input: 0.5 bar can occur occasionally, >1.0 bar is highly unlikely in normal operation. No peer-reviewed source; thresholds are expert-informed. |
+| Flow deviation bands | 0.3 / 0.7 / 1.5 ml/s thresholds calibrated from expert input and practical scenario analysis. See section below. |
 | Taper smoothness bands | R² residual thresholds in reasonable range. |
 | Channeling risk scoring | Composite scoring with point system produces sensible risk tiers. |
+
+### Flow Deviation Bands — Rationale
+
+Flow deviation (overshoot/undershoot vs target) is the more reliable grind indicator
+because the Gaggimate PID actively controls pump power to maintain target
+pressure. Pressure overshoot is artificially limited by the controller; flow rate is
+a *consequence* of grind + dose + puck prep and cannot be masked by the pump.
+
+**Bands:** WITHIN_TOLERANCE (<0.3) · MINOR_DEVIATION (<0.7) · NOTABLE_DEVIATION (<1.5) · SEVERE_DEVIATION
+
+**Scenario analysis** (assuming a normal espresso profile targeting ~1 ml/s flow):
+
+| Scenario | Grind | Expected outcome | Flow deviation | Band |
+|----------|-------|-----------------|----------------|------|
+| 30 g in 30 s | Correct | On-target | ~0 ml/s | WITHIN_TOLERANCE |
+| 30 g in 25 s | Slightly coarse | ~20% fast | ~+0.2 ml/s | WITHIN_TOLERANCE |
+| 30 g in 20 s | Coarse | ~50% fast | ~+0.5 ml/s | MINOR_DEVIATION |
+| 30 g in 15 s | Very coarse | ~100% fast | ~+1.0 ml/s | NOTABLE_DEVIATION |
+| 30 g in 45 s | Slightly fine | ~50% slow | ~−0.33 ml/s | MINOR_DEVIATION |
+| 30 g in 60 s | Very fine | ~100% slow | ~−0.5 ml/s | MINOR_DEVIATION |
+| Near-choke | Way too fine | Flow near zero | ~−1.0 ml/s | NOTABLE_DEVIATION |
+
+**Threshold justification:**
+- **0.3 ml/s** — Normal puck-to-puck variation at well-dialled-in grind settings.
+  Represents ~15-30% flow deviation depending on style — a tolerance range where
+  shot timing shifts are noticeable but the extraction is still acceptable.
+- **0.7 ml/s** — Shot timing is significantly off. For a 1 ml/s target, this is a
+  70% deviation. The shot will taste noticeably different from the profile's intent.
+- **1.5 ml/s** — Something is dramatically wrong. Flow is more than doubled (overshoot)
+  or halved (undershoot). Almost certainly requires grind adjustment.
+
+**Note:** These thresholds are expert-informed, not peer-reviewed. They should be
+recalibrated as real-world shot data is collected and analysed.
 
 ---
 
