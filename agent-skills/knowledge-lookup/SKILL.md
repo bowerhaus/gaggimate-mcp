@@ -1,10 +1,11 @@
 ---
 name: knowledge-lookup
-description: Answer espresso knowledge questions from the authoritative knowledge files.
-Use when the user asks about; temperature, pressure, ratios, grind settings, freshness,
-extraction theory, puck prep, channeling, baskets, decaf, blends, milk steaming, drink specs,
-profiles, shot styles, or any espresso concept. Routes to the correct knowledge file
-and answers from its content rather than from memory or training data.
+description: >
+  Answer espresso knowledge questions from the authoritative knowledge files.
+  Use when the user asks about: temperature, pressure, ratios, grind settings, freshness,
+  extraction theory, puck prep, channeling, baskets, decaf, blends, milk steaming, drink specs,
+  profiles, shot styles, or any espresso concept. Routes to the correct knowledge file
+  and answers from its content rather than from memory or training data.
 ---
 
 # Knowledge Lookup Skill
