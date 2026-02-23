@@ -92,19 +92,21 @@ One thing to improve: more sweetness, reduce sourness
 
 ## What Your Taste Tells You
 
-| You taste... | Likely cause | Try... |
-|---|---|---|
-| Sour + thin | Under-extraction | Finer grind, higher temp |
-| Sour + fast shot | Grind too coarse | Finer grind |
-| Salty or savory | Severe under-extraction | Increase yield by 5g, or finer grind |
-| Bitter + slow shot | Over-extraction | Coarser grind |
-| Bitter + dry finish | Severe over-extraction | Decrease yield by 5g, lower temp, shorter ratio |
-| Flat/lifeless | Stale beans or wrong temp | Check freshness, adjust temp |
-| Good but lacks body | Ratio too long or channeling | Shorter ratio, better puck prep |
-| Harsh/ashy | Over-extracted or dark roast issue | Coarser grind, lower temp, pressure decline |
-| **Sour AND bitter** | **Channeling** — uneven extraction | **Fix puck prep (WDT, distribution, even tamp). NOT grind.** |
+For full diagnostic decision trees with branching logic and style-relative thresholds, see `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md`.
 
-**The "sour AND bitter" rule (Scott Rao):** When a shot tastes both sour and bitter simultaneously, water is finding paths of least resistance — over-extracting some grounds while under-extracting others. The fix is puck prep, not grind. Grinding finer when channeling is present makes it worse.
+| You taste... | Likely cause |
+|---|---|
+| Sour + thin | Under-extraction |
+| Sour + fast shot | Grind too coarse |
+| Salty or savory | Severe under-extraction |
+| Bitter + slow shot | Over-extraction |
+| Bitter + dry finish | Severe over-extraction |
+| Flat/lifeless | Stale beans or wrong temp |
+| Good but lacks body | Ratio too long or channeling |
+| Harsh/ashy | Over-extracted or dark roast issue |
+| **Sour AND bitter** | **Channeling** — uneven extraction |
+
+**The "sour AND bitter" rule (Scott Rao):** When a shot tastes both sour and bitter simultaneously, water is finding paths of least resistance — over-extracting some grounds while under-extracting others. Primary fix: improve puck prep (WDT, distribution, even tamp). Do NOT grind finer — that increases puck resistance and worsens channeling. Grinding slightly *coarser* may help by reducing resistance, but only after addressing distribution. Also consider: extend pre-infusion, reduce pre-infusion flow, or add a bloom phase.
 
 ---
 
