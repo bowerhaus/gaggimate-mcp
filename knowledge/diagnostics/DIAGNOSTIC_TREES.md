@@ -12,8 +12,9 @@ Taste-based decision trees for diagnosing espresso extraction issues. All thresh
 SOUR (under-extracted)
 ├── Time to first drip below style's expected minimum?
 │   ├── YES → Channeling or too coarse
-│   │   ├── Pressure spike >1.5 bar above style target? → Channeling (fines migration)
-│   │   │   └── FIX: Improve puck prep (WDT), check distribution
+│   │   ├── Flow rate erratic or uneven? → Channeling (uneven puck density)
+│   │   │   └── FIX: Improve puck prep (WDT, distribution, even tamp). Do NOT grind finer.
+│   │   │         Grinding slightly coarser may help (less resistance). Extend pre-infusion.
 │   │   └── Pressure below style's expected range? → Too coarse
 │   │       └── FIX: Grind 1-2 steps finer
 │   └── NO → Continue...
@@ -91,4 +92,44 @@ INCONSISTENT (variable results)
 │   └── Flow patterns different?
 │       └── YES → Channeling (random), check basket prep
 └── Document which variables are changing for pattern recognition
+```
+
+## BITTER + FAST Shot Diagnosis
+
+```
+BITTER + FAST (shot runs fast but tastes bitter — unusual combination)
+├── Bean-related?
+│   ├── Dark/over-roasted beans? → Inherent bitterness, not extraction issue
+│   │   └── FIX: Lower temp, shorter ratio, declining pressure
+│   ├── Beans stale (>4 weeks)? → Degraded oils create harsh bitterness
+│   │   └── FIX: Fresh beans; if unavailable, lower temp, shorter ratio
+│   └── Robusta blend or very dark roast? → High CGA content
+│       └── FIX: Lower pressure (6-7 bar), declining profile, lower temp
+├── Water quality issue?
+│   └── High TDS, chlorine, or mineral imbalance?
+│       └── FIX: Check water recipe, use filtered water
+└── None of above?
+    └── May be fines-related bitterness (dark roasts produce more fines)
+        └── FIX: Coarser grind, better distribution, check grinder alignment
+```
+
+## BALANCED BUT THIN Shot Diagnosis
+
+```
+BALANCED BUT THIN (taste is correct, but lacking body/mouthfeel)
+├── Ratio too long?
+│   └── >1:3 for traditional style? → Diluted body
+│       └── FIX: Shorter ratio (pull less liquid), keep same grind
+├── Grind too coarse for desired body?
+│   └── Shot running faster than style target?
+│       └── FIX: Finer grind (increases body and extraction)
+├── Pressure too low?
+│   └── Below 6 bar during main extraction?
+│       └── FIX: Increase target pressure, or switch from turbo to traditional style
+├── Basket leaking around edges?
+│   └── Worn gasket, basket not seated properly, or damaged basket rim?
+│       └── FIX: Check group gasket, re-seat basket, inspect for damage
+└── None of above?
+    └── May be bean characteristic (some origins are naturally lighter-bodied)
+        └── Consider: shorter ratio, higher temp, or finer grind for more body
 ```

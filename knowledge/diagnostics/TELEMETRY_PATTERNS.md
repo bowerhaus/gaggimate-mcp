@@ -23,7 +23,7 @@ The BT scale communicates via BLE, and the connection can produce spurious data 
 
 1. Scan the last 3-5 weight/volume samples. If any differs from preceding trend by >2× the average inter-sample change, treat as artifact.
 2. A reading of exactly 0g after non-zero readings is always a disconnect artifact.
-3. **NEVER ask the user for the weight.** Estimate yourself and proceed.
+3. **Prefer telemetry data for weight**, but if the reading looks unreliable (artifacts, nulls, spikes), ask the user for the actual weight rather than guessing.
 4. Do not flag artifact-caused anomalies as extraction problems.
 5. Pressure, flow, and temperature data from the machine's sensors are reliable — only weight/volume from the scale is suspect.
 
