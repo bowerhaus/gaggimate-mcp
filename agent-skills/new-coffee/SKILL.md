@@ -1,6 +1,7 @@
 ---
 name: new-coffee
-version: f386dbb (2026-02-23)
+metadata:
+  version: f386dbb (2026-02-23)
 description: >
   Research a new coffee bean and propose starting extraction parameters.
   Use when: (1) user shares a new bag of coffee (photo, name, or description),

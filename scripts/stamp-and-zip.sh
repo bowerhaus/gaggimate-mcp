@@ -24,8 +24,8 @@ echo "  Updated ${INSTRUCTIONS}"
 SKILLS=(diagnose feedback gaggimate-profiles knowledge-lookup new-coffee)
 for skill in "${SKILLS[@]}"; do
     SKILL_FILE="agent-skills/${skill}/SKILL.md"
-    # Replace the version line in YAML frontmatter
-    sed -i '' "s|^version: .*|version: ${VERSION}|" "$SKILL_FILE"
+    # Replace the version line inside metadata: block in YAML frontmatter
+    sed -i '' "s|^  version: .*|  version: ${VERSION}|" "$SKILL_FILE"
     echo "  Updated ${SKILL_FILE}"
 done
 

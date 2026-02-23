@@ -1,6 +1,7 @@
 ---
 name: feedback
-version: f386dbb (2026-02-23)
+metadata:
+  version: f386dbb (2026-02-23)
 description: >
   Gather shot feedback, analyze extraction, recommend adjustments, and record results.
   Use when user says: "/feedback", "I just pulled a shot", "how was that", "it tasted [sour/bitter/flat/good]",

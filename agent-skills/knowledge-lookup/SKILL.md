@@ -1,6 +1,7 @@
 ---
 name: knowledge-lookup
-version: f386dbb (2026-02-23)
+metadata:
+  version: f386dbb (2026-02-23)
 description: >
   Answer espresso knowledge questions from the authoritative knowledge files.
   Use when the user asks about: temperature, pressure, ratios, grind settings, freshness,

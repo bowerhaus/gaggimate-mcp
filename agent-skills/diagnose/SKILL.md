@@ -1,6 +1,7 @@
 ---
 name: diagnose
-version: f386dbb (2026-02-23)
+metadata:
+  version: f386dbb (2026-02-23)
 description: >
   Diagnose espresso extraction issues by correlating machine telemetry with taste feedback.
   Use when user says: "what went wrong", "analyze that shot", "why did it taste [sour/bitter/flat]",
