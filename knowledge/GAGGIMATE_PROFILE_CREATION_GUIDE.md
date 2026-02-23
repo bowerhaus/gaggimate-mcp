@@ -12,7 +12,7 @@ Gaggimate supports two profile types:
 
 ## Quick Start
 
-Here's a minimal valid Pro profile — a classic 9-bar extraction with flow-based pre-infusion:
+Here's a minimal valid Pro profile:
 
 ```json
 {
@@ -36,7 +36,7 @@ Here's a minimal valid Pro profile — a classic 9-bar extraction with flow-base
       "duration": 40,
       "pump": { "target": "pressure", "pressure": 9, "flow": 0 },
       "transition": { "type": "linear", "duration": 3, "adaptive": true },
-      "targets": [{ "type": "volumetric", "value": 36 }]
+      "targets": [{ "type": "volumetric", "operator": "gte", "value": 36 }]
     }
   ]
 }
