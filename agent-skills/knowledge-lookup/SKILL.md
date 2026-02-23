@@ -1,5 +1,6 @@
 ---
 name: knowledge-lookup
+version: f386dbb (2026-02-23)
 description: >
   Answer espresso knowledge questions from the authoritative knowledge files.
   Use when the user asks about: temperature, pressure, ratios, grind settings, freshness,
@@ -16,52 +17,52 @@ You are answering an espresso knowledge question by consulting the authoritative
 
 ## Why This Skill Exists
 
-Knowledge files are available on-demand via MCP resources. This skill ensures you **load and cite the correct file** rather than answering from general training data. The knowledge files contain Gaggimate-specific advice, tested parameters, and opinionated guidance that may differ from generic espresso advice.
+Knowledge files are available on-demand via the `read_knowledge` MCP tool. This skill ensures you **load and cite the correct file** rather than answering from general training data. The knowledge files contain Gaggimate-specific advice, tested parameters, and opinionated guidance that may differ from generic espresso advice.
 
 ## Workflow
 
 ### 1. CLASSIFY — Map Question to Knowledge File
 
-Use the routing table below to identify which file(s) to load via `gaggimate://knowledge/{filename}`. Match on keywords in the user's question.
+Use the routing table below to identify which file(s) to load via `read_knowledge(action="read", filename="...")`. Match on keywords in the user's question.
 
-| Keywords | Primary Resource | Secondary Resource |
-|----------|-----------------|--------------------|
-| temperature, temp, roast level, how hot | `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` | — |
-| pressure, bar, processing method | `gaggimate://knowledge/PRESSURE_GUIDE.md` | — |
-| ratio, yield, dose, output, how much | `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` | — |
-| grind, finer, coarser, grind setting | `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` | `gaggimate://knowledge/EXTRACTION_SCIENCE.md` |
-| sour, bitter, taste, flavor, tasting | `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` | `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` |
-| channeling, puck prep, WDT, distribution | `gaggimate://knowledge/EXTRACTION_SCIENCE.md` | — |
-| freshness, rest, degas, storage, freeze | `gaggimate://knowledge/BEAN_FRESHNESS_AND_STORAGE.md` | — |
-| profile, bloom, turbo, lever, allonge | `gaggimate://knowledge/PROFILE_LIBRARY.md` | `gaggimate://knowledge/PRESSURE_GUIDE.md` |
-| decaf, blend, decaffeinated | `gaggimate://knowledge/SPECIAL_CATEGORIES.md` | — |
-| milk, steam, drink, cortado, cappuccino, latte, flat white | `gaggimate://knowledge/MILK_AND_DRINKS.md` | — |
-| basket, dose rule, headroom, puck depth | `gaggimate://knowledge/BASKETS.md` | — |
-| adjust, dial in, what to change, improvement | `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` | — |
-| extraction, TDS, particle, solubility | `gaggimate://knowledge/EXTRACTION_SCIENCE.md` | — |
+| Keywords | Primary File | Secondary File |
+|----------|-------------|----------------|
+| temperature, temp, roast level, how hot | `ESPRESSO_BREWING_BASICS` | — |
+| pressure, bar, processing method | `PRESSURE_GUIDE` | — |
+| ratio, yield, dose, output, how much | `ESPRESSO_BREWING_BASICS` | — |
+| grind, finer, coarser, grind setting | `ESPRESSO_BREWING_BASICS` | `EXTRACTION_SCIENCE` |
+| sour, bitter, taste, flavor, tasting | `ESPRESSO_TASTING_GUIDE` | `ESPRESSO_BREWING_BASICS` |
+| channeling, puck prep, WDT, distribution | `EXTRACTION_SCIENCE` | — |
+| freshness, rest, degas, storage, freeze | `BEAN_FRESHNESS_AND_STORAGE` | — |
+| profile, bloom, turbo, lever, allonge | `PROFILE_LIBRARY` | `PRESSURE_GUIDE` |
+| decaf, blend, decaffeinated | `SPECIAL_CATEGORIES` | — |
+| milk, steam, drink, cortado, cappuccino, latte, flat white | `MILK_AND_DRINKS` | — |
+| basket, dose rule, headroom, puck depth | `BASKETS` | — |
+| adjust, dial in, what to change, improvement | `ESPRESSO_BREWING_BASICS` | — |
+| extraction, TDS, particle, solubility | `EXTRACTION_SCIENCE` | — |
 
-If the question spans two topics (e.g., "what pressure for a natural at light roast?"), load and consult both the primary and secondary resources.
+If the question spans two topics (e.g., "what pressure for a natural at light roast?"), load and consult both the primary and secondary files.
 
-If no keywords match, default to `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — it covers the broadest range of topics.
+If no keywords match, default to `ESPRESSO_BREWING_BASICS` — it covers the broadest range of topics.
 
-#### User Data Resources
+#### User Data Tools
 
-If the question is about the user's personal data or history (rather than espresso theory), route to user data resources instead of — or in addition to — knowledge files.
+If the question is about the user's personal data or history (rather than espresso theory), use the data management tools instead of — or in addition to — knowledge files.
 
-| Keywords | Resource | Notes |
-|----------|----------|-------|
-| grind map, grind setting history, what worked, what grind | `gaggimate://user/grind-map` | Successful grind settings across coffees |
-| my setup, my equipment, my machine, my grinder, my basket | `gaggimate://user/setup` | Equipment, preferences, puck prep routine |
-| history with, last time I brewed, previous shots, this coffee, how did [coffee] go | `gaggimate://coffees/{name}` | Per-coffee brewing journal and insights |
-| patterns, what works for, experience with, similar coffees, learnings | `gaggimate://user/brewing-insights` | Cross-coffee patterns and accumulated learnings |
+| Keywords | Tool Call | Notes |
+|----------|-----------|-------|
+| grind map, grind setting history, what worked, what grind | `manage_grind_map(action="read")` | Successful grind settings across coffees |
+| my setup, my equipment, my machine, my grinder, my basket | `manage_user_setup(action="read")` | Equipment, preferences, puck prep routine |
+| history with, last time I brewed, previous shots, this coffee, how did [coffee] go | `manage_coffee(action="read", coffee_name="...")` | Per-coffee brewing journal and insights |
+| patterns, what works for, experience with, similar coffees, learnings | `manage_brewing_insights(action="read")` | Cross-coffee patterns and accumulated learnings |
 
-To find the right coffee file, first list available coffees via `gaggimate://coffees`, then load the specific one via `gaggimate://coffees/{name}`.
+To find the right coffee file, first list available coffees via `manage_coffee(action="list")`, then load the specific one via `manage_coffee(action="read", coffee_name="...")`.
 
 ### 2. ANSWER from File Content
 
-Load the identified knowledge resource(s) via MCP, then answer the user's question using their content. **Cite specific tables, thresholds, or sections** from the file. Do not paraphrase from memory — use the actual data.
+Load the identified knowledge file(s) via `read_knowledge(action="read", filename="...")`, then answer the user's question using their content. **Cite specific tables, thresholds, or sections** from the file. Do not paraphrase from memory — use the actual data.
 
-**Good:** "The pressure matrix in PRESSURE_GUIDE.md recommends 7-8 bar for light roast naturals."
+**Good:** "The pressure matrix in PRESSURE_GUIDE recommends 7-8 bar for light roast naturals."
 **Bad:** "Light roast naturals generally do well at lower pressure." (no file reference, no specific value)
 
 ### 3. CROSS-REFERENCE (if needed)

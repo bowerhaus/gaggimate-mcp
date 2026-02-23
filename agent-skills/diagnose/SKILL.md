@@ -1,5 +1,6 @@
 ---
 name: diagnose
+version: f386dbb (2026-02-23)
 description: >
   Diagnose espresso extraction issues by correlating machine telemetry with taste feedback.
   Use when user says: "what went wrong", "analyze that shot", "why did it taste [sour/bitter/flat]",
@@ -33,8 +34,10 @@ full time-series data, escalate:
 Use: analyze_shot(shot_id, detail="per_phase")   # per-phase diagnostics + representative samples
 Use: analyze_shot(shot_id, detail="detailed")    # all time-series samples (high token cost)
 ```
-See `gaggimate://knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md` for the
-complete metric reference, annotation bands, and interpretation cheat sheet.
+See the complete metric reference, annotation bands, and interpretation cheat sheet:
+```
+Use: read_knowledge(action="read", filename="diagnostics/SHOT_DIAGNOSTICS_REFERENCE")
+```
 
 **Fetch shot notes if available:**
 ```
@@ -45,8 +48,8 @@ Use: manage_shot_notes(shot_id, action="get")
 
 If the coffee being diagnosed is known, load its tracking file to check for patterns across recent shots:
 
-1. List available coffees via `gaggimate://coffees`
-2. Load the relevant file via `gaggimate://coffees/{name}`
+1. List available coffees: `manage_coffee(action="list")`
+2. Load the relevant file: `manage_coffee(action="read", coffee_name="<name>")`
 3. Compare the current shot against previous entries in the shot log table
 
 **Why this matters:** Trend analysis helps distinguish between one-off puck prep issues and systematic dialing problems. For example, if the last 3 shots were all sour, that's a persistent under-extraction pattern requiring a larger grind adjustment — not a one-off fluke.
@@ -82,14 +85,17 @@ Match `profile_name` from `analyze_shot`:
 
 **Tier 3 — Telemetry fingerprint (last resort):**
 
-Load `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` and see the Style Detection Fingerprints section.
+Load the telemetry patterns file and see the Style Detection Fingerprints section:
+```
+Use: read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")
+```
 
 ### 2. ANALYZE Telemetry
 
-**Determine the final weight.** Prefer telemetry data — see `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for scale artifact detection and estimation methods. If telemetry is unavailable or looks unreliable (spikes, drops to 0g, nulls), ask the user for the actual weight.
+**Determine the final weight.** Prefer telemetry data — load `read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")` for scale artifact detection and estimation methods. If telemetry is unavailable or looks unreliable (spikes, drops to 0g, nulls), ask the user for the actual weight.
 State the dose out you're using and how you derived it, then move on.
 
-**Load style-specific expectations** from `gaggimate://knowledge/PRESSURE_GUIDE.md` (Pressure by Shot Style) and `gaggimate://knowledge/PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
+**Load style-specific expectations** from `read_knowledge(action="read", filename="PRESSURE_GUIDE")` (Pressure by Shot Style) and `read_knowledge(action="read", filename="PROFILE_LIBRARY")` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
 
 **Universal thresholds** (style-independent):
 
@@ -135,7 +141,7 @@ when target pressure/flow data is in the shot. Key fields:
 
 Cross-reference the user's taste feedback with telemetry patterns.
 
-**See:** `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for detailed correlation matrix and `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md` for taste-based decision trees.
+**See:** `read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")` for detailed correlation matrix and `read_knowledge(action="read", filename="diagnostics/DIAGNOSTIC_TREES")` for taste-based decision trees.
 
 ### 4. RECOMMEND Actions
 

@@ -1,5 +1,6 @@
 ---
 name: gaggimate-profiles
+version: f386dbb (2026-02-23)
 description: Create custom espresso extraction profiles for Gaggimate-equipped machines (Gaggia Classic Pro, Gaggia Classic Evo, Rancilio Silvia). Use when designing pressure profiles, flow profiles, blooming profiles, lever simulation profiles, or helping with espresso extraction settings and troubleshooting. Also use when the user mentions Gaggimate, espresso profiles, pressure profiling, or extraction parameters.
 ---
 
@@ -13,7 +14,11 @@ Create custom espresso extraction profiles for Gaggimate-equipped machines. Gagg
 
 ### Step 1: Gather Information
 
-If not provided, read `gaggimate://user/setup` to load the user's equipment, basket size, and preferences. Ask about anything still missing:
+If not provided, load the user's equipment, basket size, and preferences:
+```
+Use: manage_user_setup(action="read")
+```
+Ask about anything still missing:
 - Coffee type/origin and roast level
 - **Processing method** (washed, natural, honey, anaerobic — affects target pressure)
 - Dose amount (**dose = basket size**; don't underdose)
@@ -23,10 +28,10 @@ If not provided, read `gaggimate://user/setup` to load the user's equipment, bas
 
 ### Step 2: Select Profile Pattern
 
-Load the relevant knowledge files via MCP resources to determine settings:
-- **Temperature**: `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` → "Temperature Guidelines by Roast"
-- **Pressure**: `gaggimate://knowledge/PRESSURE_GUIDE.md` → roast × processing matrix
-- **Profile pattern**: `gaggimate://knowledge/PROFILE_LIBRARY.md` → select by roast, process, and style
+Load the relevant knowledge files via MCP tools to determine settings:
+- **Temperature**: `read_knowledge(action="read", filename="ESPRESSO_BREWING_BASICS")` → "Temperature Guidelines by Roast"
+- **Pressure**: `read_knowledge(action="read", filename="PRESSURE_GUIDE")` → roast × processing matrix
+- **Profile pattern**: `read_knowledge(action="read", filename="PROFILE_LIBRARY")` → select by roast, process, and style
 
 Quick reference for common patterns:
 
@@ -46,12 +51,12 @@ Quick reference for common patterns:
 
 | Reference | Load ONLY when... |
 |-----------|--------------------|
-| `gaggimate://knowledge/profiles/EXAMPLES.md` | Need a JSON template for a style not in PROFILE_LIBRARY.md |
-| `gaggimate://knowledge/profiles/PUMP_AND_TRANSITIONS.md` | User asks about adaptive flow, ease-in-out transitions, or power mode |
-| `gaggimate://knowledge/profiles/STOP_CONDITIONS.md` | User asks about combining multiple stop conditions or non-volumetric targets |
-| `gaggimate://knowledge/profiles/TROUBLESHOOTING.md` | User reports a problem with an **existing** profile — never for new creation |
-| `gaggimate://knowledge/profiles/FLOW_VARIABLE_PRESSURE.md` | User specifically asks about Automatic Pro technique or flow-based variable pressure |
-| `gaggimate://knowledge/profiles/PROFILE_STRUCTURE.md` | Almost never — GAGGIMATE_PROFILE_CREATION_GUIDE.md covers the same fields |
+| `read_knowledge(action="read", filename="profiles/EXAMPLES")` | Need a JSON template for a style not in PROFILE_LIBRARY.md |
+| `read_knowledge(action="read", filename="profiles/PUMP_AND_TRANSITIONS")` | User asks about adaptive flow, ease-in-out transitions, or power mode |
+| `read_knowledge(action="read", filename="profiles/STOP_CONDITIONS")` | User asks about combining multiple stop conditions or non-volumetric targets |
+| `read_knowledge(action="read", filename="profiles/TROUBLESHOOTING")` | User reports a problem with an **existing** profile — never for new creation |
+| `read_knowledge(action="read", filename="profiles/FLOW_VARIABLE_PRESSURE")` | User specifically asks about Automatic Pro technique or flow-based variable pressure |
+| `read_knowledge(action="read", filename="profiles/PROFILE_STRUCTURE")` | Almost never — GAGGIMATE_PROFILE_CREATION_GUIDE.md covers the same fields |
 
 ### Step 4: Generate Profile JSON
 

@@ -1,5 +1,6 @@
 ---
 name: new-coffee
+version: f386dbb (2026-02-23)
 description: >
   Research a new coffee bean and propose starting extraction parameters.
   Use when: (1) user shares a new bag of coffee (photo, name, or description),
@@ -31,8 +32,8 @@ Systematically research a coffee and propose starting extraction parameters.
 ### 2. REVIEW Brewing Insights
 
 Before researching externally, check what we already know:
-- Read `gaggimate://user/brewing-insights` for cross-coffee patterns
-- Read `gaggimate://user/grind-map` for successful grind settings on similar coffees
+- Read brewing insights: `manage_brewing_insights(action="read")`
+- Read grind map: `manage_grind_map(action="read")`
 - Look for coffees with matching attributes (origin, process, roast level)
 - If a similar coffee was brewed before, leverage those learnings as a starting point
 
@@ -45,15 +46,15 @@ Search for the specific coffee to find:
 - Roast level (light, medium, dark) — infer from tasting notes if not stated
 - Roaster's tasting notes
 
-**See:** `gaggimate://knowledge/research/RESEARCH_CHECKLIST.md` for detailed research patterns, origin profiles, and variety extraction guidance.
+**See:** `read_knowledge(action="read", filename="research/RESEARCH_CHECKLIST")` for detailed research patterns, origin profiles, and variety extraction guidance.
 
 ### 4. SYNTHESIZE Recommendations
 
-Load the relevant knowledge files via MCP resources and build recommendations:
-- **Temperature:** From `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` roast guidelines
-- **Pressure:** From `gaggimate://knowledge/PRESSURE_GUIDE.md` roast × processing matrix
+Load the relevant knowledge files via MCP tools and build recommendations:
+- **Temperature:** From `read_knowledge(action="read", filename="ESPRESSO_BREWING_BASICS")` roast guidelines
+- **Pressure:** From `read_knowledge(action="read", filename="PRESSURE_GUIDE")` roast × processing matrix
 - **Ratio:** From processing method patterns (washed: 1:2, natural: 1:2-2.5, etc.)
-- **Profile:** From `gaggimate://knowledge/PROFILE_LIBRARY.md` by roast/process, adjusted for correct pressure
+- **Profile:** From `read_knowledge(action="read", filename="PROFILE_LIBRARY")` by roast/process, adjusted for correct pressure
 - **Dose:** Based on user's basket size. **Dose = basket size** (e.g., 18g basket → 18g dose). Don't underdose.
 
 ### 5. CONFIRM with User
@@ -99,7 +100,7 @@ The `approach` field is a narrative paragraph — not a table of numbers. It sho
 *why* you chose this profile/params for this specific bean, connecting the research to
 the recommendation. Reference brewing insights from similar coffees if applicable.
 
-This creates a persistent tracking file accessible in all future sessions via `gaggimate://coffees/{name}`.
+This creates a persistent tracking file accessible in all future sessions via `manage_coffee(action="read", coffee_name="<name>")`.
 
 ---
 

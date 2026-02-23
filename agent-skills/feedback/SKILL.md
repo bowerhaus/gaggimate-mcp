@@ -1,5 +1,6 @@
 ---
 name: feedback
+version: f386dbb (2026-02-23)
 description: >
   Gather shot feedback, analyze extraction, recommend adjustments, and record results.
   Use when user says: "/feedback", "I just pulled a shot", "how was that", "it tasted [sour/bitter/flat/good]",
@@ -15,11 +16,11 @@ You are gathering shot feedback, diagnosing extraction, recording results, and r
 
 ## Context
 
-Knowledge files are available on-demand via MCP resources. Load only what's needed:
-- `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — adjustment strategies, diagnostic decision tree, variable hierarchy
-- `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` — sour vs bitter diagnosis, tasting methodology
-- `gaggimate://knowledge/PRESSURE_GUIDE.md` — when feedback suggests pressure/profile style change
-- `gaggimate://knowledge/MILK_AND_DRINKS.md` — when shot is dialed in and user wants drink recommendations
+Knowledge files are available on-demand via the `read_knowledge` MCP tool. Load only what's needed:
+- `read_knowledge(action="read", filename="ESPRESSO_BREWING_BASICS")` — adjustment strategies, diagnostic decision tree, variable hierarchy
+- `read_knowledge(action="read", filename="ESPRESSO_TASTING_GUIDE")` — sour vs bitter diagnosis, tasting methodology
+- `read_knowledge(action="read", filename="PRESSURE_GUIDE")` — when feedback suggests pressure/profile style change
+- `read_knowledge(action="read", filename="MILK_AND_DRINKS")` — when shot is dialed in and user wants drink recommendations
 
 ---
 
@@ -27,8 +28,8 @@ Knowledge files are available on-demand via MCP resources. Load only what's need
 
 ### 1. GATHER Context
 
-- Read `gaggimate://user/setup` to load the user's equipment, basket size, and preferences.
-- Read `gaggimate://coffees` to check for existing coffee tracking files, then load the relevant one via `gaggimate://coffees/{name}`.
+- Read `manage_user_setup(action="read")` to load the user's equipment, basket size, and preferences.
+- Read `manage_coffee(action="list")` to check for existing coffee tracking files, then load the relevant one via `manage_coffee(action="read", coffee_name="...")`.
 - If no coffee context exists: ask the user what coffee they're brewing before proceeding.
 - **Stale check:** If roast date is 30+ days old, gently ask if user is still on this bag.
 
@@ -47,14 +48,14 @@ Gather from the user (ask for what's missing):
 
 **Minimum viable feedback:** Rating + balance + one specific observation.
 
-**Weight handling:** Prefer telemetry data for dose out when a shot ID is available (see `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for scale artifact detection). If telemetry is unavailable or looks unreliable, just ask the user. It's fine to ask for both dose in and dose out.
+**Weight handling:** Prefer telemetry data for dose out when a shot ID is available (see `read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")` for scale artifact detection). If telemetry is unavailable or looks unreliable, just ask the user. It's fine to ask for both dose in and dose out.
 
 ### 3. ANALYZE & RECOMMEND
 
-Load these knowledge resources for diagnosis:
-- `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — variable hierarchy (grind → ratio → temp → pressure → puck prep) and diagnostic decision tree
-- `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` — taste diagnosis and the Scott Rao channeling rule (sour + bitter = channeling → fix puck prep, NOT grind)
-- `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md` — full diagnostic decision trees for complex cases
+Load these knowledge files for diagnosis:
+- `read_knowledge(action="read", filename="ESPRESSO_BREWING_BASICS")` — variable hierarchy (grind → ratio → temp → pressure → puck prep) and diagnostic decision tree
+- `read_knowledge(action="read", filename="ESPRESSO_TASTING_GUIDE")` — taste diagnosis and the Scott Rao channeling rule (sour + bitter = channeling → fix puck prep, NOT grind)
+- `read_knowledge(action="read", filename="diagnostics/DIAGNOSTIC_TREES")` — full diagnostic decision trees for complex cases
 
 Apply the diagnostic rules to the user's feedback. Always explain *why* you're suggesting a change. One primary recommendation, one backup.
 
@@ -125,7 +126,7 @@ manage_grind_map(
 #### 4d. Brewing Insights (when patterns emerge)
 
 When a meaningful pattern emerges (not after every shot), update the cross-coffee insights:
-1. Read current insights: `gaggimate://user/brewing-insights` (or init via `manage_brewing_insights(action="init")` if it doesn't exist)
+1. Read current insights: `manage_brewing_insights(action="read")` (or init via `manage_brewing_insights(action="init")` if it doesn't exist)
 2. Update with the new learning:
 ```
 manage_brewing_insights(
