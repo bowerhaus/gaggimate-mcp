@@ -1,7 +1,7 @@
 ---
 name: gaggimate-profiles
 metadata:
-  version: f386dbb (2026-02-23)
+  version: 53269c1 (2026-02-23)
 description: Create custom espresso extraction profiles for Gaggimate-equipped machines (Gaggia Classic Pro, Gaggia Classic Evo, Rancilio Silvia). Use when designing pressure profiles, flow profiles, blooming profiles, lever simulation profiles, or helping with espresso extraction settings and troubleshooting. Also use when the user mentions Gaggimate, espresso profiles, pressure profiling, or extraction parameters.
 ---
 

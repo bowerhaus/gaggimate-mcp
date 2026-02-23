@@ -6,27 +6,32 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# Get commit info
-HASH=$(git rev-parse --short HEAD)
 DATE=$(date +%Y-%m-%d)
-VERSION="${HASH} (${DATE})"
 
-echo "Stamping version: ${VERSION}"
+# Helper: get the short hash of the last commit that changed a file (ignoring the version line itself)
+last_content_hash() {
+    local file="$1"
+    # Get the last commit that changed the file
+    git log -1 --format=%h -- "$file"
+}
+
+echo "Stamping per-file versions..."
 echo ""
 
 # --- Stamp INSTRUCTIONS.md ---
 INSTRUCTIONS="agent-instructions/INSTRUCTIONS.md"
-# Match the version line pattern and replace it
-sed -i '' "s/^> \*\*Version:\*\* .*/> **Version:** \`${HASH}\` \| Last updated: ${DATE}/" "$INSTRUCTIONS"
-echo "  Updated ${INSTRUCTIONS}"
+INST_HASH=$(last_content_hash "$INSTRUCTIONS")
+sed -i '' "s/^> \*\*Version:\*\* .*/> **Version:** \`${INST_HASH}\` \| Last updated: ${DATE}/" "$INSTRUCTIONS"
+echo "  ${INSTRUCTIONS} → ${INST_HASH} (${DATE})"
 
 # --- Stamp all skill files ---
 SKILLS=(diagnose feedback gaggimate-profiles knowledge-lookup new-coffee)
 for skill in "${SKILLS[@]}"; do
     SKILL_FILE="agent-skills/${skill}/SKILL.md"
-    # Replace the version line inside metadata: block in YAML frontmatter
-    sed -i '' "s|^  version: .*|  version: ${VERSION}|" "$SKILL_FILE"
-    echo "  Updated ${SKILL_FILE}"
+    SKILL_HASH=$(last_content_hash "$SKILL_FILE")
+    SKILL_VERSION="${SKILL_HASH} (${DATE})"
+    sed -i '' "s|^  version: .*|  version: ${SKILL_VERSION}|" "$SKILL_FILE"
+    echo "  ${SKILL_FILE} → ${SKILL_HASH} (${DATE})"
 done
 
 # --- Zip all skills ---
@@ -43,7 +48,6 @@ cd "$REPO_ROOT"
 echo ""
 echo "============================================"
 echo "  Ready to upload to Claude Desktop"
-echo "  Version: ${HASH} | ${DATE}"
 echo "============================================"
 echo ""
 echo "1. Copy instructions from:"
