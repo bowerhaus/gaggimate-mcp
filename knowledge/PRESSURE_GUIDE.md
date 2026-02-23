@@ -35,6 +35,8 @@ Pressure defines espresso. At ~9 bar, water extracts lipids, emulsified oils, an
 
 This table gives **main extraction pressure** (the sustained pressure during the brew phase, after pre-infusion). Pre-infusion should always be 2-4 bar regardless of target extraction pressure.
 
+> **Why does processing affect pressure?** More fermentation = more soluble compounds = lower pressure needed. See [COFFEE_PROCESSING.md](gaggimate://knowledge/COFFEE_PROCESSING.md) for what each method is and how it changes extraction behavior.
+
 | | **Light Roast** | **Medium Roast** | **Dark Roast** |
 |---|---|---|---|
 | **Washed** | 8-9 bar | 9 bar | 7-8 bar |
