@@ -210,19 +210,9 @@ A common misconception: dark roasts actually contain similar acid levels to ligh
 
 ## Diagnostic Decision Tree
 
-| Symptom | Shot Time | First Check | Second Check | Third Check |
-|---|---|---|---|---|
-| **Sour + fast** | <20s | Grind finer | — | — |
-| **Sour + normal time** | 25-30s | Increase yield by 5g | Increase temp 1-2°C | Add bloom to profile |
-| **Sour + slow** | >35s | Likely channeling (see below) | Better puck prep | Longer pre-infusion |
-| **Bitter + slow** | >35s | Grind coarser | — | — |
-| **Bitter + normal time** | 25-30s | Decrease yield by 5g | Decrease temp 1-2°C | Add pressure decline |
-| **Bitter + fast** | <20s | Possible over-roast or water issue | Check bean freshness | Check water quality |
-| **Sour AND bitter** | Any | **Channeling** — fix puck prep | Finer grind + longer PI | Check grinder for clumping |
-| **Balanced but flat** | 25-30s | Increase temp 1°C | Try longer ratio | Check freshness |
-| **Balanced but thin** | 25-30s | Shorter ratio | Finer grind (increase body) | Check for basket leaks |
+For full taste-based diagnostic trees (style-relative thresholds, branching logic), see `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md`.
 
-**Critical insight (Scott Rao):** If your shot tastes **both sour and bitter at the same time**, it's almost certainly channeling — water is finding paths of least resistance, over-extracting some grounds while under-extracting others. The fix is puck prep (WDT, distribution, even tamp), not grind adjustment. Grinding finer when channeling is present makes it worse.
+Quick reference: Sour → grind finer / increase temp / extend extraction. Bitter → grind coarser / decrease temp / shorten extraction. Sour + bitter → channeling (fix puck prep, do NOT grind finer — see Scott Rao rule in `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md`).
 
 ---
 

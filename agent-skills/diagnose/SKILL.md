@@ -86,14 +86,8 @@ Load `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` and see the Style
 
 ### 2. ANALYZE Telemetry
 
-**First, determine the final weight — NEVER ask the user.** The BT scale frequently produces artifacts: spikes, drops to 0g, or null readings near end-of-shot. Estimate dose out yourself:
-
-**Weight estimation priority:**
-1. **Last stable weight sample** — scan backward, skip drops to 0g or spikes >2× the inter-sample trend
-2. **Flow meter total minus puck absorption** — use `total_volume_ml × 0.82` as fallback
-3. **Interpolate from mid-shot weight + flow** — if you have a reliable weight mid-shot
-
-State your estimated dose out and how you derived it, then move on. A ±2g estimate is fine.
+**Determine the final weight.** Prefer telemetry data — see `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for scale artifact detection and estimation methods. If telemetry is unavailable or looks unreliable (spikes, drops to 0g, nulls), ask the user for the actual weight.
+State the dose out you're using and how you derived it, then move on.
 
 **Load style-specific expectations** from `gaggimate://knowledge/PRESSURE_GUIDE.md` (Pressure by Shot Style) and `gaggimate://knowledge/PROFILE_LIBRARY.md` (Quick Reference table). Compare telemetry against style-specific ranges — not generic 9-bar ranges.
 

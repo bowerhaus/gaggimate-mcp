@@ -1,0 +1,2257 @@
+{
+  "timestamp": "2026-02-23T11:41:27.120826",
+  "grand_total": {
+    "files": 44,
+    "words": 48370,
+    "lines": 10764
+  },
+  "agent_facing_total": {
+    "files": 33,
+    "words": 27869,
+    "lines": 6811
+  },
+  "layer_totals": {
+    "knowledge": {
+      "files": 26,
+      "words": 21299,
+      "lines": 5609
+    },
+    "agent-instructions": {
+      "files": 1,
+      "words": 2602,
+      "lines": 410
+    },
+    "agent-skills": {
+      "files": 6,
+      "words": 3968,
+      "lines": 792
+    },
+    "docs": {
+      "files": 10,
+      "words": 16536,
+      "lines": 3313
+    },
+    "README": {
+      "files": 1,
+      "words": 3965,
+      "lines": 640
+    }
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "layer": "README",
+      "words": 3965,
+      "lines": 640
+    },
+    {
+      "path": "agent-instructions/INSTRUCTIONS.md",
+      "layer": "agent-instructions",
+      "words": 2602,
+      "lines": 410
+    },
+    {
+      "path": "agent-skills/HOW TO ZIP SKILLS.md",
+      "layer": "agent-skills",
+      "words": 59,
+      "lines": 28
+    },
+    {
+      "path": "agent-skills/diagnose/SKILL.md",
+      "layer": "agent-skills",
+      "words": 961,
+      "lines": 178
+    },
+    {
+      "path": "agent-skills/feedback/SKILL.md",
+      "layer": "agent-skills",
+      "words": 884,
+      "lines": 186
+    },
+    {
+      "path": "agent-skills/gaggimate-profiles/SKILL.md",
+      "layer": "agent-skills",
+      "words": 810,
+      "lines": 168
+    },
+    {
+      "path": "agent-skills/knowledge-lookup/SKILL.md",
+      "layer": "agent-skills",
+      "words": 656,
+      "lines": 89
+    },
+    {
+      "path": "agent-skills/new-coffee/SKILL.md",
+      "layer": "agent-skills",
+      "words": 598,
+      "lines": 143
+    },
+    {
+      "path": "docs/PR_DESCRIPTION.md",
+      "layer": "docs",
+      "words": 620,
+      "lines": 167
+    },
+    {
+      "path": "docs/TESTING_CHECKLIST.md",
+      "layer": "docs",
+      "words": 1174,
+      "lines": 400
+    },
+    {
+      "path": "docs/TONIGHT_TESTING_PLAN.md",
+      "layer": "docs",
+      "words": 381,
+      "lines": 140
+    },
+    {
+      "path": "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+      "layer": "docs",
+      "words": 1916,
+      "lines": 302
+    },
+    {
+      "path": "docs/planning/implementation-questions.md",
+      "layer": "docs",
+      "words": 700,
+      "lines": 187
+    },
+    {
+      "path": "docs/reference/GAGGIMATE_API_REFERENCE.md",
+      "layer": "docs",
+      "words": 981,
+      "lines": 406
+    },
+    {
+      "path": "docs/reference/mcp-server-principles.md",
+      "layer": "docs",
+      "words": 583,
+      "lines": 116
+    },
+    {
+      "path": "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+      "layer": "docs",
+      "words": 2985,
+      "lines": 460
+    },
+    {
+      "path": "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+      "layer": "docs",
+      "words": 2377,
+      "lines": 420
+    },
+    {
+      "path": "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+      "layer": "docs",
+      "words": 4819,
+      "lines": 715
+    },
+    {
+      "path": "knowledge/BASKETS.md",
+      "layer": "knowledge",
+      "words": 373,
+      "lines": 47
+    },
+    {
+      "path": "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+      "layer": "knowledge",
+      "words": 461,
+      "lines": 89
+    },
+    {
+      "path": "knowledge/COFFEE_PROCESSING.md",
+      "layer": "knowledge",
+      "words": 1644,
+      "lines": 205
+    },
+    {
+      "path": "knowledge/ESPRESSO_BREWING_BASICS.md",
+      "layer": "knowledge",
+      "words": 1282,
+      "lines": 288
+    },
+    {
+      "path": "knowledge/ESPRESSO_TASTING_GUIDE.md",
+      "layer": "knowledge",
+      "words": 695,
+      "lines": 153
+    },
+    {
+      "path": "knowledge/EXTRACTION_SCIENCE.md",
+      "layer": "knowledge",
+      "words": 577,
+      "lines": 95
+    },
+    {
+      "path": "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+      "layer": "knowledge",
+      "words": 500,
+      "lines": 130
+    },
+    {
+      "path": "knowledge/MILK_AND_DRINKS.md",
+      "layer": "knowledge",
+      "words": 875,
+      "lines": 135
+    },
+    {
+      "path": "knowledge/PRESSURE_GUIDE.md",
+      "layer": "knowledge",
+      "words": 720,
+      "lines": 152
+    },
+    {
+      "path": "knowledge/PROFILE_LIBRARY.md",
+      "layer": "knowledge",
+      "words": 441,
+      "lines": 96
+    },
+    {
+      "path": "knowledge/SPECIAL_CATEGORIES.md",
+      "layer": "knowledge",
+      "words": 510,
+      "lines": 83
+    },
+    {
+      "path": "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+      "layer": "knowledge",
+      "words": 163,
+      "lines": 59
+    },
+    {
+      "path": "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+      "layer": "knowledge",
+      "words": 1867,
+      "lines": 184
+    },
+    {
+      "path": "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+      "layer": "knowledge",
+      "words": 610,
+      "lines": 135
+    },
+    {
+      "path": "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+      "layer": "knowledge",
+      "words": 1353,
+      "lines": 308
+    },
+    {
+      "path": "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+      "layer": "knowledge",
+      "words": 814,
+      "lines": 172
+    },
+    {
+      "path": "knowledge/profiles/EXAMPLES.md",
+      "layer": "knowledge",
+      "words": 1298,
+      "lines": 796
+    },
+    {
+      "path": "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+      "layer": "knowledge",
+      "words": 565,
+      "lines": 233
+    },
+    {
+      "path": "knowledge/profiles/PROFILE_STRUCTURE.md",
+      "layer": "knowledge",
+      "words": 468,
+      "lines": 164
+    },
+    {
+      "path": "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+      "layer": "knowledge",
+      "words": 721,
+      "lines": 404
+    },
+    {
+      "path": "knowledge/profiles/QUICK_REFERENCE.md",
+      "layer": "knowledge",
+      "words": 572,
+      "lines": 258
+    },
+    {
+      "path": "knowledge/profiles/STOP_CONDITIONS.md",
+      "layer": "knowledge",
+      "words": 670,
+      "lines": 345
+    },
+    {
+      "path": "knowledge/profiles/TROUBLESHOOTING.md",
+      "layer": "knowledge",
+      "words": 779,
+      "lines": 452
+    },
+    {
+      "path": "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+      "layer": "knowledge",
+      "words": 1760,
+      "lines": 436
+    },
+    {
+      "path": "knowledge/research/RESEARCH_CHECKLIST.md",
+      "layer": "knowledge",
+      "words": 613,
+      "lines": 160
+    },
+    {
+      "path": "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md",
+      "layer": "knowledge",
+      "words": 968,
+      "lines": 30
+    }
+  ],
+  "keyness_top_30": [
+    {
+      "term": "pressure",
+      "score": 1.9185,
+      "count": 928
+    },
+    {
+      "term": "flow",
+      "score": 1.2611,
+      "count": 610
+    },
+    {
+      "term": "profile",
+      "score": 0.9882,
+      "count": 478
+    },
+    {
+      "term": "shot",
+      "score": 0.9097,
+      "count": 440
+    },
+    {
+      "term": "bar",
+      "score": 0.8807,
+      "count": 426
+    },
+    {
+      "term": "phase",
+      "score": 0.7587,
+      "count": 367
+    },
+    {
+      "term": "extraction",
+      "score": 0.7339,
+      "count": 355
+    },
+    {
+      "term": "gaggimate",
+      "score": 0.707,
+      "count": 342
+    },
+    {
+      "term": "puck",
+      "score": 0.6719,
+      "count": 325
+    },
+    {
+      "term": "target",
+      "score": 0.5665,
+      "count": 274
+    },
+    {
+      "term": "grind",
+      "score": 0.5437,
+      "count": 263
+    },
+    {
+      "term": "knowledge",
+      "score": 0.5189,
+      "count": 251
+    },
+    {
+      "term": "temperature",
+      "score": 0.5065,
+      "count": 245
+    },
+    {
+      "term": "espresso",
+      "score": 0.4693,
+      "count": 227
+    },
+    {
+      "term": "resistance",
+      "score": 0.4424,
+      "count": 214
+    },
+    {
+      "term": "coffee",
+      "score": 0.3887,
+      "count": 188
+    },
+    {
+      "term": "channeling",
+      "score": 0.3887,
+      "count": 188
+    },
+    {
+      "term": "json",
+      "score": 0.3845,
+      "count": 186
+    },
+    {
+      "term": "pre-infusion",
+      "score": 0.3825,
+      "count": 185
+    },
+    {
+      "term": "profiles",
+      "score": 0.3742,
+      "count": 181
+    },
+    {
+      "term": "brew",
+      "score": 0.3453,
+      "count": 167
+    },
+    {
+      "term": "ratio",
+      "score": 0.337,
+      "count": 163
+    },
+    {
+      "term": "pump",
+      "score": 0.3349,
+      "count": 162
+    },
+    {
+      "term": "duration",
+      "score": 0.3101,
+      "count": 150
+    },
+    {
+      "term": "rate",
+      "score": 0.2956,
+      "count": 143
+    },
+    {
+      "term": "decline",
+      "score": 0.2894,
+      "count": 140
+    },
+    {
+      "term": "bloom",
+      "score": 0.2853,
+      "count": 138
+    },
+    {
+      "term": "roast",
+      "score": 0.277,
+      "count": 134
+    },
+    {
+      "term": "mcp",
+      "score": 0.275,
+      "count": 133
+    },
+    {
+      "term": "user",
+      "score": 0.2522,
+      "count": 122
+    }
+  ],
+  "concept_duplication": {
+    "pressure": {
+      "file_count": 38,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "extraction": {
+      "file_count": 37,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "profile": {
+      "file_count": 37,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "shot": {
+      "file_count": 32,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "flow": {
+      "file_count": 30,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "grind": {
+      "file_count": 29,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "gaggimate": {
+      "file_count": 27,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "puck": {
+      "file_count": 27,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "phase": {
+      "file_count": 27,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "temperature": {
+      "file_count": 26,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "channeling": {
+      "file_count": 24,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "pre-infusion": {
+      "file_count": 24,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "dose": {
+      "file_count": 22,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/implementation-questions.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "espresso": {
+      "file_count": 22,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "target": {
+      "file_count": 22,
+      "files": [
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "coffee": {
+      "file_count": 21,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "bloom": {
+      "file_count": 21,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "ratio": {
+      "file_count": 21,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "decline": {
+      "file_count": 20,
+      "files": [
+        "README.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "profiles": {
+      "file_count": 19,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "shots": {
+      "file_count": 19,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "roast": {
+      "file_count": 18,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "lower": {
+      "file_count": 18,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "brew": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "fast": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "json": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "bitter": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "gaggimate-barista": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "knowledge/BASKETS.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "resistance": {
+      "file_count": 17,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "temp": {
+      "file_count": 17,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "dark": {
+      "file_count": 17,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "water": {
+      "file_count": 17,
+      "files": [
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "sour": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "light": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "ramp": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "pump": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "taste": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/implementation-questions.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "notes": {
+      "file_count": 16,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/implementation-questions.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "patterns": {
+      "file_count": 15,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "prep": {
+      "file_count": 15,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md"
+      ]
+    },
+    "body": {
+      "file_count": 15,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "classic": {
+      "file_count": 14,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "quick": {
+      "file_count": 14,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "rate": {
+      "file_count": 14,
+      "files": [
+        "README.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/TONIGHT_TESTING_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "knowledge": {
+      "file_count": 14,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "weight": {
+      "file_count": 14,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "roasts": {
+      "file_count": 14,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "flat": {
+      "file_count": 14,
+      "files": [
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "brewing": {
+      "file_count": 13,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/automatic-pro/AUTOMATIC_PRO_PROFILE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md"
+      ]
+    },
+    "basket": {
+      "file_count": 13,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md"
+      ]
+    },
+    "diagnostic": {
+      "file_count": 13,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "coffees": {
+      "file_count": 13,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "natural": {
+      "file_count": 13,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "medium": {
+      "file_count": 13,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/new-coffee/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "gentle": {
+      "file_count": 13,
+      "files": [
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "beans": {
+      "file_count": 12,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/implementation-questions.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md",
+        "knowledge/sources/yt-videos/Summary of Lance Hedrick YT:  Why your Coffee is Sour or Bitter! (and how to fix it).md"
+      ]
+    },
+    "sweetness": {
+      "file_count": 12,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "seconds": {
+      "file_count": 12,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md"
+      ]
+    },
+    "style": {
+      "file_count": 12,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "scale": {
+      "file_count": 12,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/reference/GAGGIMATE_API_REFERENCE.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    }
+  },
+  "tracked_concepts_all": {
+    "Pre-infusion technique": {
+      "file_count": 31,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/PR_DESCRIPTION.md",
+        "docs/TESTING_CHECKLIST.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/LLM_DATA_PRESENTATION_GUIDE.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "Puck preparation": {
+      "file_count": 20,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/BASKETS.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "Allongé shot style": {
+      "file_count": 13,
+      "files": [
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "Light roast temperature (94-96°C)": {
+      "file_count": 10,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "Profile stop conditions": {
+      "file_count": 10,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/HOW TO ZIP SKILLS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "Shot style parameters": {
+      "file_count": 9,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md"
+      ]
+    },
+    "Scott Rao channeling rule": {
+      "file_count": 8,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "docs/research/ESPRESSO_SHOT_FEATURE_RESEARCH.md",
+        "docs/research/TIME_SERIES_FEATURE_EXTRACTION.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md"
+      ]
+    },
+    "Diagnostic decision trees": {
+      "file_count": 8,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md"
+      ]
+    },
+    "Sour+bitter→channeling rule": {
+      "file_count": 7,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "Variable hierarchy (grind→ratio→temp)": {
+      "file_count": 7,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md"
+      ]
+    },
+    "Turbo shot style": {
+      "file_count": 7,
+      "files": [
+        "agent-skills/new-coffee/SKILL.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/profiles/EXAMPLES.md"
+      ]
+    },
+    "Pump modes reference": {
+      "file_count": 6,
+      "files": [
+        "README.md",
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md"
+      ]
+    },
+    "Weight estimation rule": {
+      "file_count": 1,
+      "files": [
+        "docs/planning/KNOWLEDGE_DEDUPLICATION_PLAN.md"
+      ]
+    }
+  },
+  "tracked_concepts_agent_facing": {
+    "Pre-infusion technique": {
+      "file_count": 24,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/BEAN_FRESHNESS_AND_STORAGE.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/FLOW_VARIABLE_PRESSURE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "Puck preparation": {
+      "file_count": 16,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "knowledge/BASKETS.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/EXTRACTION_SCIENCE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/SPECIAL_CATEGORIES.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md",
+        "knowledge/diagnostics/SHOT_DIAGNOSTICS_REFERENCE.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/PUMP_AND_TRANSITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "Allongé shot style": {
+      "file_count": 12,
+      "files": [
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/diagnostics/TELEMETRY_PATTERNS.md",
+        "knowledge/profiles/EXAMPLES.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/research/ESPRESSO_PHYSICS_AND_THRESHOLD_CALIBRATION.md"
+      ]
+    },
+    "Profile stop conditions": {
+      "file_count": 9,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/HOW TO ZIP SKILLS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/PROFILE_STRUCTURE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/profiles/STOP_CONDITIONS.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "Light roast temperature (94-96°C)": {
+      "file_count": 8,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md",
+        "knowledge/profiles/QUICK_REFERENCE.md",
+        "knowledge/research/RESEARCH_CHECKLIST.md"
+      ]
+    },
+    "Shot style parameters": {
+      "file_count": 7,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/knowledge-lookup/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md"
+      ]
+    },
+    "Turbo shot style": {
+      "file_count": 7,
+      "files": [
+        "agent-skills/new-coffee/SKILL.md",
+        "knowledge/COFFEE_PROCESSING.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/PRESSURE_GUIDE.md",
+        "knowledge/PROFILE_LIBRARY.md",
+        "knowledge/profiles/EXAMPLES.md"
+      ]
+    },
+    "Diagnostic decision trees": {
+      "file_count": 6,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/diagnose/SKILL.md",
+        "agent-skills/feedback/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/diagnostics/DIAGNOSTIC_TREES.md"
+      ]
+    },
+    "Sour+bitter→channeling rule": {
+      "file_count": 5,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md",
+        "knowledge/profiles/TROUBLESHOOTING.md"
+      ]
+    },
+    "Variable hierarchy (grind→ratio→temp)": {
+      "file_count": 5,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/MILK_AND_DRINKS.md",
+        "knowledge/automatic-pro/How the Automatic Pro Profile works.md"
+      ]
+    },
+    "Scott Rao channeling rule": {
+      "file_count": 4,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/feedback/SKILL.md",
+        "knowledge/ESPRESSO_BREWING_BASICS.md",
+        "knowledge/ESPRESSO_TASTING_GUIDE.md"
+      ]
+    },
+    "Pump modes reference": {
+      "file_count": 4,
+      "files": [
+        "agent-instructions/INSTRUCTIONS.md",
+        "agent-skills/gaggimate-profiles/SKILL.md",
+        "knowledge/GAGGIMATE_PROFILE_CREATION_GUIDE.md",
+        "knowledge/profiles/QUICK_REFERENCE.md"
+      ]
+    }
+  }
+}

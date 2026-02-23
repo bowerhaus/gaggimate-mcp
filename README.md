@@ -72,6 +72,12 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 
 ## Changelog
 
+### 2026-02-23
+- **Knowledge deduplication Phase 3**: Slimmed `GAGGIMATE_PROFILE_CREATION_GUIDE.md` from 1113 → 130 lines (88% reduction). Now a navigation hub that links to detailed `knowledge/profiles/` sub-files instead of duplicating their content
+- **Coffee processing reference**: Added `COFFEE_PROCESSING.md` — comprehensive guide to 7 processing methods (washed, natural, honey, etc.) and their espresso extraction implications
+- **Cross-references enriched**: Added processing method links to `PRESSURE_GUIDE.md` and `INSTRUCTIONS.md`
+- **Agent-facing words**: Reduced from 29,828 → 27,869 (~1,960 word reduction) through deduplication while filling content gaps
+
 ### 2026-02-21
 - **Physics-informed shot diagnostics**: `analyze_shot` now computes puck resistance (P/F²), channeling risk scoring, temperature deviation tracking, pressure/flow stability, profile compliance metrics, and per-phase breakdowns — all with human-readable band annotations
 - **3-level detail system**: New `detail` parameter (`summary`/`per_phase`/`detailed`) controls diagnostic depth vs. token cost. Summary for triage, per_phase for isolating problems, detailed for full time-series

@@ -10,6 +10,7 @@ This file tracks pending tasks for the gaggimate-mcp project.
 - [ ] **Test new write tools on real device** - Verify `manage_coffee`, `manage_user_setup`, and `manage_grind_map` tools create/update files correctly during actual dialing sessions
 - [ ] **Re-zip agent skills** - Skills were updated to reference MCP resources; need to regenerate ZIP files for Claude Desktop upload
 - [ ] **Fix pre-existing test_diagnostics failures** - 2 mDNS-related tests fail when device is not on network; consider mocking or skipping
+- [ ] **Knowledge deduplication — Final testing** - Phase 2-3 complete. GAGGIMATE_PROFILE_CREATION_GUIDE.md slimmed from 1113 → 130 lines (88% reduction). Agent-facing words: 29,828 → 27,869 (~1,960 word reduction). **Remaining: test agent quality with real conversations before PR to main.**
 
 ---
 
