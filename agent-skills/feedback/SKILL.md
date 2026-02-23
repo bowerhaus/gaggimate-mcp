@@ -47,40 +47,16 @@ Gather from the user (ask for what's missing):
 
 **Minimum viable feedback:** Rating + balance + one specific observation.
 
-**Weight estimation — NEVER ask the user for cup weight.** The BT scale often produces artifacts (spikes, drops to 0g, null readings). Estimate dose out from:
-1. Last stable weight sample from telemetry (if shot ID available)
-2. `total_volume_ml × 0.82` (puck absorption estimate)
-3. User's stated ratio × dose in
-
-A +/-2g estimate is fine for diagnosis and recording.
+**Weight handling:** Prefer telemetry data for dose out when a shot ID is available (see `gaggimate://knowledge/diagnostics/TELEMETRY_PATTERNS.md` for scale artifact detection). If telemetry is unavailable or looks unreliable, just ask the user. It's fine to ask for both dose in and dose out.
 
 ### 3. ANALYZE & RECOMMEND
 
-Use the knowledge files (BREWING_BASICS + TASTING_GUIDE) to diagnose and recommend.
+Load these knowledge resources for diagnosis:
+- `gaggimate://knowledge/ESPRESSO_BREWING_BASICS.md` — variable hierarchy (grind → ratio → temp → pressure → puck prep) and diagnostic decision tree
+- `gaggimate://knowledge/ESPRESSO_TASTING_GUIDE.md` — taste diagnosis and the Scott Rao channeling rule (sour + bitter = channeling → fix puck prep, NOT grind)
+- `gaggimate://knowledge/diagnostics/DIAGNOSTIC_TREES.md` — full diagnostic decision trees for complex cases
 
-**Adjustment hierarchy** — adjust in this order:
-1. **Grind size** — largest effect on extraction
-2. **Yield/Ratio** — quick correction (5g rule)
-3. **Temperature** — fine-tuning after grind is close
-4. **Pressure/Profile** — style change or enhancement
-5. **Puck prep** — channeling, inconsistency
-
-**Critical diagnostic rules:**
-
-| Symptom | Diagnosis | Fix |
-|---------|-----------|-----|
-| Sour + fast (<20s) | Under-extracted, grind too coarse | Grind finer |
-| Sour + normal time | Under-extracted at correct flow | Increase yield by 5g, then temp |
-| Sour + slow (>35s) | Channeling likely | Better puck prep, longer pre-infusion |
-| Bitter + slow (>35s) | Over-extracted, grind too fine | Grind coarser |
-| Bitter + normal time | Over-extracted at correct flow | Decrease yield by 5g, then temp |
-| **Sour AND bitter** | **Channeling** — uneven extraction | **Fix puck prep (WDT, distribution, even tamp). NOT grind.** |
-| Balanced but flat | Under-developed | Increase temp 1°C, or try longer ratio |
-| Balanced but thin | Low body | Shorter ratio, or finer grind |
-
-**The "sour AND bitter" rule (Scott Rao):** When a shot tastes both sour and bitter simultaneously, water is finding paths of least resistance — over-extracting some grounds while under-extracting others. The fix is puck prep, not grind. Grinding finer when channeling is present makes it worse.
-
-Always explain *why* you're suggesting a change. One primary recommendation, one backup.
+Apply the diagnostic rules to the user's feedback. Always explain *why* you're suggesting a change. One primary recommendation, one backup.
 
 ### 4. RECORD
 
