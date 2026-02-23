@@ -28,7 +28,7 @@ from gaggimate_mcp.storage.markdown import (
 from gaggimate_mcp.models.rating import ShotRating, BalanceTaste
 from gaggimate_mcp.errors import GaggimateError
 from gaggimate_mcp.diagnostics import diagnose_connection as run_diagnostics
-from gaggimate_mcp.resources import register_resources
+from gaggimate_mcp.resources import register_resources, _list_markdown_files, _read_markdown_file
 
 
 # Initialize configuration and logging
@@ -865,16 +865,16 @@ async def manage_coffee(
     Each coffee gets its own markdown file with bean identity, a narrative
     brewing approach, a brewing journal (dated analysis entries), and key
     insights. Raw shot numbers live on the device — this file stores
-    *thinking* and *learnings*. Read coffee files via gaggimate://coffees
-    resources.
+    *thinking* and *learnings*.
 
     Args:
         action: Action to perform:
+            - 'list': List all coffee files
+            - 'read': Read a specific coffee file (requires coffee_name)
             - 'create': Create a new coffee file (requires coffee_name and roaster)
             - 'log_entry': Append a brewing journal entry (analysis, not raw numbers)
             - 'update': Overwrite a coffee file with new content
             - 'delete': Delete a coffee file
-            - 'list': List all coffee files
         coffee_name: Coffee name (used for file identification)
         roaster: Roaster name (required for 'create')
         origin: Country/region of origin
@@ -936,6 +936,27 @@ async def manage_coffee(
                 "coffees": files,
                 "count": len(files),
                 "resource_uri": "gaggimate://coffees",
+            })
+
+        elif action == "read":
+            if not coffee_name:
+                return json.dumps({
+                    "success": False,
+                    "error": "coffee_name is required for 'read'"
+                })
+            filename = _find_coffee_file(coffee_name)
+            if filename is None:
+                available = coffee_storage.list_files()
+                return json.dumps({
+                    "success": False,
+                    "error": f"Coffee '{coffee_name}' not found. Available: {', '.join(available)}"
+                })
+            content_text = coffee_storage.read(filename)
+            return json.dumps({
+                "success": True,
+                "action": "read",
+                "coffee_name": filename,
+                "content": content_text,
             })
 
         elif action == "create":
@@ -1064,7 +1085,7 @@ async def manage_coffee(
         else:
             return json.dumps({
                 "success": False,
-                "error": f"Unknown action '{action}'. Use: create, log_entry, update, delete, list"
+                "error": f"Unknown action '{action}'. Use: list, read, create, log_entry, update, delete"
             })
 
     except Exception as e:
@@ -1381,4 +1402,90 @@ async def manage_brewing_insights(
         return json.dumps({
             "success": False,
             "error": f"Unexpected error: {str(e)}"
+        })
+
+
+@mcp.tool()
+async def read_knowledge(
+    action: str,
+    filename: Optional[str] = None,
+) -> str:
+    """Access espresso knowledge files.
+
+    Knowledge files contain authoritative espresso guidance — temperature tables,
+    pressure recommendations, tasting diagnosis, profile templates, and more.
+    Always prefer these over general training data.
+
+    Args:
+        action: "list" to list available files, "read" to read a specific file.
+        filename: Name of the knowledge file to read (with or without .md extension).
+            Supports subdirectory files like "profiles/EXAMPLES" or "diagnostics/DIAGNOSTIC_TREES".
+            Required when action is "read".
+
+    Returns:
+        JSON string with file listing or file content.
+
+    Examples:
+        - read_knowledge(action="list") → list all knowledge files
+        - read_knowledge(action="read", filename="ESPRESSO_BREWING_BASICS") → read brewing basics
+        - read_knowledge(action="read", filename="PRESSURE_GUIDE") → read pressure guide
+        - read_knowledge(action="read", filename="profiles/EXAMPLES") → read profile examples
+        - read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS") → read telemetry patterns
+    """
+    knowledge_dir = Path(config.knowledge_dir)
+    logger.info("read_knowledge_called", action=action, filename=filename)
+
+    try:
+        if action == "list":
+            files = _list_markdown_files(knowledge_dir)
+            if not files:
+                return json.dumps({
+                    "success": True,
+                    "action": "list",
+                    "files": [],
+                    "message": "No knowledge files found.",
+                })
+
+            return json.dumps({
+                "success": True,
+                "action": "list",
+                "files": [f["filename"] for f in files],
+                "message": f"Found {len(files)} knowledge files. Call read_knowledge(action='read', filename='...') to read one.",
+            })
+
+        if action == "read":
+            if not filename:
+                return json.dumps({
+                    "success": False,
+                    "error": "filename is required when action is 'read'.",
+                })
+
+            content = _read_markdown_file(knowledge_dir, filename)
+            return json.dumps({
+                "success": True,
+                "action": "read",
+                "filename": filename,
+                "content": content,
+            })
+
+        return json.dumps({
+            "success": False,
+            "error": f"Unknown action '{action}'. Use 'list' or 'read'.",
+        })
+
+    except FileNotFoundError as e:
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+        })
+    except ValueError as e:
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+        })
+    except Exception as e:
+        logger.error("read_knowledge_error", action=action, filename=filename, error=str(e))
+        return json.dumps({
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
         })
