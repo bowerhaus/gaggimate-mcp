@@ -2,27 +2,35 @@
 
 ## Command
 
-From the `agent-skills` folder, run:
+From the project root, zip all skills:
+
+```bash
+cd /Users/julianleopold/code/gaggimate-mcp/agent-skills && \
+  for skill in diagnose feedback gaggimate-profiles knowledge-lookup new-coffee; do \
+    zip -r ../${skill}-skill.zip ${skill}/; \
+  done
+```
+
+Or zip a single skill:
 
 ```bash
 cd /Users/julianleopold/code/gaggimate-mcp/agent-skills && zip -r ../gaggimate-profiles-skill.zip gaggimate-profiles/
 ```
 
-This creates `gaggimate-profiles-skill.zip` in the project root with the correct structure:
+## Skill Structure
+
+Each skill is now a single-file SKILL.md that loads references on-demand via MCP resources:
 
 ```
 gaggimate-profiles/
-├── SKILL.md
-└── references/
-    ├── EXAMPLES.md
-    ├── FLOW_VARIABLE_PRESSURE.md
-    ├── PROFILE_STRUCTURE.md
-    ├── PUMP_AND_TRANSITIONS.md
-    ├── QUICK_REFERENCE.md
-    ├── STOP_CONDITIONS.md
-    └── TROUBLESHOOTING.md
+└── SKILL.md        # References gaggimate://knowledge/profiles/*.md
 ```
 
 ## Output Location
 
-`/Users/julianleopold/code/gaggimate-mcp/agent-skills/gaggimate-profiles-skill.zip`
+Zip files are created in the project root:
+- `diagnose-skill.zip`
+- `feedback-skill.zip`
+- `gaggimate-profiles-skill.zip`
+- `knowledge-lookup-skill.zip`
+- `new-coffee-skill.zip`
