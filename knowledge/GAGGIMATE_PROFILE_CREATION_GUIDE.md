@@ -1,6 +1,6 @@
 # Gaggimate Profile Creation Guide
 
-A navigation hub for creating custom espresso profiles on Gaggimate-equipped machines.
+This file provides an overview and quick-start example for creating Gaggimate profiles. Detailed schema documentation, pump modes, transitions, stop conditions, and troubleshooting are maintained in separate reference files under `knowledge/profiles/` — see the Reference Documentation table below for links to each topic.
 
 ## Overview
 
@@ -12,11 +12,12 @@ Gaggimate supports two profile types:
 
 ## Quick Start
 
-Here's a minimal valid Pro profile:
+Here's a minimal valid Pro profile — a classic 9-bar extraction with flow-based pre-infusion:
 
 ```json
 {
   "label": "Simple 9-bar",
+  "description": "Classic 9-bar extraction with flow-based pre-infusion. Good starting point for medium roasts.",
   "type": "pro",
   "temperature": 93,
   "phases": [
@@ -40,6 +41,13 @@ Here's a minimal valid Pro profile:
   ]
 }
 ```
+
+**What this profile does:**
+- **Pre-infusion phase** (5s): Targets 2 ml/s flow with 4 bar pressure limit — gently saturates the puck
+- **Extraction phase** (up to 40s): Ramps to 9 bar pressure over 3 seconds, stops at 36ml output
+- `valve: 1` keeps the 3-way valve closed (normal brewing); `adaptive: true` allows flow/pressure adjustment based on puck resistance
+
+**Before creating or modifying profiles**, load [PROFILE_STRUCTURE.md](gaggimate://knowledge/profiles/PROFILE_STRUCTURE.md) for complete field definitions (top-level fields, phase fields, pump modes, valve states, etc.). The table below shows which reference file covers each topic.
 
 For more examples, see [EXAMPLES.md](gaggimate://knowledge/profiles/EXAMPLES.md).
 
