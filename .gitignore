@@ -51,6 +51,7 @@ data/
 # User-specific files (created from *.example.md templates)
 user/user-setup.md
 user/grind-map.md
+user/brewing-insights.md
 
 # Coffee tracking files (managed by MCP tools)
 coffees/*.md
