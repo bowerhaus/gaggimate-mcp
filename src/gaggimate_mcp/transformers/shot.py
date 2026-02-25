@@ -863,13 +863,26 @@ def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
                 f"{ramp_excluded} ramp-up samples excluded from stability calculation"
             )
     else:
-        # Insufficient steady-state data
+        # Insufficient steady-state data — compute from raw brew data
         p_volatility = _round2(_safe_std(brew_pressures))
         f_volatility = _round2(_safe_std(brew_flows))
+        p_mean = _safe_mean(brew_pressures)
         p_max_drop = 0.0
         f_accel_late = 0.0
         overall_risk = "INSUFFICIENT_DATA"
         channeling_annotations = {
+            "pressure_stability": _pressure_volatility_label(
+                p_volatility, p_mean,
+            ),
+            "flow_stability": _annotate_ascending(
+                f_volatility, _FLOW_VOLATILITY_BANDS
+            ),
+            "pressure_drop": _annotate_descending(
+                p_max_drop, _PRESSURE_DROP_RATE_BANDS
+            ),
+            "late_flow_trend": _annotate_ascending(
+                f_accel_late, _FLOW_ACCELERATION_BANDS
+            ),
             "note": (
                 f"Only {len(ss_pressures)} samples at ≥90% of peak pressure "
                 f"(need {_MIN_STEADY_STATE_SAMPLES}). "

@@ -258,7 +258,7 @@ Phase names from the firmware are classified automatically:
 | `pressure_stability_bar` | bar | Pressure volatility (steady-state only) |
 | `flow_stability_ml_s` | ml/s | Flow volatility (steady-state only) |
 
-**Annotations:** `resistance_level`, `resistance_erosion`, `channeling`, `pressure_stability`, `flow_stability`
+**Annotations:** `resistance_level`, `resistance_erosion`, `channeling`, `channeling_note` (present when `channeling_risk == INSUFFICIENT_DATA`), `pressure_stability`, `flow_stability`
 
 ### Decline-Specific Fields
 
