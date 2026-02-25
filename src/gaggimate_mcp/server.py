@@ -527,10 +527,11 @@ async def analyze_shot(shot_id: str, detail: str = "summary") -> str:
               channeling risk, temperature stability, profile compliance.
               Use for quick assessments and triage.
             - "per_phase": Full diagnostics plus per-phase breakdowns
-              (preinfusion/brew/decline metrics) with representative
-              samples. Use when diagnosing specific phase issues.
-            - "detailed": Everything in per_phase plus all time-series
-              samples. Use for deep analysis or when exact timings matter.
+              (preinfusion/brew/decline metrics) without samples.
+              Use to identify which phase has an issue.
+            - "per_phase_detailed": Everything in per_phase plus ~5
+              averaged samples per phase showing the curve shape.
+              Use after per_phase to see pressure/flow trends.
 
     Returns:
         JSON string with shot analysis

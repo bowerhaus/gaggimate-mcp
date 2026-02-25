@@ -13,11 +13,12 @@ The `analyze_shot` tool accepts a `detail` parameter:
 | Level | When to use | Token cost | Includes |
 |-------|-------------|------------|----------|
 | **summary** (default) | Quick triage, first assessment | Lowest | Key indicators, phase list (no samples) |
-| **per_phase** | Diagnosing specific phase issues | Medium | Full diagnostics + per-phase breakdowns + representative samples |
-| **detailed** | Deep analysis, exact timing | Highest | Everything + all time-series samples |
+| **per_phase** | Identify which phase has the issue | Medium | Full diagnostics + per-phase breakdowns (no samples) |
+| **per_phase_detailed** | See curve shape in problem phases | Higher | Everything in per_phase + ~5 evenly-spaced averaged samples per phase |
 
-**Start with `summary`.** Escalate to `per_phase` only when you need to know
-*which phase* has the problem. Use `detailed` only when exact sample timings matter.
+**Start with `summary`.** Escalate to `per_phase` to identify *which phase* has
+the problem. Use `per_phase_detailed` when you need to see the pressure/flow
+curve shape.
 
 ---
 
@@ -29,7 +30,7 @@ Returned as a flat object with key indicators:
 |-------|------|-------------------|
 | `resistance_avg` | float | Average puck resistance (P/F²). Higher = finer grind or tighter puck. |
 | `resistance_slope` | float | How resistance changes over the shot. Negative = erosion (normal). Steep negative = possible channeling. |
-| `channeling_risk` | string | Overall channeling risk: LOW / MODERATE / HIGH / VERY_HIGH |
+| `channeling_risk` | string | Overall channeling risk: LOW / MODERATE / HIGH / VERY_HIGH / INSUFFICIENT_DATA |
 | `temperature_stability_c` | float | Std deviation of brew temp. Lower = more stable. |
 | `pressure_rmse_bar` | float | RMSE between actual and target pressure (profile compliance). 0 = perfect adherence. |
 | `max_overshoot_bar` | float | Largest pressure overshoot above target. >1.0 bar is highly unusual and almost certainly = grind too fine. |
@@ -50,7 +51,7 @@ Returned as a flat object with key indicators:
 |-----|-------|
 | `resistance_level` | VERY_LOW (<0.5) · LOW (<1.5) · MODERATE (<3.0) · HIGH (<5.0) · VERY_HIGH |
 | `resistance_erosion` | INCREASING (≥0.05) · FLAT (≥−0.02) · GRADUAL_DECLINE (≥−0.08) · MODERATE_DECLINE (≥−0.15) · STEEP_DECLINE |
-| `channeling_risk` | LOW · MODERATE · HIGH · VERY_HIGH |
+| `channeling_risk` | LOW · MODERATE · HIGH · VERY_HIGH · INSUFFICIENT_DATA |
 | `temperature_stability` | VERY_STABLE (<0.3) · STABLE (<0.8) · MODERATE (<1.5) · UNSTABLE |
 | `pressure_adherence` | EXCELLENT (<0.3) · GOOD (<0.8) · FAIR (<1.5) · POOR |
 | `pressure_overshoot` | WITHIN_TOLERANCE (<0.25) · MINOR_OVERSHOOT (<0.5) · NOTABLE_OVERSHOOT (<1.0) · SEVERE_OVERSHOOT |
@@ -59,7 +60,7 @@ Returned as a flat object with key indicators:
 
 ---
 
-## Full Diagnostics (per_phase / detailed)
+## Full Diagnostics (per_phase / per_phase_detailed)
 
 Returned as an object with these sub-sections:
 
@@ -93,27 +94,39 @@ Captures grind fineness, puck prep quality, channeling, and erosion.
 
 ### Channeling Indicators
 
-Detects channeling from pressure/flow volatility.
+Detects channeling from pressure/flow volatility during **steady-state extraction only**.
+The initial ramp-up portion of each phase (samples before pressure reaches ≥90% of phase
+peak) is automatically excluded to avoid false positives from normal pressure build-up.
+
+**INSUFFICIENT_DATA:** Channeling detection relies on pressure/flow stability *after* the
+pressure has ramped up to near its target. The ramp-up portion (below 90% of phase peak
+pressure) is excluded because pressure naturally fluctuates while building.
+If fewer than 5 samples remain after this exclusion — e.g. a short brew phase where most
+time was spent ramping, or a phase where pressure never truly stabilised — `overall_risk`
+is set to `INSUFFICIENT_DATA` rather than computing a misleading score.
+
+When you see INSUFFICIENT_DATA:
+- The phase was too short or pressure too unstable for reliable channeling assessment
+- Check taste feedback and adjacent phases for extraction quality clues
+- This is NOT a problem indication — it simply means "not enough data to judge"
 
 | Field | Unit | Meaning |
 |-------|------|---------|
-| `pressure_volatility_bar` | bar | Std dev of brew pressure |
-| `flow_volatility_ml_s` | ml/s | Std dev of brew flow |
+| `pressure_volatility_bar` | bar | Std dev of brew pressure (steady-state only) |
+| `flow_volatility_ml_s` | ml/s | Std dev of brew flow (steady-state only) |
 | `pressure_max_drop_rate_bar_s` | bar/s | Steepest pressure drop (most negative) |
-| `flow_acceleration_late_ml_s2` | ml/s² | Flow acceleration in last 40% of brew |
-| `overall_risk` | string | Combined risk assessment |
+| `flow_acceleration_late_ml_s2` | ml/s² | Flow acceleration in last 40% of steady-state brew |
+| `overall_risk` | string | Combined risk assessment (includes INSUFFICIENT_DATA) |
 
 **Annotations:**
 
 | Key | Bands |
 |-----|-------|
-| `pressure_stability` | VERY_STABLE (<0.15) · STABLE (<0.35) · MODERATE_JITTER (<0.6) · JITTERY (<1.0) · VOLATILE |
+| `pressure_stability` | Uses Coefficient of Variation (CV = std/mean) when mean pressure ≥ 1.0 bar: VERY_STABLE (CV<0.02) · STABLE (<0.05) · MODERATE_JITTER (<0.10) · JITTERY (<0.18) · VOLATILE. Falls back to absolute std bands at very low pressures. |
 | `flow_stability` | VERY_STABLE (<0.10) · STABLE (<0.25) · MODERATE_JITTER (<0.50) · JITTERY (<0.80) · VOLATILE |
 | `pressure_drop` | NORMAL (≥−1.0) · MODERATE_DROP (≥−2.5) · STEEP_DROP (≥−5.0) · CLIFF |
 | `late_flow_trend` | STABLE (<0.02) · SLIGHT_ACCELERATION (<0.05) · MODERATE_ACCELERATION (<0.10) · RAPID_ACCELERATION |
-
-**Risk scoring:** Scoring adds points for high pressure volatility, high flow volatility,
-steep pressure drops, and late flow acceleration. ≤1 = LOW, ≤3 = MODERATE, ≤5 = HIGH, >5 = VERY_HIGH.
+| `note` | Present when ramp-up samples were excluded or data was insufficient |
 
 ### Temperature Diagnostics
 
@@ -201,8 +214,9 @@ excessive dose, or a puck preparation issue. Recommend coarsening grind.
 
 ## Per-Phase Diagnostics
 
-At `per_phase` and `detailed` levels, each phase in the `phases` list includes a
-`diagnostics` object with metrics specific to that phase type.
+At `per_phase` and `per_phase_detailed` levels, each phase in the `phases` list includes a
+`diagnostics` object with metrics specific to that phase type. Only `per_phase_detailed`
+also includes the `samples` array (~5 averaged data points per phase).
 
 ### Phase Classification
 
@@ -240,9 +254,9 @@ Phase names from the firmware are classified automatically:
 |-------|------|---------|
 | `resistance_avg` | dimensionless | Puck resistance in this phase |
 | `resistance_slope` | /s | Resistance trend in this phase |
-| `channeling_risk` | string | Channeling risk for this phase |
-| `pressure_stability_bar` | bar | Pressure volatility |
-| `flow_stability_ml_s` | ml/s | Flow volatility |
+| `channeling_risk` | string | Channeling risk for this phase (may be INSUFFICIENT_DATA — see Channeling Indicators section) |
+| `pressure_stability_bar` | bar | Pressure volatility (steady-state only) |
+| `flow_stability_ml_s` | ml/s | Flow volatility (steady-state only) |
 
 **Annotations:** `resistance_level`, `resistance_erosion`, `channeling`, `pressure_stability`, `flow_stability`
 
@@ -272,7 +286,7 @@ Phase names from the firmware are classified automatically:
 - Fast extraction time
 
 ### Channeling
-- `channeling_risk` HIGH or VERY_HIGH
+- `channeling_risk` HIGH or VERY_HIGH (ignore INSUFFICIENT_DATA — it means the phase was too short to assess)
 - Resistance slope STEEP_DECLINE
 - Pressure volatility JITTERY or VOLATILE
 - Flow acceleration in late shot
@@ -298,11 +312,15 @@ User says "what's wrong with my shot?"
   → analyze_shot(shot_id)              # summary first
 
 Summary shows HIGH channeling risk?
-  → analyze_shot(shot_id, detail="per_phase")  # which phase?
+  → analyze_shot(shot_id, detail="per_phase")  # which phase has the problem?
+
+Per-phase shows INSUFFICIENT_DATA for channeling?
+  → Phase too short for reliable assessment. Check taste + adjacent phases.
 
 Per-phase shows brew phase channeling?
+  → analyze_shot(shot_id, detail="per_phase_detailed")  # see the curve shape
   → Correlate with taste, recommend grind adjustment
 
-Need exact timing of a pressure spike?
-  → analyze_shot(shot_id, detail="detailed")   # all samples
+Need to see pressure/flow trend in a specific phase?
+  → analyze_shot(shot_id, detail="per_phase_detailed")  # ~5 averaged samples per phase
 ```
