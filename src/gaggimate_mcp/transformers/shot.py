@@ -353,6 +353,22 @@ def process_phases(shot: ShotData) -> list[PhaseData]:
 
 # --- Annotation threshold bands ---
 # Ascending: value < upper_bound → label
+# Pressure volatility uses Coefficient of Variation (CV = std/mean)
+# when mean pressure >= _CV_MIN_PRESSURE_BAR, otherwise falls back
+# to absolute bands.  CV normalises by operating pressure so that a
+# 0.3 bar swing at 2 bar is treated the same as a 1.35 bar swing at
+# 9 bar (~15% relative instability in both cases).
+_CV_MIN_PRESSURE_BAR: float = 1.0
+
+_PRESSURE_CV_BANDS: list[tuple[float, str]] = [
+    (0.02, "VERY_STABLE"),
+    (0.05, "STABLE"),
+    (0.10, "MODERATE_JITTER"),
+    (0.18, "JITTERY"),
+    (float('inf'), "VOLATILE"),
+]
+
+# Absolute fallback bands — used only when mean pressure < _CV_MIN_PRESSURE_BAR
 _PRESSURE_VOLATILITY_BANDS: list[tuple[float, str]] = [
     (0.15, "VERY_STABLE"),
     (0.35, "STABLE"),
@@ -497,6 +513,52 @@ def _safe_std(values: list[float]) -> float:
     mean = sum(values) / len(values)
     variance = sum((x - mean) ** 2 for x in values) / len(values)
     return math.sqrt(variance)
+
+
+def _pressure_volatility_label(std: float, mean: float) -> str:
+    """Classify pressure volatility using CV when possible.
+
+    Uses coefficient of variation (std/mean) when mean pressure is
+    above ``_CV_MIN_PRESSURE_BAR``.  Falls back to absolute std
+    bands for very-low-pressure profiles where CV would be noisy.
+    """
+    if mean >= _CV_MIN_PRESSURE_BAR and mean > 0:
+        cv = std / mean
+        return _annotate_ascending(cv, _PRESSURE_CV_BANDS)
+    return _annotate_ascending(std, _PRESSURE_VOLATILITY_BANDS)
+
+
+# Minimum number of steady-state samples required for a reliable
+# channeling assessment.  Fewer than this → INSUFFICIENT_DATA.
+_MIN_STEADY_STATE_SAMPLES: int = 5
+
+
+def _trim_ramp_up(
+    pressures: list[float],
+    flows: list[float],
+    samples: list[dict],
+    threshold_pct: float = 0.90,
+) -> tuple[list[float], list[float], list[dict]]:
+    """Exclude the ramp-up portion from a brew/hold phase.
+
+    Returns the suffix of *pressures*, *flows*, and *samples* starting
+    from the first index where pressure reaches ``threshold_pct`` of the
+    phase-maximum pressure.  If pressure never reaches the threshold the
+    original lists are returned unchanged.
+    """
+    if not pressures:
+        return pressures, flows, samples
+
+    peak = max(pressures)
+    if peak <= 0:
+        return pressures, flows, samples
+
+    target = peak * threshold_pct
+    for i, p in enumerate(pressures):
+        if p >= target:
+            return pressures[i:], flows[i:], samples[i:]
+
+    return pressures, flows, samples
 
 
 def _linear_slope(values: list[float], dt: float) -> float:
@@ -755,34 +817,36 @@ def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
     )
 
     # ── CHANNELING INDICATORS ────────────────────────────────
-    p_volatility = _round2(_safe_std(brew_pressures))
-    f_volatility = _round2(_safe_std(brew_flows))
-
-    # Max pressure drop rate (most negative dP/dt)
-    p_derivatives: list[float] = []
-    for i in range(1, len(brew_pressures)):
-        dp_dt = (brew_pressures[i] - brew_pressures[i - 1]) / dt
-        p_derivatives.append(dp_dt)
-    p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
-
-    # Flow acceleration in late shot (last 40% of brew phase)
-    late_start = int(len(brew_flows) * 0.6)
-    late_flows = brew_flows[late_start:]
-    f_accel_late = _round2(_linear_slope(late_flows, dt))
-
-    overall_risk = _assess_channeling_risk(
-        p_volatility, f_volatility, p_max_drop, f_accel_late
+    # Trim ramp-up to compute volatility only on steady-state data
+    ss_pressures, ss_flows, _ = _trim_ramp_up(
+        brew_pressures, brew_flows, brew_samples,
     )
 
-    channeling = ChannelingIndicators(
-        pressure_volatility_bar=p_volatility,
-        flow_volatility_ml_s=f_volatility,
-        pressure_max_drop_rate_bar_s=p_max_drop,
-        flow_acceleration_late_ml_s2=f_accel_late,
-        overall_risk=overall_risk,
-        annotations={
-            "pressure_stability": _annotate_ascending(
-                p_volatility, _PRESSURE_VOLATILITY_BANDS
+    if len(ss_pressures) >= _MIN_STEADY_STATE_SAMPLES:
+        p_volatility = _round2(_safe_std(ss_pressures))
+        f_volatility = _round2(_safe_std(ss_flows))
+        p_mean = _safe_mean(ss_pressures)
+
+        # Max pressure drop rate (most negative dP/dt)
+        p_derivatives: list[float] = []
+        for i in range(1, len(ss_pressures)):
+            dp_dt = (ss_pressures[i] - ss_pressures[i - 1]) / dt
+            p_derivatives.append(dp_dt)
+        p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
+
+        # Flow acceleration in late shot (last 40% of steady-state)
+        late_start = int(len(ss_flows) * 0.6)
+        late_flows = ss_flows[late_start:]
+        f_accel_late = _round2(_linear_slope(late_flows, dt))
+
+        overall_risk = _assess_channeling_risk(
+            p_volatility, f_volatility, p_max_drop, f_accel_late
+        )
+
+        ramp_excluded = len(brew_pressures) - len(ss_pressures)
+        channeling_annotations: dict[str, str] = {
+            "pressure_stability": _pressure_volatility_label(
+                p_volatility, p_mean,
             ),
             "flow_stability": _annotate_ascending(
                 f_volatility, _FLOW_VOLATILITY_BANDS
@@ -793,7 +857,46 @@ def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
             "late_flow_trend": _annotate_ascending(
                 f_accel_late, _FLOW_ACCELERATION_BANDS
             ),
-        },
+        }
+        if ramp_excluded > 0:
+            channeling_annotations["note"] = (
+                f"{ramp_excluded} ramp-up samples excluded from stability calculation"
+            )
+    else:
+        # Insufficient steady-state data — compute from raw brew data
+        p_volatility = _round2(_safe_std(brew_pressures))
+        f_volatility = _round2(_safe_std(brew_flows))
+        p_mean = _safe_mean(brew_pressures)
+        p_max_drop = 0.0
+        f_accel_late = 0.0
+        overall_risk = "INSUFFICIENT_DATA"
+        channeling_annotations = {
+            "pressure_stability": _pressure_volatility_label(
+                p_volatility, p_mean,
+            ),
+            "flow_stability": _annotate_ascending(
+                f_volatility, _FLOW_VOLATILITY_BANDS
+            ),
+            "pressure_drop": _annotate_descending(
+                p_max_drop, _PRESSURE_DROP_RATE_BANDS
+            ),
+            "late_flow_trend": _annotate_ascending(
+                f_accel_late, _FLOW_ACCELERATION_BANDS
+            ),
+            "note": (
+                f"Only {len(ss_pressures)} samples at ≥90% of peak pressure "
+                f"(need {_MIN_STEADY_STATE_SAMPLES}). "
+                "Channeling assessment unreliable for this phase length."
+            ),
+        }
+
+    channeling = ChannelingIndicators(
+        pressure_volatility_bar=p_volatility,
+        flow_volatility_ml_s=f_volatility,
+        pressure_max_drop_rate_bar_s=p_max_drop,
+        flow_acceleration_late_ml_s2=f_accel_late,
+        overall_risk=overall_risk,
+        annotations=channeling_annotations,
     )
 
     # ── TEMPERATURE DIAGNOSTICS ──────────────────────────────
@@ -1017,16 +1120,28 @@ def _compute_phase_diagnostics(
         ]
         r_avg = _round2(_safe_mean(r_values))
         r_slope = _round2(_linear_slope(r_values, dt))
-        p_vol = _round2(_safe_std(pressures))
-        f_vol = _round2(_safe_std(flows))
-        p_derivs = [
-            (pressures[i] - pressures[i - 1]) / dt
-            for i in range(1, len(pressures))
-        ]
-        p_max_drop = min(p_derivs) if p_derivs else 0.0
-        late_start = int(len(flows) * 0.6)
-        f_accel = _linear_slope(flows[late_start:], dt)
-        risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+
+        # Trim ramp-up for stability metrics
+        ss_p, ss_f, _ = _trim_ramp_up(pressures, flows, phase_samples)
+        ss_count = len(ss_p)
+
+        if ss_count >= _MIN_STEADY_STATE_SAMPLES:
+            p_vol = _round2(_safe_std(ss_p))
+            f_vol = _round2(_safe_std(ss_f))
+            p_mean = _safe_mean(ss_p)
+            p_derivs = [
+                (ss_p[i] - ss_p[i - 1]) / dt
+                for i in range(1, len(ss_p))
+            ]
+            p_max_drop = min(p_derivs) if p_derivs else 0.0
+            late_start = int(len(ss_f) * 0.6)
+            f_accel = _linear_slope(ss_f[late_start:], dt)
+            risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+        else:
+            p_vol = _round2(_safe_std(pressures))
+            f_vol = _round2(_safe_std(flows))
+            p_mean = _safe_mean(pressures)
+            risk = "INSUFFICIENT_DATA"
 
         result["resistance_avg"] = r_avg
         result["resistance_slope"] = r_slope
@@ -1040,12 +1155,18 @@ def _compute_phase_diagnostics(
             r_slope, _RESISTANCE_SLOPE_BANDS
         )
         annotations["channeling"] = risk
-        annotations["pressure_stability"] = _annotate_ascending(
-            p_vol, _PRESSURE_VOLATILITY_BANDS
+        annotations["pressure_stability"] = _pressure_volatility_label(
+            p_vol, p_mean,
         )
         annotations["flow_stability"] = _annotate_ascending(
             f_vol, _FLOW_VOLATILITY_BANDS
         )
+        if ss_count < _MIN_STEADY_STATE_SAMPLES:
+            annotations["channeling_note"] = (
+                f"Only {ss_count} samples at >=90% of peak pressure "
+                f"(need {_MIN_STEADY_STATE_SAMPLES}). "
+                "Assessment unreliable for this phase length."
+            )
 
     elif phase_type == "decline":
         taper_rate = _round2(_linear_slope(pressures, dt))
@@ -1087,17 +1208,25 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
     r_avg = _round2(_safe_mean(r_values))
     r_slope = _round2(_linear_slope(r_values, dt))
 
-    # Channeling
-    p_vol = _safe_std(brew_pressures)
-    f_vol = _safe_std(brew_flows)
-    p_derivs = [
-        (brew_pressures[i] - brew_pressures[i - 1]) / dt
-        for i in range(1, len(brew_pressures))
-    ]
-    p_max_drop = min(p_derivs) if p_derivs else 0.0
-    late_start = int(len(brew_flows) * 0.6)
-    f_accel = _linear_slope(brew_flows[late_start:], dt)
-    risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+    # Channeling — trim ramp-up to assess steady-state only
+    ss_pressures, ss_flows, _ = _trim_ramp_up(
+        brew_pressures, brew_flows, brew_samples,
+    )
+    if len(ss_pressures) >= _MIN_STEADY_STATE_SAMPLES:
+        p_vol = _safe_std(ss_pressures)
+        f_vol = _safe_std(ss_flows)
+        p_derivs = [
+            (ss_pressures[i] - ss_pressures[i - 1]) / dt
+            for i in range(1, len(ss_pressures))
+        ]
+        p_max_drop = min(p_derivs) if p_derivs else 0.0
+        late_start = int(len(ss_flows) * 0.6)
+        f_accel = _linear_slope(ss_flows[late_start:], dt)
+        risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
+    else:
+        p_vol = _safe_std(brew_pressures)
+        f_vol = _safe_std(brew_flows)
+        risk = "INSUFFICIENT_DATA"
 
     # Temperature
     t_std = _round2(_safe_std(brew_temps))
@@ -1164,7 +1293,7 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
 # DETAIL LEVELS
 # ═══════════════════════════════════════════════════════════════════
 
-VALID_DETAIL_LEVELS = ("summary", "per_phase", "detailed")
+VALID_DETAIL_LEVELS = ("summary", "per_phase", "per_phase_detailed")
 
 
 def transform_shot_for_ai(
@@ -1180,14 +1309,15 @@ def transform_shot_for_ai(
       and max overshoot. Phases listed with stats but no samples.
       Minimal token usage.
     - **per_phase**: Full shot diagnostics *plus* per-phase diagnostics
-      (preinfusion/brew/decline specific metrics) with representative
-      samples per phase.
-    - **detailed**: Everything in per_phase *plus* all time-series
-      samples per phase.
+      (preinfusion/brew/decline specific metrics). No samples yet —
+      use this to identify *which* phase has an issue.
+    - **per_phase_detailed**: Everything in per_phase *plus* ~5
+      evenly-spaced averaged samples per phase to reveal curve shape.
+      Use after per_phase to see what the pressure/flow curve looks like.
 
     Args:
         shot: Parsed shot data
-        detail: Granularity level ("summary", "per_phase", "detailed")
+        detail: Granularity level ("summary", "per_phase", "per_phase_detailed")
 
     Returns:
         Transformed shot data with diagnostics appropriate to detail level
@@ -1202,13 +1332,10 @@ def transform_shot_for_ai(
         phases = _build_phases(shot, include_samples=False, include_diagnostics=False, dt=dt)
         diagnostics: Optional[ShotDiagnostics | SummaryDiagnostics] = compute_summary_diagnostics(shot)
     elif detail == "per_phase":
-        phases = _build_phases(shot, include_samples=True, include_diagnostics=True, dt=dt)
+        phases = _build_phases(shot, include_samples=False, include_diagnostics=True, dt=dt)
         diagnostics = compute_shot_diagnostics(shot)
-    else:  # detailed
-        phases = _build_phases(
-            shot, include_samples=True, include_diagnostics=True,
-            all_samples=True, dt=dt,
-        )
+    else:  # per_phase_detailed
+        phases = _build_phases(shot, include_samples=True, include_diagnostics=True, dt=dt)
         diagnostics = compute_shot_diagnostics(shot)
 
     return TransformedShot(
@@ -1230,7 +1357,6 @@ def _build_phases(
     *,
     include_samples: bool = True,
     include_diagnostics: bool = False,
-    all_samples: bool = False,
     dt: float = 0.0,
 ) -> list[PhaseData]:
     """Build phase list with configurable content.
@@ -1277,7 +1403,7 @@ def _build_phases(
             }
 
             if include_samples:
-                pd["samples"] = _select_samples(phase_samples, all_samples)
+                pd["samples"] = _select_samples(phase_samples)
 
             if include_diagnostics and dt > 0 and len(phase_samples) >= 3:
                 phase_type = _classify_phase(
@@ -1311,7 +1437,7 @@ def _build_phases(
         }
 
         if include_samples:
-            pd["samples"] = _select_samples(samples, all_samples)
+            pd["samples"] = _select_samples(samples)
 
         if include_diagnostics and dt > 0 and len(samples) >= 3:
             pd["diagnostics"] = _compute_phase_diagnostics(samples, "brew", dt)
@@ -1321,22 +1447,38 @@ def _build_phases(
     return phases
 
 
-def _select_samples(samples: list[dict], all_samples: bool) -> list[TransformedSample]:
-    """Select representative or all samples from a phase."""
-    if all_samples:
-        indices = range(len(samples))
+def _select_samples(samples: list[dict]) -> list[TransformedSample]:
+    """Select ~5 representative samples from a phase.
+
+    Returns ~5 evenly-spaced data points with local averaging (±1
+    neighbour) to smooth single-sample noise while preserving the
+    curve shape. This gives the consuming agent enough resolution to
+    see trends without full time-series token cost.
+    """
+    n = len(samples)
+    if n <= 5:
+        indices = range(n)
     else:
-        indices = sorted(set([0, len(samples) // 2, len(samples) - 1]))
+        # 5 evenly-spaced anchor indices
+        indices = sorted(set(
+            round(i * (n - 1) / 4) for i in range(5)
+        ))
 
     result: list[TransformedSample] = []
     for idx in indices:
-        if idx < len(samples):
-            s = samples[idx]
-            result.append(TransformedSample(
-                time_seconds=round((s.get('t', 0.0) / 1000.0) * 10) / 10,
-                temperature_c=round(s.get('ct', 0.0) * 10) / 10,
-                pressure_bar=round(s.get('cp', 0.0) * 10) / 10,
-                flow_ml_s=round(s.get('pf', 0.0) * 10) / 10,
-                weight_g=round(s.get('v', 0.0) * 10) / 10,
-            ))
+        if idx >= len(samples):
+            continue
+
+        # Average over a ±1 window around the anchor
+        lo = max(0, idx - 1)
+        hi = min(len(samples), idx + 2)  # exclusive
+        window = samples[lo:hi]
+        wn = len(window)
+        result.append(TransformedSample(
+            time_seconds=round((samples[idx].get('t', 0.0) / 1000.0) * 10) / 10,
+            temperature_c=round(sum(s.get('ct', 0.0) for s in window) / wn * 10) / 10,
+            pressure_bar=round(sum(s.get('cp', 0.0) for s in window) / wn * 10) / 10,
+            flow_ml_s=round(sum(s.get('pf', 0.0) for s in window) / wn * 10) / 10,
+            weight_g=round(sum(s.get('v', 0.0) for s in window) / wn * 10) / 10,
+        ))
     return result

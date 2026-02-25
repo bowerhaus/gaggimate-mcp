@@ -1,7 +1,7 @@
 ---
 name: feedback
 metadata:
-  version: 53269c1 (2026-02-23)
+  version: b6a1883 (2026-02-25)
 description: >
   Gather shot feedback, analyze extraction, recommend adjustments, and record results.
   Use when user says: "/feedback", "I just pulled a shot", "how was that", "it tasted [sour/bitter/flat/good]",
@@ -45,11 +45,18 @@ Gather from the user (ask for what's missing):
 | **Observations** | Yes (1+ specific note) | Body, sweetness, finish, flavor, mouthfeel |
 | **Grind setting** | Ask if not offered | Important for tracking |
 | **Dose in** | Ask if not offered | Should match basket size |
+| **Dose out** | Ask if not offered | Output weight — needed for ratio |
 | **Shot ID** | Optional | From `list_recent_shots` if user doesn't provide |
 
 **Minimum viable feedback:** Rating + balance + one specific observation.
 
-**Weight handling:** Prefer telemetry data for dose out when a shot ID is available (see `read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")` for scale artifact detection). If telemetry is unavailable or looks unreliable, just ask the user. It's fine to ask for both dose in and dose out.
+**Dose in & dose out:** The brew ratio (dose in : dose out) is important for diagnosis and tracking. Make sure both are captured:
+- For dose out: if a BT scale is connected, check `final_weight_g` in `analyze_shot` output first. If telemetry is unavailable or looks unreliable, ask the user.
+- For dose in: ask if not volunteered — it should match the basket size from `manage_user_setup`.
+- If the user doesn't mention either, ask casually: "What were your dose in and output weight?"
+- Log both in shot notes via `dose_in` and `dose_out` parameters.
+
+**Scale data handling:** Prefer telemetry for dose out when a shot ID is available (see `read_knowledge(action="read", filename="diagnostics/TELEMETRY_PATTERNS")` for scale artifact detection). If telemetry is unavailable or looks unreliable, just ask the user.
 
 ### 3. ANALYZE & RECOMMEND
 

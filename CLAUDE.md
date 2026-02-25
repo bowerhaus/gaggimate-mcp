@@ -30,6 +30,12 @@ A `TODO.md` file exists in the project root to track pending tasks.
 
 ---
 
+## Skill & Knowledge File Versioning
+
+When editing any file under `agent-skills/` or `agent-instructions/`, **always update the version in the YAML frontmatter** of the modified skill file(s). Use `git rev-parse --short HEAD` + today's date.
+
+---
+
 ## Claude Desktop Agent Deployment
 
 The agent instructions and skills for Claude Desktop live in this repo and must be manually uploaded to claude.ai.

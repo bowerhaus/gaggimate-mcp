@@ -1,7 +1,7 @@
 ---
 name: diagnose
 metadata:
-  version: 53269c1 (2026-02-23)
+  version: b6a1883 (2026-02-25)
 description: >
   Diagnose espresso extraction issues by correlating machine telemetry with taste feedback.
   Use when user says: "what went wrong", "analyze that shot", "why did it taste [sour/bitter/flat]",
@@ -30,10 +30,10 @@ Use: analyze_shot(shot_id)
 ```
 This returns **summary-level** diagnostics by default (resistance, channeling risk,
 temperature stability, profile compliance). If you need per-phase breakdowns or
-full time-series data, escalate:
+curve shape data, escalate progressively:
 ```
-Use: analyze_shot(shot_id, detail="per_phase")   # per-phase diagnostics + representative samples
-Use: analyze_shot(shot_id, detail="detailed")    # all time-series samples (high token cost)
+Use: analyze_shot(shot_id, detail="per_phase")            # per-phase diagnostics (no samples)
+Use: analyze_shot(shot_id, detail="per_phase_detailed")   # per-phase diagnostics + ~5 averaged samples per phase
 ```
 See the complete metric reference, annotation bands, and interpretation cheat sheet:
 ```
@@ -44,6 +44,8 @@ Use: read_knowledge(action="read", filename="diagnostics/SHOT_DIAGNOSTICS_REFERE
 ```
 Use: manage_shot_notes(shot_id, action="get")
 ```
+
+**Always ensure output weight is logged.** If the shot notes or telemetry don't include dose out, ask the user: "What was the output weight in the cup?" The brew ratio is essential for diagnosis. Log it via `manage_shot_notes(shot_id, action="update", dose_out=X)` once obtained.
 
 ### 1b. CHECK Coffee History
 

@@ -22,6 +22,9 @@ from gaggimate_mcp.transformers.shot import (
     _annotate_descending,
     _assess_channeling_risk,
     _build_phases,
+    _pressure_volatility_label,
+    _trim_ramp_up,
+    _MIN_STEADY_STATE_SAMPLES,
     VALID_DETAIL_LEVELS,
     _PRESSURE_VOLATILITY_BANDS,
     _RESISTANCE_SLOPE_BANDS,
@@ -559,9 +562,9 @@ class TestShotDiagnostics:
         # Resistance should be computed from brew-phase only
         # At brew phase: flow is around 2.0-2.1, so resistance should be calculable
         assert diag['resistance']['avg'] > 0
-        # Brew phase has gradual decline (9→7.5) over short interval which creates
-        # steep derivative. With real-world data (longer shots), risk would be lower.
-        assert diag['channeling']['overall_risk'] in ('LOW', 'MODERATE')
+        # Only 4 brew samples — fewer than the 5-sample minimum for steady-state
+        # channeling assessment, so we expect INSUFFICIENT_DATA
+        assert diag['channeling']['overall_risk'] == 'INSUFFICIENT_DATA'
 
     def test_transform_includes_diagnostics(self):
         """Test that transform_shot_for_ai includes full diagnostics at per_phase level."""
@@ -685,7 +688,7 @@ class TestDetailLevels:
         return self._make_shot(samples, phases=phases)
 
     def test_valid_detail_levels(self):
-        assert VALID_DETAIL_LEVELS == ("summary", "per_phase", "detailed")
+        assert VALID_DETAIL_LEVELS == ("summary", "per_phase", "per_phase_detailed")
 
     def test_invalid_detail_falls_back_to_summary(self):
         shot = self._standard_shot()
@@ -704,9 +707,18 @@ class TestDetailLevels:
         for phase in t['phases']:
             assert 'diagnostics' not in phase
 
-    def test_per_phase_has_samples_and_diagnostics(self):
+    def test_per_phase_has_diagnostics_no_samples(self):
         shot = self._standard_shot()
         t = transform_shot_for_ai(shot, detail="per_phase")
+        for phase in t['phases']:
+            assert 'samples' not in phase
+            if phase['sample_count'] >= 3:
+                assert 'diagnostics' in phase
+                assert phase['diagnostics']['phase_type'] in ('preinfusion', 'brew', 'decline')
+
+    def test_per_phase_detailed_has_samples_and_diagnostics(self):
+        shot = self._standard_shot()
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
         for phase in t['phases']:
             assert 'samples' in phase
             assert len(phase['samples']) > 0
@@ -714,23 +726,16 @@ class TestDetailLevels:
                 assert 'diagnostics' in phase
                 assert phase['diagnostics']['phase_type'] in ('preinfusion', 'brew', 'decline')
 
-    def test_per_phase_representative_samples(self):
+    def test_per_phase_detailed_representative_samples(self):
         shot = self._standard_shot()
-        t = transform_shot_for_ai(shot, detail="per_phase")
-        # 5-sample extraction phase should have 3 representative samples
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
+        # 5-sample extraction phase should have 5 evenly-spaced averaged samples
         ext_phase = [p for p in t['phases'] if p['name'] == 'Extraction'][0]
-        assert len(ext_phase['samples']) == 3
+        assert len(ext_phase['samples']) == 5
 
-    def test_detailed_all_samples(self):
+    def test_per_phase_detailed_full_diagnostics(self):
         shot = self._standard_shot()
-        t = transform_shot_for_ai(shot, detail="detailed")
-        ext_phase = [p for p in t['phases'] if p['name'] == 'Extraction'][0]
-        # Should have ALL 5 extraction samples
-        assert len(ext_phase['samples']) == ext_phase['sample_count']
-
-    def test_per_phase_full_diagnostics(self):
-        shot = self._standard_shot()
-        t = transform_shot_for_ai(shot, detail="per_phase")
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
         diag = t['diagnostics']
         assert 'resistance' in diag
         assert 'channeling' in diag
@@ -1051,3 +1056,133 @@ class TestPerPhaseDiagnostics:
             assert 'pressure_rmse_bar' in diag
             assert 'flow_rmse_ml_s' in diag
             assert diag['pressure_rmse_bar'] >= 0
+
+
+class TestRampExclusion:
+    """Tests for ramp-up trimming and steady-state channeling assessment."""
+
+    def test_trim_ramp_up_basic(self):
+        """Ramp portion excluded when pressure climbs to target."""
+        pressures = [1.0, 3.0, 5.0, 7.0, 8.5, 9.0, 9.0, 8.9, 9.0]
+        flows = [0.1, 0.5, 1.0, 1.5, 1.9, 2.0, 2.0, 2.1, 2.0]
+        samples = [{'cp': p, 'pf': f} for p, f in zip(pressures, flows)]
+        ss_p, ss_f, ss_s = _trim_ramp_up(pressures, flows, samples)
+        # Peak is 9.0, threshold = 8.1.  First sample >= 8.1 is index 4 (8.5)
+        assert len(ss_p) == 5
+        assert ss_p[0] == 8.5
+
+    def test_trim_ramp_up_already_at_target(self):
+        """No ramp to exclude — all samples already at target."""
+        pressures = [9.0, 9.0, 8.9, 9.0, 8.8]
+        flows = [2.0, 2.0, 2.1, 2.0, 2.1]
+        samples = [{'cp': p, 'pf': f} for p, f in zip(pressures, flows)]
+        ss_p, ss_f, _ = _trim_ramp_up(pressures, flows, samples)
+        assert len(ss_p) == 5  # All returned
+
+    def test_trim_ramp_up_empty(self):
+        """Empty lists returned unchanged."""
+        ss_p, ss_f, ss_s = _trim_ramp_up([], [], [])
+        assert ss_p == []
+
+    def test_insufficient_data_for_short_brew(self):
+        """Short brew phase → INSUFFICIENT_DATA channeling risk."""
+        # Only 3 brew samples at 9 bar — fewer than _MIN_STEADY_STATE_SAMPLES
+        samples = [
+            {'t': 0, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0},
+            {'t': 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0},
+            {'t': 200, 'ct': 93.0, 'tt': 93.0, 'cp': 8.8, 'pf': 2.1, 'tp': 9.0},
+        ]
+        diag = _compute_phase_diagnostics(samples, "brew", 0.1)
+        assert diag['channeling_risk'] == 'INSUFFICIENT_DATA'
+        assert 'channeling_note' in diag['annotations']
+
+    def test_sufficient_data_gives_risk_label(self):
+        """Brew phase with enough steady-state samples gets a real risk."""
+        # 8 stable samples at ~9 bar
+        samples = [
+            {'t': i * 100, 'cp': 9.0 - i * 0.05, 'pf': 2.0, 'tp': 9.0}
+            for i in range(8)
+        ]
+        diag = _compute_phase_diagnostics(samples, "brew", 0.1)
+        assert diag['channeling_risk'] in ('LOW', 'MODERATE', 'HIGH', 'VERY_HIGH')
+
+
+class TestCVNormalization:
+    """Tests for coefficient-of-variation pressure volatility labelling."""
+
+    def test_cv_used_at_high_pressure(self):
+        """CV bands used when mean pressure >= 1.0 bar."""
+        # std 0.1 at mean 9.0 → CV = 0.011 → VERY_STABLE
+        assert _pressure_volatility_label(0.1, 9.0) == "VERY_STABLE"
+        # std 0.5 at mean 9.0 → CV = 0.056 → MODERATE_JITTER
+        assert _pressure_volatility_label(0.5, 9.0) == "MODERATE_JITTER"
+        # std 2.0 at mean 9.0 → CV = 0.222 → VOLATILE
+        assert _pressure_volatility_label(2.0, 9.0) == "VOLATILE"
+
+    def test_absolute_fallback_at_low_pressure(self):
+        """Absolute bands used when mean pressure < 1.0 bar."""
+        # std 0.1 at mean 0.5 → absolute band → VERY_STABLE
+        assert _pressure_volatility_label(0.1, 0.5) == "VERY_STABLE"
+        # std 0.5 at mean 0.5 → absolute band → MODERATE_JITTER
+        assert _pressure_volatility_label(0.5, 0.5) == "MODERATE_JITTER"
+
+    def test_low_pressure_not_free_pass(self):
+        """Low-pressure profiles don't automatically get VERY_STABLE."""
+        # std 0.15 at mean 2.0 → CV = 0.075 → MODERATE_JITTER (not VERY_STABLE
+        # as it would be under absolute bands where 0.15 < 0.35 → STABLE)
+        assert _pressure_volatility_label(0.15, 2.0) == "MODERATE_JITTER"
+        # std 0.4 at mean 2.0 → CV = 0.2 → VOLATILE
+        assert _pressure_volatility_label(0.4, 2.0) == "VOLATILE"
+
+
+class TestSampledDataPoints:
+    """Tests for 5-point evenly-spaced averaged sampling."""
+
+    def _make_shot(self, samples, phases=None, **kwargs):
+        defaults = dict(
+            id='000100', version=5, fields_mask=0xFF,
+            sample_count=len(samples), sample_interval=100,
+            profile_id='test', profile_name='Test Profile',
+            timestamp=1640000000, rating=0, duration=30000,
+            weight=40.0,
+        )
+        defaults.update(kwargs)
+        return ShotData(samples=samples, phases=phases or [], **defaults)
+
+    def test_per_phase_detailed_returns_5_samples_for_long_phase(self):
+        """Phase with >5 samples returns exactly 5 evenly-spaced points."""
+        # 20-sample single phase
+        samples = [
+            {'t': i * 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0, 'tp': 9.0}
+            for i in range(20)
+        ]
+        shot = self._make_shot(samples)
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
+        phase = t['phases'][0]
+        assert len(phase['samples']) == 5
+
+    def test_per_phase_detailed_returns_all_for_short_phase(self):
+        """Phase with <=5 samples returns all of them."""
+        samples = [
+            {'t': i * 100, 'ct': 93.0, 'tt': 93.0, 'cp': 9.0, 'pf': 2.0}
+            for i in range(4)
+        ]
+        shot = self._make_shot(samples)
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
+        phase = t['phases'][0]
+        assert len(phase['samples']) == 4
+
+    def test_averaged_samples_smooth_noise(self):
+        """Sampled points use ±1 window averaging to smooth noise."""
+        # Create samples with a spike at index 10
+        samples = []
+        for i in range(20):
+            p = 9.0 if i != 10 else 12.0  # spike at index 10
+            samples.append({'t': i * 100, 'ct': 93.0, 'cp': p, 'pf': 2.0})
+        shot = self._make_shot(samples)
+        t = transform_shot_for_ai(shot, detail="per_phase_detailed")
+        phase_samples = t['phases'][0]['samples']
+        # The middle sample (index 10 → anchor ~10) should be averaged:
+        # (9.0 + 12.0 + 9.0) / 3 = 10.0, not 12.0
+        mid = phase_samples[2]  # 3rd of 5 points → anchor at ~index 10
+        assert mid['pressure_bar'] == 10.0
