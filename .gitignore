@@ -66,3 +66,6 @@ docs/
 archive/
 .claude/
 .github/copilot-instructions.md
+
+# screen recordings
+demo_screen_recordings/
