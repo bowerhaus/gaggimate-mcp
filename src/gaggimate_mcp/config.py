@@ -19,7 +19,7 @@ class GaggimateConfig(BaseSettings):
     # Connection settings
     gaggimate_host: str = "gaggimate.local"
     gaggimate_protocol: str = "ws"
-    request_timeout: float = 5.0
+    request_timeout: float = 15.0
 
     # Safety limits
     max_temperature: float = 100.0

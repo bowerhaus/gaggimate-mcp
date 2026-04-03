@@ -38,7 +38,7 @@ class GaggimateWebSocketClient:
             config: Configuration object (uses default if None)
         """
         self.config = config or GaggimateConfig()
-        self.timeout = 5.0  # 5 second timeout
+        self.timeout = self.config.request_timeout
 
     @property
     def ws_url(self) -> str:
