@@ -4,54 +4,50 @@ import struct
 import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from aiohttp import ClientError
 
-from gaggimate_mcp.api.http import (
-    GaggimateHTTPClient,
-    _is_html_response,
-    MAX_RETRIES,
-)
+from gaggimate_mcp.api.http import GaggimateHTTPClient, MAX_RETRIES
+from gaggimate_mcp.parsers.shot import is_html_response
 from gaggimate_mcp.config import GaggimateConfig
 from gaggimate_mcp.errors import GaggimateError, ErrorCode
 
 
-# --- _is_html_response tests ---
+# --- is_html_response tests ---
 
 
 class TestIsHtmlResponse:
     """Tests for HTML response detection."""
 
     def test_detects_doctype_lowercase(self):
-        assert _is_html_response(b'<!doctype html><html>...') is True
+        assert is_html_response(b'<!doctype html><html>...') is True
 
     def test_detects_doctype_uppercase(self):
-        assert _is_html_response(b'<!DOCTYPE html><html>...') is True
+        assert is_html_response(b'<!DOCTYPE html><html>...') is True
 
     def test_detects_html_tag_lowercase(self):
-        assert _is_html_response(b'<html><head>...') is True
+        assert is_html_response(b'<html><head>...') is True
 
     def test_detects_html_tag_uppercase(self):
-        assert _is_html_response(b'<HTML><HEAD>...') is True
+        assert is_html_response(b'<HTML><HEAD>...') is True
 
     def test_rejects_binary_shot_data(self):
         # Valid SHOT magic bytes
         data = struct.pack('<I', 0x544F4853) + b'\x00' * 124
-        assert _is_html_response(data) is False
+        assert is_html_response(data) is False
 
     def test_rejects_empty_data(self):
-        assert _is_html_response(b'') is False
+        assert is_html_response(b'') is False
 
     def test_rejects_short_data(self):
-        assert _is_html_response(b'abc') is False
+        assert is_html_response(b'abc') is False
 
     def test_rejects_random_binary(self):
-        assert _is_html_response(b'\x00\x01\x02\x03\x04\x05') is False
+        assert is_html_response(b'\x00\x01\x02\x03\x04\x05') is False
 
     def test_firmware_1_8_0_html_magic_bytes(self):
         """The specific bytes from the firmware 1.8.0 error report."""
         # 0x6f64213c in little-endian = bytes 3c 21 64 6f = "<!do"
         data = struct.pack('<I', 0x6f64213c) + b'ctype html>' + b'\x00' * 100
-        assert _is_html_response(data) is True
+        assert is_html_response(data) is True
 
 
 # --- Helper to build a minimal valid shot binary ---

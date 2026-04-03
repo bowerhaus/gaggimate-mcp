@@ -107,6 +107,18 @@ class ShotData:
     incomplete: bool = False
 
 
+def is_html_response(data: bytes) -> bool:
+    """Check if data looks like HTML instead of binary shot data.
+
+    Some firmware versions return HTML error pages instead of binary data
+    when the device is overloaded or the endpoint is temporarily unavailable.
+    """
+    if len(data) < 4:
+        return False
+    prefix = data[:15].lower()
+    return prefix.startswith(b'<!doc') or prefix.startswith(b'<html')
+
+
 def decode_c_string(data: bytes) -> str:
     """Decode null-terminated C string."""
     null_pos = data.find(b'\x00')
@@ -144,8 +156,7 @@ def parse_binary_shot(data: bytes, shot_id: str) -> ShotData:
     magic = struct.unpack_from('<I', data, 0)[0]
     if magic != MAGIC:
         # Check if the device returned HTML instead of binary data
-        prefix = data[:15].lower()
-        if prefix.startswith(b'<!doc') or prefix.startswith(b'<html'):
+        if is_html_response(data):
             raise ValueError(
                 "Device returned an HTML page instead of binary shot data. "
                 "This usually means the device is overloaded or the firmware's "

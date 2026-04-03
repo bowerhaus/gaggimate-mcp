@@ -13,26 +13,13 @@ from gaggimate_mcp.config import GaggimateConfig
 from gaggimate_mcp.errors import GaggimateError, ErrorCode
 from gaggimate_mcp.logging_config import get_logger
 from gaggimate_mcp.parsers.index import parse_binary_index, index_to_shot_list
-from gaggimate_mcp.parsers.shot import parse_binary_shot, ShotData
+from gaggimate_mcp.parsers.shot import parse_binary_shot, ShotData, is_html_response
 
 logger = get_logger(__name__)
 
 # Maximum retries for transient failures (timeouts, HTML responses)
 MAX_RETRIES = 3
 RETRY_BACKOFF_BASE = 1.0  # seconds
-
-
-def _is_html_response(data: bytes) -> bool:
-    """Check if response data looks like HTML instead of binary.
-
-    Some firmware versions return HTML error pages instead of binary data
-    when the device is overloaded or the endpoint is temporarily unavailable.
-    """
-    if len(data) < 4:
-        return False
-    # Check for common HTML signatures: <!doctype, <!DOCTYPE, <html, <HTML
-    prefix = data[:15].lower()
-    return prefix.startswith(b'<!doc') or prefix.startswith(b'<html')
 
 
 class GaggimateHTTPClient:
@@ -94,7 +81,7 @@ class GaggimateHTTPClient:
                     # Parse binary index
                     binary_data = await response.read()
 
-                    if _is_html_response(binary_data):
+                    if is_html_response(binary_data):
                         logger.warning("html_response_for_index", url=url)
                         raise GaggimateError(
                             code=ErrorCode.PARSE_ERROR,
@@ -120,11 +107,14 @@ class GaggimateHTTPClient:
 
         except GaggimateError:
             raise
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             logger.error("http_connection_error", error=str(e), url=url)
             raise GaggimateError(
-                code=ErrorCode.DEVICE_UNREACHABLE,
-                message=f"HTTP connection error: {str(e)}"
+                code=ErrorCode.TIMEOUT if isinstance(e, asyncio.TimeoutError) else ErrorCode.DEVICE_UNREACHABLE,
+                message=f"Request timed out after {self.config.request_timeout}s fetching shot index"
+                if isinstance(e, asyncio.TimeoutError)
+                else f"HTTP connection error: {str(e)}",
+                retryable=True,
             ) from e
         except ValueError as e:
             logger.error("parse_error", error=str(e), url=url)
@@ -153,13 +143,10 @@ class GaggimateHTTPClient:
         url = f"{self.base_url}/{padded_id}.slog"
         logger.info("fetching_shot", shot_id=shot_id, padded_id=padded_id, url=url)
 
-        last_error: Optional[Exception] = None
-
         for attempt in range(MAX_RETRIES):
             try:
                 return await self._fetch_shot_once(padded_id, url)
             except GaggimateError as e:
-                last_error = e
                 if not e.retryable or attempt == MAX_RETRIES - 1:
                     raise
                 wait = RETRY_BACKOFF_BASE * (2 ** attempt)
@@ -173,8 +160,7 @@ class GaggimateHTTPClient:
                 )
                 await asyncio.sleep(wait)
 
-        # Should not reach here, but satisfy type checker
-        raise last_error  # type: ignore[misc]
+        raise RuntimeError("unreachable: retry loop exited without return or raise")
 
     async def _fetch_shot_once(self, padded_id: str, url: str) -> Optional[ShotData]:
         """Fetch a shot file in a single attempt.
@@ -209,7 +195,7 @@ class GaggimateHTTPClient:
                     binary_data = await response.read()
 
                     # Detect HTML responses (device returning error page instead of binary)
-                    if _is_html_response(binary_data):
+                    if is_html_response(binary_data):
                         logger.warning(
                             "html_response_for_shot",
                             shot_id=padded_id,
