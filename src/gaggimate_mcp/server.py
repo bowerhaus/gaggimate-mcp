@@ -89,8 +89,10 @@ def _get_error_suggestion(error: GaggimateError) -> str:
         ),
         ErrorCode.PARSE_ERROR: (
             "Failed to parse response from Gaggimate. "
-            "The device may be running incompatible firmware or the data format changed. "
-            "Consider updating the MCP server or checking device firmware version."
+            "This can happen when the device is overloaded and returns an HTML page "
+            "instead of binary data, or if the firmware data format changed. "
+            "Some requests are retried automatically — if this persists, try again "
+            "in a moment or run 'diagnose_connection' for diagnostics."
         ),
         ErrorCode.PROFILE_NOT_FOUND: (
             "Profile not found on device. "
