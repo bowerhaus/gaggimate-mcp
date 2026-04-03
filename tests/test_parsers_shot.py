@@ -91,6 +91,16 @@ class TestBinaryShotParser:
             assert "HTML" in str(e)
             assert "overloaded" in str(e)
 
+    def test_parse_shot_short_html_detected_before_size_check(self):
+        """Short HTML responses should get HTML error, not 'too small' error."""
+        short_html = b'<html>err</html>'  # < 128 bytes
+        try:
+            parse_binary_shot(short_html, "000195")
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "HTML" in str(e)
+            assert "too small" not in str(e)
+
     def test_parse_shot_firmware_1_8_0_magic_bytes(self):
         """Test the specific magic bytes from the 1.8.0 error report."""
         # 0x6f64213c = "<!do" in little-endian ASCII

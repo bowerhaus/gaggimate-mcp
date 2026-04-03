@@ -149,19 +149,21 @@ def parse_binary_shot(data: bytes, shot_id: str) -> ShotData:
     Raises:
         ValueError: If file format is invalid
     """
+    # Check for HTML responses before size validation — the device may return
+    # a short HTML error page that would otherwise trigger "Shot file too small"
+    if is_html_response(data):
+        raise ValueError(
+            "Device returned an HTML page instead of binary shot data. "
+            "This usually means the device is overloaded or the firmware's "
+            "web server is serving its UI instead of the API endpoint."
+        )
+
     if len(data) < HEADER_SIZE_V4:
         raise ValueError(f"Shot file too small: {len(data)} bytes")
 
     # Parse header
     magic = struct.unpack_from('<I', data, 0)[0]
     if magic != MAGIC:
-        # Check if the device returned HTML instead of binary data
-        if is_html_response(data):
-            raise ValueError(
-                "Device returned an HTML page instead of binary shot data. "
-                "This usually means the device is overloaded or the firmware's "
-                "web server is serving its UI instead of the API endpoint."
-            )
         raise ValueError(f"Invalid shot magic: 0x{magic:08x} (expected 0x{MAGIC:08x})")
 
     version = struct.unpack_from('<B', data, 4)[0]
