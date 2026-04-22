@@ -936,7 +936,6 @@ def _channeling_guidance(
     primary: str,
     confidence: str,
     flow_shape: str,
-    has_target_flow: bool,
 ) -> str:
     """One-sentence interpretation to orient the agent before it reads numbers.
 
@@ -1021,7 +1020,7 @@ def _build_channeling(
                 "window_confidence": confidence,
                 "primary_signal": "none",
                 "guidance": _channeling_guidance(
-                    "INSUFFICIENT_DATA", "none", confidence, "FLAT", False,
+                    "INSUFFICIENT_DATA", "none", confidence, "FLAT",
                 ),
                 "note": (
                     f"Only {n} steady-state samples after trim "
@@ -1032,33 +1031,38 @@ def _build_channeling(
             },
         )
 
-    # Indicators
-    flow_jitter = _round2(_jitter_std(ss_flows))
-    pressure_jitter = _round2(_jitter_std(ss_pressures))
+    # Indicators — keep raw values for scoring, round only for output
+    flow_jitter_raw = _jitter_std(ss_flows)
+    pressure_jitter_raw = _jitter_std(ss_pressures)
     flow_vs_tgt_raw = _residual_std_vs_target(ss_samples)
-    flow_vs_tgt = (
-        _round2(flow_vs_tgt_raw) if flow_vs_tgt_raw is not None else None
-    )
     p_derivatives = [
         (ss_pressures[i] - ss_pressures[i - 1]) / dt
         for i in range(1, len(ss_pressures))
     ]
-    p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
-    f_accel_late = _round2(_late_flow_runaway(ss_flows, dt))
+    p_max_drop_raw = min(p_derivatives) if p_derivatives else 0.0
+    f_accel_late_raw = _late_flow_runaway(ss_flows, dt)
+
+    flow_jitter = _round2(flow_jitter_raw)
+    pressure_jitter = _round2(pressure_jitter_raw)
+    flow_vs_tgt = (
+        _round2(flow_vs_tgt_raw) if flow_vs_tgt_raw is not None else None
+    )
+    p_max_drop = _round2(p_max_drop_raw)
+    f_accel_late = _round2(f_accel_late_raw)
 
     # Descriptors
     flow_spread = _round2(_safe_std(ss_flows))
     flow_shape = _flow_shape_label(ss_flows, dt)
 
     risk = _assess_channeling_risk(
-        flow_jitter=flow_jitter,
-        flow_vs_tgt=flow_vs_tgt,
-        pressure_max_drop_rate=p_max_drop,
-        flow_acceleration_late=f_accel_late,
-        pressure_jitter=pressure_jitter,
+        flow_jitter=flow_jitter_raw,
+        flow_vs_tgt=flow_vs_tgt_raw,
+        pressure_max_drop_rate=p_max_drop_raw,
+        flow_acceleration_late=f_accel_late_raw,
+        pressure_jitter=pressure_jitter_raw,
     )
     primary = _channeling_primary_signal(
-        flow_jitter, flow_vs_tgt, p_max_drop, f_accel_late, pressure_jitter,
+        flow_jitter_raw, flow_vs_tgt_raw, p_max_drop_raw, f_accel_late_raw, pressure_jitter_raw,
     )
 
     annotations: dict[str, str] = {
@@ -1080,7 +1084,7 @@ def _build_channeling(
         "window_confidence": confidence,
         "primary_signal": primary,
         "guidance": _channeling_guidance(
-            risk, primary, confidence, flow_shape, flow_vs_tgt is not None,
+            risk, primary, confidence, flow_shape,
         ),
     }
     if ramp_excluded or zf_lead or zf_tail:
