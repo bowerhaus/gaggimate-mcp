@@ -154,15 +154,18 @@ class ChannelingIndicators(TypedDict):
     Catches abrupt channel opening (pressure cliff).  Complementary to
     jitter — a single cliff can register as low jitter but high max_drop.
     Unreliable when the window includes the volumetric-cutoff tail;
-    verify ``annotations.trimmed_tail_zero_flow > 0`` in that case.
+    check ``annotations.note`` for mention of trailing zero-flow trimming
+    in that case.
     """
 
     flow_acceleration_late_ml_s2: float
-    """Linear trend of flow over the last 40% of the steady-state window.
+    """Detrended late-window flow slope over the last 40% of steady state.
 
-    Positive = accelerating; negative = tapering.  Catches runaway
-    channeling in late extraction.  Misses channeling that develops
-    early and then stabilises.
+    Computed as ``late_slope - overall_slope`` rather than the raw late
+    slope alone.  Positive = the late window is accelerating relative to
+    the overall steady-state trend; negative = it is tapering relative to
+    that trend.  Catches late runaway channeling, but can miss channeling
+    that develops early and then stabilises.
     """
 
     # --- Descriptors (context, not scored) ---
@@ -1020,7 +1023,8 @@ def _build_channeling(
                 "window_confidence": confidence,
                 "primary_signal": "none",
                 "guidance": _channeling_guidance(
-                    "INSUFFICIENT_DATA", "none", confidence, "FLAT",
+                    "INSUFFICIENT_DATA", "none", confidence,
+                    _flow_shape_label(ss_flows, dt),
                 ),
                 "note": (
                     f"Only {n} steady-state samples after trim "
