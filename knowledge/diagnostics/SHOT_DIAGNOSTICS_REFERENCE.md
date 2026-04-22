@@ -94,39 +94,64 @@ Captures grind fineness, puck prep quality, channeling, and erosion.
 
 ### Channeling Indicators
 
-Detects channeling from pressure/flow volatility during **steady-state extraction only**.
-The initial ramp-up portion of each phase (samples before pressure reaches ≥90% of phase
-peak) is automatically excluded to avoid false positives from normal pressure build-up.
+Four independent indicators, each catching a different channeling signature. Reason about
+them together — a single flag is usually noise; two or more aligned flags indicate a real
+signal. Descriptor fields (`flow_spread_ml_s`, `pressure_jitter_bar`, `flow_shape`)
+provide context for interpreting the indicators but do not contribute to `channeling_risk`.
 
-**INSUFFICIENT_DATA:** Channeling detection relies on pressure/flow stability *after* the
-pressure has ramped up to near its target. The ramp-up portion (below 90% of phase peak
-pressure) is excluded because pressure naturally fluctuates while building.
-If fewer than 5 samples remain after this exclusion — e.g. a short brew phase where most
-time was spent ramping, or a phase where pressure never truly stabilised — `overall_risk`
-is set to `INSUFFICIENT_DATA` rather than computing a misleading score.
+**Steady-state window.** All channeling metrics are computed over a trimmed window that
+excludes (a) the pressure-ramp portion at the start of the brew phase and (b) leading or
+trailing samples where flow is below 0.1 ml/s (valve-closed at entry, volumetric-cutoff at
+exit). The `annotations.note` field reports how many samples were excluded at each step
+so the agent can judge window quality.
 
-When you see INSUFFICIENT_DATA:
-- The phase was too short or pressure too unstable for reliable channeling assessment
-- Check taste feedback and adjacent phases for extraction quality clues
-- This is NOT a problem indication — it simply means "not enough data to judge"
+**INSUFFICIENT_DATA.** If fewer than 5 samples remain after trimming — a short brew phase,
+flow that never opens, or a valve-closed shot — `channeling_risk` is set to
+`INSUFFICIENT_DATA` rather than computing a misleading score. This is NOT a problem
+indication; it simply means the phase was too short to judge. Check taste feedback and
+adjacent phases instead.
+
+#### Indicators (contribute to channeling_risk)
+
+| Field | Unit | What it catches | Notes |
+|-------|------|-----------------|-------|
+| `flow_jitter_ml_s` | ml/s | Micro-spikes, oscillation, puck collapsing/re-forming | Std of first-differences of flow — insensitive to designed ramps. Primary signal. |
+| `flow_vs_target_residual_ml_s` | ml/s | Systematic inability to hold the commanded flow curve | Std of (actual − target). `null` when no target flow is commanded (pressure-led profiles). Often the clearest fingerprint on flow-led profiles. |
+| `pressure_max_drop_rate_bar_s` | bar/s | Abrupt channel opening (pressure cliff) | Most-negative *single-sample* dP/dt. Complementary to jitter — a single cliff can register as low jitter but high max_drop. |
+| `flow_acceleration_late_ml_s2` | ml/s² | Late-shot runaway channeling | `late_slope − overall_slope`. A linear flow ramp scores 0; only *excess* acceleration beyond the designed trajectory is a runaway signal. |
+
+#### Descriptors (context, not scored)
 
 | Field | Unit | Meaning |
 |-------|------|---------|
-| `pressure_volatility_bar` | bar | Std dev of brew pressure (steady-state only) |
-| `flow_volatility_ml_s` | ml/s | Std dev of brew flow (steady-state only) |
-| `pressure_max_drop_rate_bar_s` | bar/s | Steepest pressure drop (most negative) |
-| `flow_acceleration_late_ml_s2` | ml/s² | Flow acceleration in last 40% of steady-state brew |
-| `overall_risk` | string | Combined risk assessment (includes INSUFFICIENT_DATA) |
+| `flow_spread_ml_s` | ml/s | Raw std of flow values — includes intended ramps. Pair with `flow_shape` annotation to distinguish intentional trajectory from unintended spread. |
+| `pressure_jitter_bar` | bar | Same formula as flow_jitter on pressure. Sanity check — genuine channeling usually shows on both variables. Used as the secondary-indicator fallback in the risk score when no target_flow is commanded. |
 
-**Annotations:**
+#### Risk computation
 
-| Key | Bands |
-|-----|-------|
-| `pressure_stability` | Uses Coefficient of Variation (CV = std/mean) when mean pressure ≥ 1.0 bar: VERY_STABLE (CV<0.02) · STABLE (<0.05) · MODERATE_JITTER (<0.10) · JITTERY (<0.18) · VOLATILE. Falls back to absolute std bands at very low pressures. |
-| `flow_stability` | VERY_STABLE (<0.10) · STABLE (<0.25) · MODERATE_JITTER (<0.50) · JITTERY (<0.80) · VOLATILE |
+`channeling_risk` is LOW / MODERATE / HIGH / VERY_HIGH derived from a 0–8 score:
+
+- **flow_jitter:** +1 at ≥0.05, +1 more at ≥0.10
+- **flow_vs_target (or pressure_jitter as fallback):** +1 at ≥0.35 (0.10 for jitter), +1 more at ≥0.70 (0.20)
+- **pressure_max_drop_rate:** +1 at ≤−1.5, +1 more at ≤−3.0
+- **flow_acceleration_late:** +1 at ≥0.05, +1 more at ≥0.10
+
+Mapping: 0-1 → LOW · 2-3 → MODERATE · 4-5 → HIGH · 6-8 → VERY_HIGH.
+
+#### Annotations
+
+| Key | Values |
+|-----|--------|
+| `flow_jitter` | VERY_STABLE (<0.025) · STABLE (<0.05) · MODERATE_JITTER (<0.10) · JITTERY (<0.20) · VOLATILE |
+| `flow_vs_target` | WITHIN_TOLERANCE (<0.15) · MINOR_DEVIATION (<0.35) · NOTABLE_DEVIATION (<0.70) · SEVERE_DEVIATION · N/A (when no target) |
+| `pressure_jitter` | VERY_STABLE (<0.05) · STABLE (<0.10) · MODERATE_JITTER (<0.20) · JITTERY (<0.40) · VOLATILE |
 | `pressure_drop` | NORMAL (≥−1.0) · MODERATE_DROP (≥−2.5) · STEEP_DROP (≥−5.0) · CLIFF |
 | `late_flow_trend` | STABLE (<0.02) · SLIGHT_ACCELERATION (<0.05) · MODERATE_ACCELERATION (<0.10) · RAPID_ACCELERATION |
-| `note` | Present when ramp-up samples were excluded or data was insufficient |
+| `flow_shape` | FLAT · RAMPING_UP · RAMPING_DOWN — classifies the overall flow trajectory. Read alongside `flow_spread_ml_s` to distinguish designed ramps from jitter. |
+| `window_confidence` | HIGH (≥15 samples) · MEDIUM (8-14) · LOW (5-7) · INSUFFICIENT. Discount HIGH/VERY_HIGH ratings when confidence is LOW. |
+| `primary_signal` | Comma-separated list of indicators that fired at their lowest threshold, or `none`. Tells you *why* the rating came out the way it did without re-deriving from raw numbers. |
+| `guidance` | One-sentence textual interpretation — a framing layer to cross-check your own reading of the data. |
+| `note` | Present when trimming occurred; lists how many samples were excluded as ramp-up, leading zero-flow, or trailing zero-flow. |
 
 ### Temperature Diagnostics
 
@@ -255,10 +280,10 @@ Phase names from the firmware are classified automatically:
 | `resistance_avg` | dimensionless | Puck resistance in this phase |
 | `resistance_slope` | /s | Resistance trend in this phase |
 | `channeling_risk` | string | Channeling risk for this phase (may be INSUFFICIENT_DATA — see Channeling Indicators section) |
-| `pressure_stability_bar` | bar | Pressure volatility (steady-state only) |
-| `flow_stability_ml_s` | ml/s | Flow volatility (steady-state only) |
+| `flow_jitter_ml_s` | ml/s | Per-phase flow jitter (first-difference std over steady-state window) |
+| `pressure_jitter_bar` | bar | Per-phase pressure jitter (same metric on pressure) |
 
-**Annotations:** `resistance_level`, `resistance_erosion`, `channeling`, `channeling_note` (present when `channeling_risk == INSUFFICIENT_DATA`), `pressure_stability`, `flow_stability`
+**Annotations:** `resistance_level`, `resistance_erosion`, `channeling` (risk label), plus the full `channeling_*` namespace mirroring the top-level Channeling Indicators annotations (`channeling_flow_jitter`, `channeling_flow_vs_target`, `channeling_pressure_drop`, `channeling_late_flow_trend`, `channeling_pressure_jitter`, `channeling_flow_shape`, `channeling_window_confidence`, `channeling_primary_signal`, `channeling_guidance`, `channeling_note` when trimming applied).
 
 ### Decline-Specific Fields
 

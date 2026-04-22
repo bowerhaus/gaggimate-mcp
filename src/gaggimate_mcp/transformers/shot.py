@@ -66,7 +66,7 @@ class PhaseDiagnostics(TypedDict, total=False):
 
     Preinfusion: ramp_rate_bar_s, saturation_time_s
     Brew: resistance_avg, resistance_slope, channeling_risk,
-          pressure_stability_bar, flow_stability_ml_s
+          flow_jitter_ml_s, pressure_jitter_bar
     Decline: taper_rate_bar_s, taper_smoothness
     """
     phase_type: str
@@ -77,12 +77,12 @@ class PhaseDiagnostics(TypedDict, total=False):
     # Preinfusion
     ramp_rate_bar_s: float
     saturation_time_s: float
-    # Brew
+    # Brew — channeling fields match top-level ChannelingIndicators naming
     resistance_avg: float
     resistance_slope: float
     channeling_risk: str
-    pressure_stability_bar: float
-    flow_stability_ml_s: float
+    flow_jitter_ml_s: float
+    pressure_jitter_bar: float
     # Decline
     taper_rate_bar_s: float
     taper_smoothness: float
@@ -118,16 +118,74 @@ class ResistanceDiagnostics(TypedDict):
 
 
 class ChannelingIndicators(TypedDict):
-    """Channeling detection from pressure/flow volatility.
+    """Puck-stability signals from brew-phase telemetry.
 
-    High volatility in the free variable (flow in pressure mode,
-    pressure in flow mode) indicates channeling.
+    Four independent indicators, each catching a different channeling
+    signature.  The agent should reason about them together, not in
+    isolation — a single flag is usually noise; two or more aligned
+    flags are a real signal.  Descriptor fields (``*_spread``, shape
+    annotations) provide context for interpreting the indicators but
+    do not contribute to the risk score.
     """
-    pressure_volatility_bar: float
-    flow_volatility_ml_s: float
+    # --- Indicators (contribute to channeling_risk) ---
+    flow_jitter_ml_s: float
+    """Sample-to-sample flow instability after removing intended trajectory.
+
+    Std of first-differences of puck flow.  Insensitive to profile-designed
+    ramps — only measures deviation from whatever trend the profile
+    commanded.  Catches micro-spikes, oscillation, puck collapsing/
+    re-forming.  Misses slow drift that stays within profile shape.
+    Unreliable when the steady-state window has fewer than ~8 samples.
+    """
+
+    flow_vs_target_residual_ml_s: Optional[float]
+    """How far actual flow strayed from the commanded target_flow.
+
+    Std of (actual - target).  ``None`` when no target flow is commanded
+    (pure pressure-led profiles).  Catches systematic inability to hold
+    the commanded flow curve — often the clearest channeling fingerprint
+    on flow-led profiles.
+    """
+
     pressure_max_drop_rate_bar_s: float
+    """Steepest instantaneous pressure collapse (bar/second).
+
+    Most-negative single-sample dP/dt.  NOT average; worst-single-sample.
+    Catches abrupt channel opening (pressure cliff).  Complementary to
+    jitter — a single cliff can register as low jitter but high max_drop.
+    Unreliable when the window includes the volumetric-cutoff tail;
+    verify ``annotations.trimmed_tail_zero_flow > 0`` in that case.
+    """
+
     flow_acceleration_late_ml_s2: float
-    overall_risk: str
+    """Linear trend of flow over the last 40% of the steady-state window.
+
+    Positive = accelerating; negative = tapering.  Catches runaway
+    channeling in late extraction.  Misses channeling that develops
+    early and then stabilises.
+    """
+
+    # --- Descriptors (context, not scored) ---
+    flow_spread_ml_s: float
+    """Population std of raw flow values.  NOT a stability metric — includes
+    intended profile ramps.  Pair with ``annotations.flow_shape`` to
+    distinguish intentional ramps from unintended spread.
+    """
+
+    pressure_jitter_bar: float
+    """Sample-to-sample pressure instability.  Rarely the primary signal
+    but a sanity check — genuine channeling often shows on both variables.
+    Used as the secondary-indicator fallback when no target_flow is set.
+    """
+
+    # --- Overall assessment ---
+    channeling_risk: str
+    """LOW | MODERATE | HIGH | VERY_HIGH | INSUFFICIENT_DATA.
+
+    See ``annotations.primary_signal`` to know which indicator(s) drove
+    the rating.
+    """
+
     annotations: dict[str, str]
 
 
@@ -385,6 +443,38 @@ _FLOW_VOLATILITY_BANDS: list[tuple[float, str]] = [
     (float('inf'), "VOLATILE"),
 ]
 
+# Jitter bands — applied to first-difference std (V5).  Tighter numbers than
+# raw std because jitter isolates sample-to-sample noise and discards the
+# designed-profile trend.  Calibrated against 26 real Amigo Alturas shots
+# that measured 0.013-0.020 ml/s jitter across the board (rock-solid by
+# design).  JITTERY is where genuine channeling should register.
+_FLOW_JITTER_BANDS: list[tuple[float, str]] = [
+    (0.025, "VERY_STABLE"),
+    (0.050, "STABLE"),
+    (0.100, "MODERATE_JITTER"),
+    (0.200, "JITTERY"),
+    (float('inf'), "VOLATILE"),
+]
+
+_PRESSURE_JITTER_BANDS: list[tuple[float, str]] = [
+    (0.05, "VERY_STABLE"),
+    (0.10, "STABLE"),
+    (0.20, "MODERATE_JITTER"),
+    (0.40, "JITTERY"),
+    (float('inf'), "VOLATILE"),
+]
+
+# How far actual flow strayed from target flow (V6).  Reused magnitude
+# bands from FLOW_DEVIATION but renamed because the contextual meaning
+# differs — this is tracking error over the steady-state window, not
+# per-phase RMSE.
+_FLOW_VS_TARGET_BANDS: list[tuple[float, str]] = [
+    (0.15, "WITHIN_TOLERANCE"),
+    (0.35, "MINOR_DEVIATION"),
+    (0.70, "NOTABLE_DEVIATION"),
+    (float('inf'), "SEVERE_DEVIATION"),
+]
+
 _RESISTANCE_LEVEL_BANDS: list[tuple[float, str]] = [
     (0.5, "VERY_LOW"),
     (1.5, "LOW"),
@@ -515,6 +605,81 @@ def _safe_std(values: list[float]) -> float:
     return math.sqrt(variance)
 
 
+def _jitter_std(values: list[float]) -> float:
+    """Population std of first-differences — noise around whatever trend exists.
+
+    A flat signal has zero jitter; a smooth linear ramp has near-zero jitter
+    (all differences equal); an oscillating or spiky signal has high jitter.
+    Insensitive to intentional profile trajectories.
+    """
+    if len(values) < 3:
+        return 0.0
+    diffs = [values[i] - values[i - 1] for i in range(1, len(values))]
+    return _safe_std(diffs)
+
+
+def _late_flow_runaway(flows: list[float], dt: float) -> float:
+    """Excess flow acceleration in the last 40% of the window (ml/s²).
+
+    Computed as ``late_slope - overall_slope``.  Returns 0 when the late
+    window matches the overall trend — so a linear flow ramp (profile by
+    design) scores 0, while a flat-then-kicks-up trace scores positive.
+
+    This is the channeling-specific reading of flow acceleration: only
+    *excess* acceleration beyond the designed trajectory is a runaway
+    signal.  Absolute magnitude alone would false-positive on every
+    flow-ramp profile.
+    """
+    n = len(flows)
+    if n < 6:
+        return 0.0
+    late_start = int(n * 0.6)
+    late_slope = _linear_slope(flows[late_start:], dt)
+    overall_slope = _linear_slope(flows, dt)
+    return late_slope - overall_slope
+
+
+def _flow_shape_label(flows: list[float], dt: float) -> str:
+    """Classify the trajectory of a flow window as FLAT, RAMPING_UP, or RAMPING_DOWN.
+
+    Uses linear-regression slope in ml/s per second.  Bands chosen so that
+    a designed 0.1 ml/s² ramp registers as RAMPING_UP / _DOWN while normal
+    noise in a flat extraction stays FLAT.  Provided as context so the agent
+    can interpret ``flow_spread_ml_s`` correctly — high spread on a ramping
+    profile is intentional, not channeling.
+    """
+    if len(flows) < 2:
+        return "FLAT"
+    slope = _linear_slope(flows, dt)
+    if slope > 0.03:
+        return "RAMPING_UP"
+    if slope < -0.03:
+        return "RAMPING_DOWN"
+    return "FLAT"
+
+
+def _residual_std_vs_target(samples: list[dict]) -> Optional[float]:
+    """Population std of (actual_flow - target_flow) where target is commanded.
+
+    Measures how far actual puck flow strayed from the profile's commanded
+    trajectory.  Returns ``None`` when target_flow is not commanded for
+    enough samples (pressure-led profiles), so the agent can distinguish
+    "flow tracked target poorly" from "no target was set".
+
+    Samples with ``tf <= 0`` are excluded as they are not part of the
+    commanded trajectory.
+    """
+    pairs = [
+        (s.get('pf', 0.0), s['tf'])
+        for s in samples
+        if s.get('tf', 0.0) > 0
+    ]
+    if len(pairs) < 3:
+        return None
+    residuals = [actual - target for actual, target in pairs]
+    return _safe_std(residuals)
+
+
 def _pressure_volatility_label(std: float, mean: float) -> str:
     """Classify pressure volatility using CV when possible.
 
@@ -559,6 +724,39 @@ def _trim_ramp_up(
             return pressures[i:], flows[i:], samples[i:]
 
     return pressures, flows, samples
+
+
+def _strip_flow_edges(
+    pressures: list[float],
+    flows: list[float],
+    samples: list[dict],
+    thr: float = 0.1,
+) -> tuple[list[float], list[float], list[dict], tuple[int, int]]:
+    """Remove leading and trailing samples where flow is below ``thr`` ml/s.
+
+    Complements ``_trim_ramp_up`` by also handling:
+    - Leading zero-flow samples (pressure ramped, valve not yet open)
+    - Trailing zero-flow samples (volumetric cutoff hit, pressure trapped)
+
+    Returns trimmed pressures, flows, samples, and a ``(lead, tail)`` tuple
+    counting samples removed from each end.  When every sample is below
+    threshold the returned lists are empty and ``lead == len(flows)``.
+    """
+    n = len(flows)
+    i = 0
+    while i < n and flows[i] < thr:
+        i += 1
+    if i == n:
+        return [], [], [], (n, 0)
+    j = n - 1
+    while j > i and flows[j] < thr:
+        j -= 1
+    return (
+        pressures[i:j + 1],
+        flows[i:j + 1],
+        samples[i:j + 1],
+        (i, n - 1 - j),
+    )
 
 
 def _linear_slope(values: list[float], dt: float) -> float:
@@ -620,29 +818,63 @@ def _get_brew_phase_samples(shot: ShotData) -> list[dict]:
 
 
 def _assess_channeling_risk(
-    pressure_vol: float,
-    flow_vol: float,
-    max_drop_rate: float,
-    flow_accel: float,
+    flow_jitter: float,
+    flow_vs_tgt: Optional[float],
+    pressure_max_drop_rate: float,
+    flow_acceleration_late: float,
+    pressure_jitter: float,
 ) -> str:
-    """Assess overall channeling risk from individual indicators."""
+    """Assess channeling risk from four independent indicators.
+
+    The 4 indicators each contribute 0-2 points (8 total):
+
+    1. **flow_jitter** — sample-to-sample flow instability (V5). Primary
+       channeling fingerprint; insensitive to designed flow ramps.
+    2. **flow_vs_tgt / pressure_jitter** — how well the shot tracked the
+       commanded variable.  ``flow_vs_tgt`` is used when the profile
+       commands flow; ``pressure_jitter`` is the fallback for pressure-led
+       profiles.  Either indicator occupies the same scoring slot so the
+       total score range (0-8) is consistent across profile types.
+    3. **pressure_max_drop_rate** — steepest single-sample pressure
+       collapse.  Catches cliff-type events (channel opening) that jitter
+       may miss when isolated to a single sample.
+    4. **flow_acceleration_late** — late-shot flow runaway trend.  Catches
+       sustained channeling that develops at the end of extraction.
+
+    Mapping: 0-1 → LOW, 2-3 → MODERATE, 4-5 → HIGH, 6-8 → VERY_HIGH.
+    """
     score = 0
-    if pressure_vol >= 0.35:
+
+    # Indicator 1: flow jitter
+    if flow_jitter >= 0.05:
         score += 1
-    if pressure_vol >= 0.6:
+    if flow_jitter >= 0.10:
         score += 1
-    if flow_vol >= 0.25:
+
+    # Indicator 2: flow-vs-target primary, pressure-jitter fallback
+    if flow_vs_tgt is not None:
+        if flow_vs_tgt >= 0.35:
+            score += 1
+        if flow_vs_tgt >= 0.70:
+            score += 1
+    else:
+        if pressure_jitter >= 0.10:
+            score += 1
+        if pressure_jitter >= 0.20:
+            score += 1
+
+    # Indicator 3: pressure cliff
+    if pressure_max_drop_rate <= -1.5:
         score += 1
-    if flow_vol >= 0.5:
+    if pressure_max_drop_rate <= -3.0:
         score += 1
-    if max_drop_rate <= -1.5:
+
+    # Indicator 4: late-shot flow runaway
+    if flow_acceleration_late >= 0.05:
         score += 1
-    if max_drop_rate <= -3.0:
+    if flow_acceleration_late >= 0.10:
         score += 1
-    if flow_accel >= 0.05:
-        score += 1
-    if flow_accel >= 0.10:
-        score += 1
+
     if score <= 1:
         return "LOW"
     if score <= 3:
@@ -655,6 +887,224 @@ def _assess_channeling_risk(
 def _round2(value: float) -> float:
     """Round to 2 decimal places."""
     return round(value * 100) / 100
+
+
+def _window_confidence(n: int) -> str:
+    """Map steady-state sample count to a confidence label for channeling assessment.
+
+    Drives ``annotations.window_confidence`` so the agent can discount
+    HIGH/VERY_HIGH ratings when they come from a tiny window.
+    """
+    if n < _MIN_STEADY_STATE_SAMPLES:
+        return "INSUFFICIENT"
+    if n < 8:
+        return "LOW"
+    if n < 15:
+        return "MEDIUM"
+    return "HIGH"
+
+
+def _channeling_primary_signal(
+    flow_jitter: float,
+    flow_vs_tgt: Optional[float],
+    pressure_max_drop_rate: float,
+    flow_acceleration_late: float,
+    pressure_jitter: float,
+) -> str:
+    """Name the indicators contributing to a non-zero risk score.
+
+    Returns a comma-separated list (``"flow_jitter,pressure_cliff"``) or
+    ``"none"``.  Tells the agent *why* the rating fired without requiring
+    it to re-derive the scoring from raw numbers.
+    """
+    signals: list[str] = []
+    if flow_jitter >= 0.05:
+        signals.append("flow_jitter")
+    if flow_vs_tgt is not None and flow_vs_tgt >= 0.35:
+        signals.append("flow_vs_target")
+    elif flow_vs_tgt is None and pressure_jitter >= 0.10:
+        signals.append("pressure_jitter_fallback")
+    if pressure_max_drop_rate <= -1.5:
+        signals.append("pressure_cliff")
+    if flow_acceleration_late >= 0.05:
+        signals.append("late_flow_runaway")
+    return ",".join(signals) if signals else "none"
+
+
+def _channeling_guidance(
+    risk: str,
+    primary: str,
+    confidence: str,
+    flow_shape: str,
+    has_target_flow: bool,
+) -> str:
+    """One-sentence interpretation to orient the agent before it reads numbers.
+
+    Not a replacement for the indicator values — a framing layer so the
+    agent can cross-check its own reading of the data against an expected
+    interpretation.
+    """
+    if risk == "INSUFFICIENT_DATA":
+        return (
+            "Steady-state window too short for a reliable channeling "
+            "assessment — treat other diagnostics as the primary signal."
+        )
+    if risk == "LOW":
+        if primary != "none":
+            return (
+                f"LOW overall; sub-threshold signals noted ({primary}) "
+                "but did not aggregate into concern."
+            )
+        if flow_shape == "FLAT":
+            return "Flat flow held steadily — no channeling signature."
+        return (
+            f"Flow traces a {flow_shape.lower().replace('_', ' ')} "
+            "trajectory cleanly — no channeling signature."
+        )
+    if confidence in ("LOW", "MEDIUM") and risk in ("HIGH", "VERY_HIGH"):
+        return (
+            f"{risk} rating from a small steady-state window "
+            f"(confidence={confidence}); verify against flow_shape and primary_signal."
+        )
+    signal_count = 0 if primary == "none" else primary.count(",") + 1
+    if signal_count >= 2:
+        return (
+            f"{signal_count} independent indicators align ({primary}) — "
+            "channeling likely real."
+        )
+    return f"Single-indicator flag ({primary}); verify against other diagnostics."
+
+
+def _build_channeling(
+    brew_pressures: list[float],
+    brew_flows: list[float],
+    brew_samples: list[dict],
+    dt: float,
+) -> ChannelingIndicators:
+    """Compute the full ChannelingIndicators block from brew-phase data.
+
+    Applies the two-step steady-state trim (``_trim_ramp_up`` then
+    ``_strip_flow_edges``) and derives all indicators, descriptors, and
+    annotations.  Shared between full-shot and per-phase code paths so
+    both produce the same schema.
+    """
+    # Step 1: pressure-based ramp-up trim
+    ss_pressures, ss_flows, ss_samples = _trim_ramp_up(
+        brew_pressures, brew_flows, brew_samples,
+    )
+    ramp_excluded = len(brew_pressures) - len(ss_pressures)
+
+    # Step 2: strip leading/trailing zero-flow samples (valve closed / cutoff)
+    ss_pressures, ss_flows, ss_samples, (zf_lead, zf_tail) = _strip_flow_edges(
+        ss_pressures, ss_flows, ss_samples,
+    )
+
+    n = len(ss_pressures)
+    confidence = _window_confidence(n)
+
+    if n < _MIN_STEADY_STATE_SAMPLES:
+        return ChannelingIndicators(
+            flow_jitter_ml_s=0.0,
+            flow_vs_target_residual_ml_s=None,
+            pressure_max_drop_rate_bar_s=0.0,
+            flow_acceleration_late_ml_s2=0.0,
+            flow_spread_ml_s=_round2(_safe_std(ss_flows)) if ss_flows else 0.0,
+            pressure_jitter_bar=0.0,
+            channeling_risk="INSUFFICIENT_DATA",
+            annotations={
+                "flow_jitter": "N/A",
+                "flow_vs_target": "N/A",
+                "pressure_drop": "N/A",
+                "late_flow_trend": "N/A",
+                "pressure_jitter": "N/A",
+                "flow_shape": _flow_shape_label(ss_flows, dt),
+                "window_confidence": confidence,
+                "primary_signal": "none",
+                "guidance": _channeling_guidance(
+                    "INSUFFICIENT_DATA", "none", confidence, "FLAT", False,
+                ),
+                "note": (
+                    f"Only {n} steady-state samples after trim "
+                    f"(ramp_excluded={ramp_excluded}, "
+                    f"zero_flow_lead={zf_lead}, zero_flow_tail={zf_tail}); "
+                    f"need {_MIN_STEADY_STATE_SAMPLES} for assessment."
+                ),
+            },
+        )
+
+    # Indicators
+    flow_jitter = _round2(_jitter_std(ss_flows))
+    pressure_jitter = _round2(_jitter_std(ss_pressures))
+    flow_vs_tgt_raw = _residual_std_vs_target(ss_samples)
+    flow_vs_tgt = (
+        _round2(flow_vs_tgt_raw) if flow_vs_tgt_raw is not None else None
+    )
+    p_derivatives = [
+        (ss_pressures[i] - ss_pressures[i - 1]) / dt
+        for i in range(1, len(ss_pressures))
+    ]
+    p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
+    f_accel_late = _round2(_late_flow_runaway(ss_flows, dt))
+
+    # Descriptors
+    flow_spread = _round2(_safe_std(ss_flows))
+    flow_shape = _flow_shape_label(ss_flows, dt)
+
+    risk = _assess_channeling_risk(
+        flow_jitter=flow_jitter,
+        flow_vs_tgt=flow_vs_tgt,
+        pressure_max_drop_rate=p_max_drop,
+        flow_acceleration_late=f_accel_late,
+        pressure_jitter=pressure_jitter,
+    )
+    primary = _channeling_primary_signal(
+        flow_jitter, flow_vs_tgt, p_max_drop, f_accel_late, pressure_jitter,
+    )
+
+    annotations: dict[str, str] = {
+        "flow_jitter": _annotate_ascending(flow_jitter, _FLOW_JITTER_BANDS),
+        "flow_vs_target": (
+            _annotate_ascending(flow_vs_tgt, _FLOW_VS_TARGET_BANDS)
+            if flow_vs_tgt is not None else "N/A"
+        ),
+        "pressure_drop": _annotate_descending(
+            p_max_drop, _PRESSURE_DROP_RATE_BANDS
+        ),
+        "late_flow_trend": _annotate_ascending(
+            f_accel_late, _FLOW_ACCELERATION_BANDS
+        ),
+        "pressure_jitter": _annotate_ascending(
+            pressure_jitter, _PRESSURE_JITTER_BANDS
+        ),
+        "flow_shape": flow_shape,
+        "window_confidence": confidence,
+        "primary_signal": primary,
+        "guidance": _channeling_guidance(
+            risk, primary, confidence, flow_shape, flow_vs_tgt is not None,
+        ),
+    }
+    if ramp_excluded or zf_lead or zf_tail:
+        parts = []
+        if ramp_excluded:
+            parts.append(f"{ramp_excluded} ramp-up")
+        if zf_lead:
+            parts.append(f"{zf_lead} leading zero-flow")
+        if zf_tail:
+            parts.append(f"{zf_tail} trailing zero-flow")
+        annotations["note"] = (
+            f"Trimmed {', '.join(parts)} samples before assessment."
+        )
+
+    return ChannelingIndicators(
+        flow_jitter_ml_s=flow_jitter,
+        flow_vs_target_residual_ml_s=flow_vs_tgt,
+        pressure_max_drop_rate_bar_s=p_max_drop,
+        flow_acceleration_late_ml_s2=f_accel_late,
+        flow_spread_ml_s=flow_spread,
+        pressure_jitter_bar=pressure_jitter,
+        channeling_risk=risk,
+        annotations=annotations,
+    )
 
 
 def _compute_rmse(actual: list[float], target: list[float]) -> float:
@@ -817,86 +1267,8 @@ def compute_shot_diagnostics(shot: ShotData) -> Optional[ShotDiagnostics]:
     )
 
     # ── CHANNELING INDICATORS ────────────────────────────────
-    # Trim ramp-up to compute volatility only on steady-state data
-    ss_pressures, ss_flows, _ = _trim_ramp_up(
-        brew_pressures, brew_flows, brew_samples,
-    )
-
-    if len(ss_pressures) >= _MIN_STEADY_STATE_SAMPLES:
-        p_volatility = _round2(_safe_std(ss_pressures))
-        f_volatility = _round2(_safe_std(ss_flows))
-        p_mean = _safe_mean(ss_pressures)
-
-        # Max pressure drop rate (most negative dP/dt)
-        p_derivatives: list[float] = []
-        for i in range(1, len(ss_pressures)):
-            dp_dt = (ss_pressures[i] - ss_pressures[i - 1]) / dt
-            p_derivatives.append(dp_dt)
-        p_max_drop = _round2(min(p_derivatives)) if p_derivatives else 0.0
-
-        # Flow acceleration in late shot (last 40% of steady-state)
-        late_start = int(len(ss_flows) * 0.6)
-        late_flows = ss_flows[late_start:]
-        f_accel_late = _round2(_linear_slope(late_flows, dt))
-
-        overall_risk = _assess_channeling_risk(
-            p_volatility, f_volatility, p_max_drop, f_accel_late
-        )
-
-        ramp_excluded = len(brew_pressures) - len(ss_pressures)
-        channeling_annotations: dict[str, str] = {
-            "pressure_stability": _pressure_volatility_label(
-                p_volatility, p_mean,
-            ),
-            "flow_stability": _annotate_ascending(
-                f_volatility, _FLOW_VOLATILITY_BANDS
-            ),
-            "pressure_drop": _annotate_descending(
-                p_max_drop, _PRESSURE_DROP_RATE_BANDS
-            ),
-            "late_flow_trend": _annotate_ascending(
-                f_accel_late, _FLOW_ACCELERATION_BANDS
-            ),
-        }
-        if ramp_excluded > 0:
-            channeling_annotations["note"] = (
-                f"{ramp_excluded} ramp-up samples excluded from stability calculation"
-            )
-    else:
-        # Insufficient steady-state data — compute from raw brew data
-        p_volatility = _round2(_safe_std(brew_pressures))
-        f_volatility = _round2(_safe_std(brew_flows))
-        p_mean = _safe_mean(brew_pressures)
-        p_max_drop = 0.0
-        f_accel_late = 0.0
-        overall_risk = "INSUFFICIENT_DATA"
-        channeling_annotations = {
-            "pressure_stability": _pressure_volatility_label(
-                p_volatility, p_mean,
-            ),
-            "flow_stability": _annotate_ascending(
-                f_volatility, _FLOW_VOLATILITY_BANDS
-            ),
-            "pressure_drop": _annotate_descending(
-                p_max_drop, _PRESSURE_DROP_RATE_BANDS
-            ),
-            "late_flow_trend": _annotate_ascending(
-                f_accel_late, _FLOW_ACCELERATION_BANDS
-            ),
-            "note": (
-                f"Only {len(ss_pressures)} samples at ≥90% of peak pressure "
-                f"(need {_MIN_STEADY_STATE_SAMPLES}). "
-                "Channeling assessment unreliable for this phase length."
-            ),
-        }
-
-    channeling = ChannelingIndicators(
-        pressure_volatility_bar=p_volatility,
-        flow_volatility_ml_s=f_volatility,
-        pressure_max_drop_rate_bar_s=p_max_drop,
-        flow_acceleration_late_ml_s2=f_accel_late,
-        overall_risk=overall_risk,
-        annotations=channeling_annotations,
+    channeling = _build_channeling(
+        brew_pressures, brew_flows, brew_samples, dt,
     )
 
     # ── TEMPERATURE DIAGNOSTICS ──────────────────────────────
@@ -1121,52 +1493,33 @@ def _compute_phase_diagnostics(
         r_avg = _round2(_safe_mean(r_values))
         r_slope = _round2(_linear_slope(r_values, dt))
 
-        # Trim ramp-up for stability metrics
-        ss_p, ss_f, _ = _trim_ramp_up(pressures, flows, phase_samples)
-        ss_count = len(ss_p)
-
-        if ss_count >= _MIN_STEADY_STATE_SAMPLES:
-            p_vol = _round2(_safe_std(ss_p))
-            f_vol = _round2(_safe_std(ss_f))
-            p_mean = _safe_mean(ss_p)
-            p_derivs = [
-                (ss_p[i] - ss_p[i - 1]) / dt
-                for i in range(1, len(ss_p))
-            ]
-            p_max_drop = min(p_derivs) if p_derivs else 0.0
-            late_start = int(len(ss_f) * 0.6)
-            f_accel = _linear_slope(ss_f[late_start:], dt)
-            risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
-        else:
-            p_vol = _round2(_safe_std(pressures))
-            f_vol = _round2(_safe_std(flows))
-            p_mean = _safe_mean(pressures)
-            risk = "INSUFFICIENT_DATA"
+        # Delegate channeling assessment to the shared builder so the
+        # per-phase and full-shot outputs share schema + behavior.
+        ch = _build_channeling(pressures, flows, phase_samples, dt)
 
         result["resistance_avg"] = r_avg
         result["resistance_slope"] = r_slope
-        result["channeling_risk"] = risk
-        result["pressure_stability_bar"] = p_vol
-        result["flow_stability_ml_s"] = f_vol
+        result["channeling_risk"] = ch["channeling_risk"]
+        result["flow_jitter_ml_s"] = ch["flow_jitter_ml_s"]
+        result["pressure_jitter_bar"] = ch["pressure_jitter_bar"]
+
         annotations["resistance_level"] = _annotate_ascending(
             r_avg, _RESISTANCE_LEVEL_BANDS
         )
         annotations["resistance_erosion"] = _annotate_descending(
             r_slope, _RESISTANCE_SLOPE_BANDS
         )
-        annotations["channeling"] = risk
-        annotations["pressure_stability"] = _pressure_volatility_label(
-            p_vol, p_mean,
-        )
-        annotations["flow_stability"] = _annotate_ascending(
-            f_vol, _FLOW_VOLATILITY_BANDS
-        )
-        if ss_count < _MIN_STEADY_STATE_SAMPLES:
-            annotations["channeling_note"] = (
-                f"Only {ss_count} samples at >=90% of peak pressure "
-                f"(need {_MIN_STEADY_STATE_SAMPLES}). "
-                "Assessment unreliable for this phase length."
-            )
+        annotations["channeling"] = ch["channeling_risk"]
+        # Fold the rich channeling annotations under a namespace so
+        # the agent can read them without key collisions.
+        for key in (
+            "flow_jitter", "flow_vs_target", "pressure_drop",
+            "late_flow_trend", "pressure_jitter", "flow_shape",
+            "window_confidence", "primary_signal", "guidance",
+        ):
+            annotations[f"channeling_{key}"] = ch["annotations"][key]
+        if "note" in ch["annotations"]:
+            annotations["channeling_note"] = ch["annotations"]["note"]
 
     elif phase_type == "decline":
         taper_rate = _round2(_linear_slope(pressures, dt))
@@ -1208,25 +1561,10 @@ def compute_summary_diagnostics(shot: ShotData) -> Optional[SummaryDiagnostics]:
     r_avg = _round2(_safe_mean(r_values))
     r_slope = _round2(_linear_slope(r_values, dt))
 
-    # Channeling — trim ramp-up to assess steady-state only
-    ss_pressures, ss_flows, _ = _trim_ramp_up(
-        brew_pressures, brew_flows, brew_samples,
-    )
-    if len(ss_pressures) >= _MIN_STEADY_STATE_SAMPLES:
-        p_vol = _safe_std(ss_pressures)
-        f_vol = _safe_std(ss_flows)
-        p_derivs = [
-            (ss_pressures[i] - ss_pressures[i - 1]) / dt
-            for i in range(1, len(ss_pressures))
-        ]
-        p_max_drop = min(p_derivs) if p_derivs else 0.0
-        late_start = int(len(ss_flows) * 0.6)
-        f_accel = _linear_slope(ss_flows[late_start:], dt)
-        risk = _assess_channeling_risk(p_vol, f_vol, p_max_drop, f_accel)
-    else:
-        p_vol = _safe_std(brew_pressures)
-        f_vol = _safe_std(brew_flows)
-        risk = "INSUFFICIENT_DATA"
+    # Channeling — delegate to shared builder so the summary shares the
+    # same trim + scoring logic as the full and per-phase outputs.
+    ch = _build_channeling(brew_pressures, brew_flows, brew_samples, dt)
+    risk = ch["channeling_risk"]
 
     # Temperature
     t_std = _round2(_safe_std(brew_temps))
