@@ -72,6 +72,16 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 
 ## Changelog
 
+### 2026-04-22
+- **Channeling indicators v2**: Rewrote the channeling-risk computation around four independent indicators, each catching a specific physical signature, with descriptor fields separated from scored indicators.
+  - **Window trim (V4)**: After the existing pressure-ramp trim, also strips leading & trailing zero-flow samples (valve-closed at entry, volumetric-cutoff at exit). Eliminates the class of false-positive HIGH ratings caused by trapped-pressure tails.
+  - **Flow jitter (V5)**: `flow_jitter_ml_s` replaces raw std as the primary flow-instability indicator. Measures first-difference std, so designed flow ramps no longer inflate the score. New annotation bands: STABLE <0.05, MODERATE_JITTER 0.10–<0.20, JITTERY ≥0.20; the scored threshold for +2 points begins at ≥0.10.
+  - **Target tracking (V6)**: `flow_vs_target_residual_ml_s` — std of (actual − target) flow — is the clearest channeling fingerprint on flow-led profiles. `null` on pressure-led profiles, in which case `pressure_jitter_bar` fills the indicator slot.
+  - **Late-flow runaway detrended**: `flow_acceleration_late_ml_s2` is now `late_slope − overall_slope` so that ramping-flow profiles read as stable rather than "accelerating at end."
+  - **Field renames (breaking):** `ChannelingIndicators.overall_risk` → `channeling_risk`; `flow_volatility_ml_s` → `flow_spread_ml_s` (descriptor, unscored); `pressure_volatility_bar` dropped in favor of `pressure_jitter_bar`. Per-phase `pressure_stability_bar` / `flow_stability_ml_s` renamed to `pressure_jitter_bar` / `flow_jitter_ml_s` to match.
+  - **Agent-facing annotations**: New `primary_signal`, `guidance`, `flow_shape`, `window_confidence` annotations make it clear to the LLM *why* a rating fired and how much confidence to give it.
+  - Diagnose skill version bumped; `SHOT_DIAGNOSTICS_REFERENCE.md` rewritten for the new schema.
+
 ### 2026-02-23
 - **Knowledge deduplication Phase 3**: Slimmed `GAGGIMATE_PROFILE_CREATION_GUIDE.md` from 1113 → 130 lines (88% reduction). Now a navigation hub that links to detailed `knowledge/profiles/` sub-files instead of duplicating their content
 - **Coffee processing reference**: Added `COFFEE_PROCESSING.md` — comprehensive guide to 7 processing methods (washed, natural, honey, etc.) and their espresso extraction implications

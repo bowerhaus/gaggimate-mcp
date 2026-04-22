@@ -349,17 +349,44 @@ class TestHelperFunctions:
         assert _annotate_descending(-6.0, _PRESSURE_DROP_RATE_BANDS) == "CLIFF"
 
     def test_assess_channeling_risk_low(self):
-        assert _assess_channeling_risk(0.1, 0.05, -0.3, 0.01) == "LOW"
+        # All indicators below primary thresholds → LOW
+        assert _assess_channeling_risk(
+            flow_jitter=0.02,
+            flow_vs_tgt=0.1,
+            pressure_max_drop_rate=-0.3,
+            flow_acceleration_late=0.01,
+            pressure_jitter=0.03,
+        ) == "LOW"
 
     def test_assess_channeling_risk_moderate(self):
-        assert _assess_channeling_risk(0.5, 0.3, -0.3, 0.01) == "MODERATE"
+        # flow_jitter 0.15 → +2 = MODERATE
+        assert _assess_channeling_risk(
+            flow_jitter=0.15,
+            flow_vs_tgt=0.1,
+            pressure_max_drop_rate=-0.3,
+            flow_acceleration_late=0.01,
+            pressure_jitter=0.03,
+        ) == "MODERATE"
 
     def test_assess_channeling_risk_high(self):
-        # Score: p_vol 0.8 (+2) + f_vol 0.3 (+1) + drop -2.0 (+1) + accel 0.08 (+1) = 5
-        assert _assess_channeling_risk(0.8, 0.3, -2.0, 0.08) == "HIGH"
+        # jitter 0.15 (+2) + vs_tgt 0.4 (+1) + drop -2.0 (+1) = 4 → HIGH
+        assert _assess_channeling_risk(
+            flow_jitter=0.15,
+            flow_vs_tgt=0.4,
+            pressure_max_drop_rate=-2.0,
+            flow_acceleration_late=0.01,
+            pressure_jitter=0.03,
+        ) == "HIGH"
 
     def test_assess_channeling_risk_very_high(self):
-        assert _assess_channeling_risk(1.2, 0.9, -4.0, 0.15) == "VERY_HIGH"
+        # All indicators past second threshold → 8 → VERY_HIGH
+        assert _assess_channeling_risk(
+            flow_jitter=0.25,
+            flow_vs_tgt=0.9,
+            pressure_max_drop_rate=-4.0,
+            flow_acceleration_late=0.15,
+            pressure_jitter=0.5,
+        ) == "VERY_HIGH"
 
 
 class TestBrewPhaseExtraction:
@@ -478,9 +505,10 @@ class TestShotDiagnostics:
         assert 'erosion' in diag['resistance']['annotations']
 
         # Channeling should be LOW for this stable shot
-        assert diag['channeling']['overall_risk'] == 'LOW'
-        assert 'pressure_stability' in diag['channeling']['annotations']
-        assert 'flow_stability' in diag['channeling']['annotations']
+        assert diag['channeling']['channeling_risk'] == 'LOW'
+        assert 'flow_jitter' in diag['channeling']['annotations']
+        assert 'pressure_jitter' in diag['channeling']['annotations']
+        assert 'guidance' in diag['channeling']['annotations']
 
         # Temperature should be stable
         assert diag['temperature']['stability_std_c'] < 1.0
@@ -512,11 +540,11 @@ class TestShotDiagnostics:
         diag = compute_shot_diagnostics(shot)
 
         assert diag is not None
-        # High volatility should be detected
-        assert diag['channeling']['pressure_volatility_bar'] > 0.35
-        assert diag['channeling']['flow_volatility_ml_s'] > 0.25
+        # Alternating flow and pressure produces high jitter on both variables
+        assert diag['channeling']['flow_jitter_ml_s'] > 0.20
+        assert diag['channeling']['pressure_jitter_bar'] > 0.20
         # Channeling risk should be elevated
-        assert diag['channeling']['overall_risk'] in ('MODERATE', 'HIGH', 'VERY_HIGH')
+        assert diag['channeling']['channeling_risk'] in ('MODERATE', 'HIGH', 'VERY_HIGH')
 
     def test_no_scale_data(self):
         """Test diagnostics when scale data is absent."""
@@ -564,7 +592,7 @@ class TestShotDiagnostics:
         assert diag['resistance']['avg'] > 0
         # Only 4 brew samples — fewer than the 5-sample minimum for steady-state
         # channeling assessment, so we expect INSUFFICIENT_DATA
-        assert diag['channeling']['overall_risk'] == 'INSUFFICIENT_DATA'
+        assert diag['channeling']['channeling_risk'] == 'INSUFFICIENT_DATA'
 
     def test_transform_includes_diagnostics(self):
         """Test that transform_shot_for_ai includes full diagnostics at per_phase level."""
@@ -1025,10 +1053,13 @@ class TestPerPhaseDiagnostics:
         assert 'resistance_avg' in diag
         assert 'resistance_slope' in diag
         assert 'channeling_risk' in diag
-        assert 'pressure_stability_bar' in diag
-        assert 'flow_stability_ml_s' in diag
+        assert 'flow_jitter_ml_s' in diag
+        assert 'pressure_jitter_bar' in diag
         assert 'resistance_level' in diag['annotations']
         assert 'channeling' in diag['annotations']
+        # Namespaced channeling annotations from the shared builder
+        assert 'channeling_flow_jitter' in diag['annotations']
+        assert 'channeling_guidance' in diag['annotations']
 
     def test_decline_diagnostics(self):
         samples = [
@@ -1186,3 +1217,333 @@ class TestSampledDataPoints:
         # (9.0 + 12.0 + 9.0) / 3 = 10.0, not 12.0
         mid = phase_samples[2]  # 3rd of 5 points → anchor at ~index 10
         assert mid['pressure_bar'] == 10.0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Channeling indicators v2 — V4 (edge trim) + V5 (jitter) + V6 (residual)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestJitterStd:
+    """_jitter_std measures first-difference std — noise around trend."""
+
+    def test_flat_signal_has_zero_jitter(self):
+        from gaggimate_mcp.transformers.shot import _jitter_std
+        assert _jitter_std([4.0, 4.0, 4.0, 4.0, 4.0]) == 0.0
+
+    def test_smooth_ramp_has_near_zero_jitter(self):
+        """A linear ramp has identical first differences → std(diffs) ≈ 0."""
+        from gaggimate_mcp.transformers.shot import _jitter_std
+        ramp = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+        assert _jitter_std(ramp) < 0.001
+
+    def test_jittery_signal_has_high_jitter(self):
+        """Alternating values produce large first differences."""
+        from gaggimate_mcp.transformers.shot import _jitter_std
+        jittery = [2.0, 4.0, 2.0, 4.0, 2.0, 4.0]
+        assert _jitter_std(jittery) > 1.5
+
+    def test_too_few_values_returns_zero(self):
+        from gaggimate_mcp.transformers.shot import _jitter_std
+        assert _jitter_std([]) == 0.0
+        assert _jitter_std([1.0]) == 0.0
+        assert _jitter_std([1.0, 2.0]) == 0.0
+
+
+class TestResidualStdVsTarget:
+    """_residual_std_vs_target measures how far actual flow strayed from target."""
+
+    def test_perfect_tracking_returns_zero(self):
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [{'pf': 2.0, 'tf': 2.0}] * 5
+        assert _residual_std_vs_target(samples) == 0.0
+
+    def test_systematic_constant_offset_returns_zero(self):
+        """Systematic offset has zero std (no variation in residual)."""
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [{'pf': 2.5, 'tf': 2.0}] * 5
+        assert _residual_std_vs_target(samples) == 0.0
+
+    def test_jitter_around_target_elevates_residual(self):
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [
+            {'pf': 1.5, 'tf': 2.0},
+            {'pf': 2.5, 'tf': 2.0},
+            {'pf': 1.5, 'tf': 2.0},
+            {'pf': 2.5, 'tf': 2.0},
+            {'pf': 1.5, 'tf': 2.0},
+            {'pf': 2.5, 'tf': 2.0},
+        ]
+        # Residuals alternate ±0.5 → population std = 0.5
+        assert abs(_residual_std_vs_target(samples) - 0.5) < 0.01
+
+    def test_no_target_flow_returns_none(self):
+        """Pure pressure-led profile — no tf field → not applicable."""
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [{'pf': 2.0}] * 5
+        assert _residual_std_vs_target(samples) is None
+
+    def test_zero_target_samples_ignored(self):
+        """Samples with tf=0 are not part of the commanded trajectory."""
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [
+            {'pf': 0.0, 'tf': 0.0},      # ignored
+            {'pf': 2.0, 'tf': 2.0},
+            {'pf': 2.0, 'tf': 2.0},
+            {'pf': 2.0, 'tf': 2.0},
+        ]
+        # Only 3 valid pairs, all perfect → 0.0
+        assert _residual_std_vs_target(samples) == 0.0
+
+    def test_too_few_valid_pairs_returns_none(self):
+        from gaggimate_mcp.transformers.shot import _residual_std_vs_target
+        samples = [{'pf': 2.0, 'tf': 2.0}, {'pf': 2.0, 'tf': 0.0}]
+        assert _residual_std_vs_target(samples) is None
+
+
+class TestStripFlowEdges:
+    """_strip_flow_edges removes leading/trailing near-zero flow samples."""
+
+    def test_no_zero_edges_returned_unchanged(self):
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [8.0, 8.5, 9.0, 8.5, 8.0]
+        f = [2.0, 2.5, 3.0, 2.5, 2.0]
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        rp, rf, rs, trimmed = _strip_flow_edges(p, f, s)
+        assert rp == p
+        assert rf == f
+        assert rs == s
+        assert trimmed == (0, 0)
+
+    def test_strips_trailing_zero_flow_with_trapped_pressure(self):
+        """Volumetric cutoff pattern: flow drops to 0 while pressure stays elevated."""
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [8.0, 8.0, 8.0, 7.2, 7.2, 7.2]
+        f = [3.0, 3.0, 3.0, 0.0, 0.0, 0.0]
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        rp, rf, _, trimmed = _strip_flow_edges(p, f, s)
+        assert rp == [8.0, 8.0, 8.0]
+        assert rf == [3.0, 3.0, 3.0]
+        assert trimmed == (0, 3)
+
+    def test_strips_leading_zero_flow(self):
+        """Valve-closed pattern: pressure ramping but flow hasn't opened yet."""
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [8.0, 8.5, 8.8, 9.0, 9.0]
+        f = [0.0, 0.0, 2.0, 2.5, 3.0]
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        rp, rf, _, trimmed = _strip_flow_edges(p, f, s)
+        assert rf == [2.0, 2.5, 3.0]
+        assert rp == [8.8, 9.0, 9.0]
+        assert trimmed == (2, 0)
+
+    def test_strips_both_edges(self):
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [7, 8, 9, 9, 9, 8, 7]
+        f = [0.0, 0.0, 2.0, 3.0, 2.0, 0.0, 0.0]
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        rp, rf, _, trimmed = _strip_flow_edges(p, f, s)
+        assert rf == [2.0, 3.0, 2.0]
+        assert rp == [9, 9, 9]
+        assert trimmed == (2, 2)
+
+    def test_all_zeros_returns_empty(self):
+        """When every sample is below threshold, caller decides what to do."""
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [5.0] * 5
+        f = [0.0] * 5
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        rp, rf, _, trimmed = _strip_flow_edges(p, f, s)
+        assert rp == [] and rf == []
+        assert trimmed == (5, 0)
+
+    def test_threshold_is_configurable(self):
+        from gaggimate_mcp.transformers.shot import _strip_flow_edges
+        p = [8, 9, 9, 8]
+        f = [0.2, 2.0, 2.0, 0.2]
+        s = [{'cp': pi, 'pf': fi} for pi, fi in zip(p, f)]
+        # Default threshold 0.1: nothing trimmed
+        _, rf, _, t = _strip_flow_edges(p, f, s, thr=0.1)
+        assert len(rf) == 4
+        # Threshold 0.5: edges trimmed
+        _, rf, _, t = _strip_flow_edges(p, f, s, thr=0.5)
+        assert rf == [2.0, 2.0]
+        assert t == (1, 1)
+
+
+class TestFlowShapeLabel:
+    """_flow_shape_label classifies the trajectory of flow over a window."""
+
+    def test_flat_flow(self):
+        from gaggimate_mcp.transformers.shot import _flow_shape_label
+        assert _flow_shape_label([3.0, 3.0, 3.0, 3.0, 3.0], dt=0.25) == "FLAT"
+
+    def test_ramping_up(self):
+        from gaggimate_mcp.transformers.shot import _flow_shape_label
+        flows = [1.0, 1.5, 2.0, 2.5, 3.0]  # +2 ml/s over 1s → 2 ml/s²
+        assert _flow_shape_label(flows, dt=0.25) == "RAMPING_UP"
+
+    def test_ramping_down(self):
+        from gaggimate_mcp.transformers.shot import _flow_shape_label
+        flows = [3.0, 2.5, 2.0, 1.5, 1.0]
+        assert _flow_shape_label(flows, dt=0.25) == "RAMPING_DOWN"
+
+    def test_insufficient_samples_returns_flat(self):
+        from gaggimate_mcp.transformers.shot import _flow_shape_label
+        assert _flow_shape_label([2.0], dt=0.25) == "FLAT"
+        assert _flow_shape_label([], dt=0.25) == "FLAT"
+
+
+class TestAssessChannelingRiskV2:
+    """4-indicator scoring with flow_vs_target primary / pressure_jitter fallback."""
+
+    def _risk(self, **kw):
+        from gaggimate_mcp.transformers.shot import _assess_channeling_risk
+        return _assess_channeling_risk(
+            flow_jitter=kw.get('flow_jitter', 0.0),
+            flow_vs_tgt=kw.get('flow_vs_tgt', 0.0),
+            pressure_max_drop_rate=kw.get('pressure_max_drop_rate', 0.0),
+            flow_acceleration_late=kw.get('flow_acceleration_late', 0.0),
+            pressure_jitter=kw.get('pressure_jitter', 0.0),
+        )
+
+    # --- basic bands ---
+
+    def test_all_zeros_is_low(self):
+        assert self._risk() == "LOW"
+
+    def test_flow_jitter_alone_moderate(self):
+        """flow_jitter >= 0.10 adds 2 points → MODERATE."""
+        assert self._risk(flow_jitter=0.15) == "MODERATE"
+
+    def test_two_aligned_indicators_is_high(self):
+        """flow_jitter (2) + pressure_cliff (2) = 4 → HIGH."""
+        assert self._risk(flow_jitter=0.15, pressure_max_drop_rate=-3.5) == "HIGH"
+
+    def test_all_indicators_blown_is_very_high(self):
+        assert self._risk(
+            flow_jitter=0.30,
+            flow_vs_tgt=1.0,
+            pressure_max_drop_rate=-4.0,
+            flow_acceleration_late=0.15,
+        ) == "VERY_HIGH"
+
+    # --- fallback behavior ---
+
+    def test_vs_target_none_falls_back_to_pressure_jitter(self):
+        """When no target_flow commanded, pressure_jitter fills the indicator slot."""
+        # flow_jitter 0.15 → +2, pressure_jitter 0.25 (>=0.20) → +2 = 4 → HIGH
+        assert self._risk(
+            flow_vs_tgt=None,
+            flow_jitter=0.15,
+            pressure_jitter=0.25,
+        ) == "HIGH"
+
+    def test_vs_target_present_ignores_pressure_jitter(self):
+        """Flow-led profile: residual signal is used, not pressure_jitter."""
+        # pressure_jitter irrelevant; flow_vs_tgt 0.0 + flow_jitter 0.15 → 2 → MODERATE
+        assert self._risk(
+            flow_vs_tgt=0.0,
+            flow_jitter=0.15,
+            pressure_jitter=0.5,  # would be alarming, but ignored
+        ) == "MODERATE"
+
+    # --- threshold boundaries ---
+
+    def test_flow_jitter_boundary_stable(self):
+        """Just below STABLE threshold → no contribution."""
+        assert self._risk(flow_jitter=0.049) == "LOW"
+
+    def test_flow_jitter_boundary_moderate_jitter(self):
+        """At MODERATE_JITTER threshold → +1 point → still LOW (score=1)."""
+        assert self._risk(flow_jitter=0.05) == "LOW"
+
+    def test_flow_jitter_boundary_jittery(self):
+        """At JITTERY threshold → +2 points → MODERATE."""
+        assert self._risk(flow_jitter=0.10) == "MODERATE"
+
+
+class TestLateFlowRunawayDetrended:
+    """_late_flow_runaway must compare late slope against overall slope.
+
+    Raw f_accel_late fires on any ramping-flow profile because the
+    late-window slope equals the overall ramp.  The indicator should
+    measure *excess* acceleration over what the profile designed for.
+    """
+
+    def test_flat_flow_no_runaway(self):
+        from gaggimate_mcp.transformers.shot import _late_flow_runaway
+        flows = [2.0] * 20
+        assert abs(_late_flow_runaway(flows, dt=0.25)) < 0.005
+
+    def test_linear_ramp_no_runaway(self):
+        """A clean linear ramp has late_slope == overall_slope → 0 runaway."""
+        from gaggimate_mcp.transformers.shot import _late_flow_runaway
+        flows = [1.0 + 0.1 * i for i in range(20)]  # steady 0.1 per step
+        assert abs(_late_flow_runaway(flows, dt=0.25)) < 0.01
+
+    def test_late_acceleration_on_flat_profile(self):
+        """Flat early, then kicks up → positive runaway."""
+        from gaggimate_mcp.transformers.shot import _late_flow_runaway
+        flows = [2.0] * 12 + [2.0, 2.3, 2.7, 3.2, 3.8, 4.5, 5.3, 6.2]
+        result = _late_flow_runaway(flows, dt=0.25)
+        assert result > 0.5
+
+    def test_late_acceleration_exceeds_existing_ramp(self):
+        """A ramping profile with an extra kick at the end registers runaway."""
+        from gaggimate_mcp.transformers.shot import _late_flow_runaway
+        # Overall slope ~0.1 per step; late window jumps to +0.5 per step
+        flows = [1.0 + 0.1 * i for i in range(12)]
+        flows += [flows[-1] + 0.5 * (i + 1) for i in range(8)]
+        result = _late_flow_runaway(flows, dt=0.25)
+        assert result > 0.5
+
+    def test_too_few_samples_returns_zero(self):
+        from gaggimate_mcp.transformers.shot import _late_flow_runaway
+        assert _late_flow_runaway([1.0, 2.0, 3.0], dt=0.25) == 0.0
+
+
+class TestChannelingRegressionFixtures:
+    """Regression tests against real shot data.
+
+    Shot 222 reproduced the 'Extraction Hold tail' false-positive that
+    motivated this refactor.  204 and 196 caught secondary false-positives
+    from flow-ramp profiles tripping late_flow_runaway.
+    """
+
+    def _run(self, path: str):
+        from pathlib import Path
+        from gaggimate_mcp.parsers.shot import parse_binary_shot
+        from gaggimate_mcp.transformers.shot import compute_shot_diagnostics
+        raw = Path(path).read_bytes()
+        shot_id = Path(path).stem.split('_')[1]
+        return compute_shot_diagnostics(parse_binary_shot(raw, f"000{shot_id}"))
+
+    def test_shot_222_extraction_hold_tail_not_flagged(self):
+        """Old pipeline: HIGH (f_vol=2.0 from trapped-pressure tail).
+        New pipeline: LOW with stable flow jitter."""
+        d = self._run('tests/fixtures/shot_222_hold_false_positive.slog')
+        c = d['channeling']
+        assert c['channeling_risk'] == "LOW"
+        assert c['flow_jitter_ml_s'] < 0.025   # VERY_STABLE
+        assert c['annotations']['flow_shape'] == "FLAT"
+        # V4 trim must have stripped the problematic tail
+        assert "trailing zero-flow" in c['annotations']['note']
+
+    def test_shot_204_ramping_profile_not_flagged(self):
+        """Flow ramping 1.6→3.3 on designed profile should not trip
+        late_flow_runaway (V5b fix: detrended vs overall slope)."""
+        d = self._run('tests/fixtures/shot_204_ramping_flow.slog')
+        c = d['channeling']
+        assert c['channeling_risk'] == "LOW"
+        assert c['annotations']['flow_shape'] == "RAMPING_UP"
+        # flow_spread will be elevated (it's raw std) but jitter stays low
+        assert c['flow_jitter_ml_s'] < 0.05
+        assert c['flow_spread_ml_s'] > 0.3  # intended ramp — descriptor only
+
+    def test_shot_196_baseline_high_cleared(self):
+        """Previously HIGH under baseline algorithm due to tail artifact."""
+        d = self._run('tests/fixtures/shot_196_baseline_high.slog')
+        c = d['channeling']
+        assert c['channeling_risk'] == "LOW"
+        assert c['flow_jitter_ml_s'] < 0.025
