@@ -129,7 +129,7 @@ The `valve` field controls the three-way solenoid valve:
 | `1` | Open | **All normal brewing — use this on every phase.** Water flows through the puck to the cup. |
 | `0` | Closed | Almost never. Seals water in the group head so the shot **cannot pour** — not a brewing setting. |
 
-**Important — always use `valve: 1` on every phase, including bloom / pre-infusion / soak phases.** A bloom or soak is created by turning the **pump off** during that phase (`pump`: `target` `"pressure"`, `pressure` `0`, `flow` `0`) — **not** by closing the valve. The valve stays open (`valve: 1`) for the entire shot. Every working reference profile in `EXAMPLES.md`, including the dedicated bloom templates, uses `valve: 1` on every phase. Setting `valve: 0` on a brew phase traps water in the group head, so the shot never pours and a volumetric stop target never triggers — a common and silent failure.
+**Important — always use `valve: 1` on every phase, including bloom / pre-infusion / soak phases.** A bloom or soak is created by turning the **pump off** during that phase (`pump`: `target` `"power"`, `pressure` `0`, `flow` `0` — the documented pump-off form in `PUMP_AND_TRANSITIONS.md` and every `EXAMPLES.md` bloom) — **not** by closing the valve. The valve stays open (`valve: 1`) for the entire shot. Every working reference profile in `EXAMPLES.md`, including the dedicated bloom templates, uses `valve: 1` on every phase. Setting `valve: 0` on a brew phase traps water in the group head, so the shot never pours and a volumetric stop target never triggers — a common and silent failure.
 
 ---
 
