@@ -45,7 +45,7 @@ Here's a minimal valid Pro profile:
 **What this profile does:**
 - **Pre-infusion phase** (5s): Targets 2 ml/s flow with 4 bar pressure limit — gently saturates the puck
 - **Extraction phase** (up to 40s): Ramps to 9 bar pressure over 3 seconds, stops at 36ml output
-- `valve: 1` keeps the 3-way valve closed (normal brewing); `adaptive: true` allows flow/pressure adjustment based on puck resistance
+- `valve: 1` keeps the 3-way valve **open** (normal brewing — water flows through the puck to the cup). Use `valve: 1` on **every** phase, including bloom / pre-infusion — a bloom comes from the pump turning off, not from closing the valve. `adaptive: true` allows flow/pressure adjustment based on puck resistance
 
 **Before creating or modifying profiles**, load [PROFILE_STRUCTURE.md](gaggimate://knowledge/profiles/PROFILE_STRUCTURE.md) for complete field definitions (top-level fields, phase fields, pump modes, valve states, etc.). The table below shows which reference file covers each topic.
 
