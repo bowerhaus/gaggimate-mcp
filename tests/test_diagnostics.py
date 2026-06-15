@@ -1,7 +1,10 @@
 """Tests for connection diagnostics module."""
 
+import socket
+import time
+
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from gaggimate_mcp.diagnostics import ping_host, check_port, check_http_endpoint, diagnose_connection
 from gaggimate_mcp.config import GaggimateConfig
 
@@ -178,3 +181,48 @@ async def test_diagnose_connection_https_misconfigured():
 
         assert any("https" in issue.lower() for issue in result["issues"])
         assert any("use_https" in rec.lower() for rec in result["recommendations"])
+
+
+@pytest.mark.asyncio
+async def test_check_port_success():
+    """getaddrinfo returns a list of 5-tuples; the first sockaddr is used."""
+    # AF_UNSPEC resolution typically returns multiple entries (e.g. A + AAAA).
+    addrinfo = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 80)),
+        (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("fe80::1", 80, 0, 0)),
+    ]
+    writer = MagicMock()
+    writer.wait_closed = AsyncMock()
+
+    with patch('socket.getaddrinfo', return_value=addrinfo), \
+         patch('asyncio.open_connection', AsyncMock(return_value=(MagicMock(), writer))):
+
+        result = await check_port("gaggimate.local", 80)
+
+        assert result["open"] is True
+        assert result["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_check_port_dns_timeout():
+    """A resolution timeout reports a non-empty 'timed out' error, not a blank DNS failure."""
+    def slow_getaddrinfo(*args, **kwargs):
+        time.sleep(0.2)
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 80))]
+
+    with patch('socket.getaddrinfo', side_effect=slow_getaddrinfo):
+        result = await check_port("gaggimate.local", 80, timeout=0.01)
+
+        assert result["open"] is False
+        assert "timed out" in result["error"]
+        assert result["error"].strip() != ""
+
+
+@pytest.mark.asyncio
+async def test_check_port_dns_failure():
+    """A genuine resolution failure surfaces as a DNS resolution error."""
+    with patch('socket.getaddrinfo', side_effect=socket.gaierror("Name or service not known")):
+        result = await check_port("nonexistent.local", 80)
+
+        assert result["open"] is False
+        assert "DNS resolution failed" in result["error"]
