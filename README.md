@@ -72,6 +72,9 @@ See [Example: Using ChatGPT to manually create profiles for Gaggimate by Dule Ra
 
 ## Changelog
 
+### 2026-06-15
+- **Fixed false `port_closed` diagnostics for `.local` hosts**: `diagnose_connection` no longer reports a healthy GaggiMate as unreachable with a blank "DNS resolution failed: " error. Root cause: `check_port` resolved with `AF_UNSPEC`, whose IPv6 (AAAA) mDNS lookup for a `.local` host hangs for the full timeout while the IPv4 lookup answers instantly — so a reachable device looked closed. `check_port` now resolves IPv4-only (`AF_INET`), matching the `ping` check. Also fixed a latent `getaddrinfo` result-unpacking bug, raised the resolution timeout to 5s as headroom, and made timeouts report a clear "timed out" message instead of an empty one.
+
 ### 2026-04-22
 - **Channeling indicators v2**: Rewrote the channeling-risk computation around four independent indicators, each catching a specific physical signature, with descriptor fields separated from scored indicators.
   - **Window trim (V4)**: After the existing pressure-ramp trim, also strips leading & trailing zero-flow samples (valve-closed at entry, volumetric-cutoff at exit). Eliminates the class of false-positive HIGH ratings caused by trapped-pressure tails.

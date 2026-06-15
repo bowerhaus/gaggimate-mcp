@@ -107,7 +107,7 @@ async def ping_host(host: str, timeout: float = 2.0) -> dict:
         }
 
 
-async def check_port(host: str, port: int, timeout: float = 2.0) -> dict:
+async def check_port(host: str, port: int, timeout: float = 5.0) -> dict:
     """Check if a TCP port is open and accepting connections.
 
     Args:
@@ -121,17 +121,31 @@ async def check_port(host: str, port: int, timeout: float = 2.0) -> dict:
         - error (str|None): Error message if failed
     """
     try:
-        # Resolve hostname first
+        # Resolve hostname first.
+        # Use AF_INET (IPv4 only) to match ping_host's gethostbyname: GaggiMate is an
+        # IPv4-only device, and on .local hosts the IPv6 (AAAA) mDNS lookup that AF_UNSPEC
+        # also issues hangs for the full timeout, making a reachable device look closed.
         try:
-            _, _, _, _, addr = await asyncio.wait_for(
-                asyncio.to_thread(socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM),
+            infos = await asyncio.wait_for(
+                asyncio.to_thread(socket.getaddrinfo, host, port, socket.AF_INET, socket.SOCK_STREAM),
                 timeout=timeout
             )
-            ip = addr[0][0]
-        except (socket.gaierror, asyncio.TimeoutError) as e:
+            if not infos:
+                return {
+                    "open": False,
+                    "error": f"No addresses found for {host}"
+                }
+            # getaddrinfo returns a list of 5-tuples; take the first result's sockaddr
+            ip = infos[0][4][0]
+        except asyncio.TimeoutError:
             return {
                 "open": False,
-                "error": f"DNS resolution failed: {str(e)}"
+                "error": f"DNS resolution timed out after {timeout}s (mDNS/.local can be slow)"
+            }
+        except socket.gaierror as e:
+            return {
+                "open": False,
+                "error": f"DNS resolution failed: {e}"
             }
 
         # Try to connect
